@@ -6,13 +6,14 @@ set(kio_upnp_ms_PART_SRCS
    kio_upnp_ms.cpp
    )
 
-include_directories(kio_upnp_ms /home/nikhil/workspace/hupnp-git-svn/herqq/hupnp/include)
-link_directories(/home/nikhil/workspace/hupnp-git-svn/herqq/hupnp/bin)
+find_path( HUpnp_INCLUDE_DIRS HUpnp )
+find_library( HUpnp_LIBS HUpnp )
 
 kde4_add_plugin(kio_upnp_ms ${kio_upnp_ms_PART_SRCS})
 
+include_directories( ${HUpnp_INCLUDE_DIRS} )
 target_link_libraries(kio_upnp_ms ${KDE4_KIO_LIBS})
-target_link_libraries(kio_upnp_ms HUpnp)
+target_link_libraries(kio_upnp_ms ${HUpnp_LIBS})
 
 install(TARGETS kio_upnp_ms  DESTINATION ${PLUGIN_INSTALL_DIR})
 
