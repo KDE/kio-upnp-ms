@@ -20,8 +20,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef UPNP_MS_H
 #define UPNP_MS_H
 
+#include <QList>
 #include <QThread>
 #include <QUuid>
+#include <QVariant>
 
 #include <kio/slavebase.h>
 

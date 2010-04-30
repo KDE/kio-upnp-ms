@@ -35,6 +35,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <HDevice>
 #include <HDeviceInfo>
 #include <HControlPoint>
+#include <HControlPointConfiguration>
 #include <HResourceType>
 #include <HService>
 #include <HServiceId>
@@ -75,9 +76,11 @@ void UPnPMS::get( const KUrl &url )
 UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
   : QObject(0)
  , SlaveBase( "upnp", pool, app )
- , m_controlPoint( new HControlPoint( 0, this ) )
  , m_mediaServer( NULL )
 {
+  HControlPointConfiguration config;
+  config.setPerformInitialDiscovery(false);
+  m_controlPoint = new HControlPoint( &config, this );
   connect( m_controlPoint, SIGNAL( rootDeviceOnline( Herqq::Upnp::HDevice *) ),
       this, SLOT( rootDeviceAdded( Herqq::Upnp::HDevice *) ) );
   if( !m_controlPoint->init() )
