@@ -97,9 +97,12 @@ UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
 
   QDBusReply<DeviceTypeMap> results = iface.call("allDevices");
   qDebug() << "---------" << results.isValid();
-  foreach(QString key, results.value().keys() ) {
-    qDebug() << key;
+  DeviceTypeMap devices = results.value();
+
+  foreach(QString udn, devices.keys()) {
+    qDebug() << udn;
   }
+  
 }
 
 void UPnPMS::devicesAdded(QList<QVariant> devices)
