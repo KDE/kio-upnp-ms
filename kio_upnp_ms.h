@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define UPNP_MS_H
 
 #include <QList>
+#include <QMap>
 #include <QThread>
 #include <QUuid>
 #include <QVariant>
@@ -58,6 +59,7 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     void waitForDevice();
     void listDevices();
     inline bool deviceFound();
+    void devicesAdded(QList<QVariant>);
 
     Herqq::Upnp::HControlPoint *m_controlPoint;
     Herqq::Upnp::HDevice *m_mediaServer;
@@ -70,6 +72,9 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     void done();
 
 };
+
+typedef QMap<QString,QString> DeviceTypeMap;
+Q_DECLARE_METATYPE( DeviceTypeMap )
 
 inline bool UPnPMS::deviceFound() {
   return m_mediaServer != NULL;

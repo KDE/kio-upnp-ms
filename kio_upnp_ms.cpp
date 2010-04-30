@@ -21,13 +21,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cstdio>
 
-#include <QTimer>
-
 #include <kdebug.h>
 #include <kcomponentdata.h>
 #include <kcmdlineargs.h>
 #include <kaboutdata.h>
+
 #include <QCoreApplication>
+#include <QtDBus>
 #include <QXmlStreamReader>
 
 #include <HAction>
@@ -46,6 +46,8 @@ using namespace Herqq::Upnp;
 
 extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
 {
+  qDBusRegisterMetaType<DeviceTypeMap>();
+
   KComponentData instance( "kio_upnp_ms" );
   QCoreApplication app( argc, argv );
 
@@ -87,6 +89,21 @@ UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
   {
     kDebug(7109) << "Error initing control point";
   }
+
+  // QDBusConnection::sessionBus().connect("org.kde.Cagibi", "/", "org.kde.Cagibi", "devicesAdded", this, SLOT( devicesAdded( QList<QVariant> )));
+
+  QDBusConnection bus = QDBusConnection::sessionBus();
+  QDBusInterface iface( "org.kde.Cagibi", "/", "org.kde.Cagibi", bus );
+
+  QDBusReply<DeviceTypeMap> results = iface.call("allDevices");
+  qDebug() << "---------" << results.isValid();
+  foreach(QString key, results.value().keys() ) {
+    qDebug() << key;
+  }
+}
+
+void UPnPMS::devicesAdded(QList<QVariant> devices)
+{
 }
 
 void UPnPMS::waitForDevice()
