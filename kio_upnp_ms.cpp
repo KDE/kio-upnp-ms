@@ -42,11 +42,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <HUdn>
 #include <HUpnp>
 
+#include "deviceinfo.h"
+#include "dbuscodec.h"
+
 using namespace Herqq::Upnp;
 
 extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
 {
   qDBusRegisterMetaType<DeviceTypeMap>();
+  qDBusRegisterMetaType<DeviceInfo>();
 
   KComponentData instance( "kio_upnp_ms" );
   QCoreApplication app( argc, argv );
@@ -100,13 +104,17 @@ UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
   DeviceTypeMap devices = results.value();
 
   foreach(QString udn, devices.keys()) {
-    qDebug() << udn;
+    QDBusReply<DeviceInfo> res = iface.call("deviceDetails", udn);
+    kDebug() << "Details for " << udn << "valid?" << res.isValid();
+    DeviceInfo device = res.value();
+    kDebug() << device.udn() << device.friendlyName();
   }
   
 }
 
 void UPnPMS::devicesAdded(QList<QVariant> devices)
 {
+  Q_UNUSED(devices);
 }
 
 void UPnPMS::waitForDevice()
@@ -116,6 +124,7 @@ void UPnPMS::waitForDevice()
 
 void UPnPMS::rootDeviceAdded( HDevice *dev )
 {
+  Q_UNUSED(dev);
   emit done();
 }
 
@@ -170,6 +179,8 @@ void UPnPMS::listDevices()
 
 void UPnPMS::browseDevice( const HDevice *dev, const QString &path )
 {
+  Q_UNUSED(dev);
+  Q_UNUSED(path);
   HService *contentDir = dev->serviceById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
   if( contentDir == NULL ) {
     error( KIO::ERR_UNSUPPORTED_ACTION, "UPnPMS device " + dev->deviceInfo().friendlyName() + " does not support browsing" );
@@ -197,6 +208,7 @@ void UPnPMS::browseDevice( const HDevice *dev, const QString &path )
 
   qint32 res;
   HAction::InvocationWaitReturnValue ret = browseAct->waitForInvoke( id, &res, &output, 20000 );
+  Q_UNUSED(ret);
 
   createDirectoryListing( output["Result"]->value().toString() );
 }
