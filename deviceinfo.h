@@ -48,6 +48,8 @@ public:
 
     const QString& parentDeviceUdn() const;
 
+    const bool isValid() const;
+
 private:
     QString m_type;
     QString m_friendlyName;
@@ -65,6 +67,11 @@ private:
     QString m_parentDeviceUdn;
 
 };
+
+inline const bool DeviceInfo::isValid() const
+{
+  return !m_type.isNull();
+}
 
 inline const QString& DeviceInfo::type() const
 {
