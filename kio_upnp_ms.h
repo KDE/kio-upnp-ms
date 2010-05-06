@@ -65,6 +65,9 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     Herqq::Upnp::HDevice *m_mediaServer;
     DeviceInfo m_deviceInfo;
 
+  private slots:
+    void rootDeviceOnline(Herqq::Upnp::HDevice *device);
+
   Q_SIGNALS:
     void done();
 

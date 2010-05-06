@@ -32,10 +32,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <HAction>
 #include <HActionArguments>
-#include <HDevice>
-#include <HDeviceInfo>
 #include <HControlPoint>
 #include <HControlPointConfiguration>
+#include <HDevice>
+#include <HDeviceInfo>
+#include <HDiscoveryType>
 #include <HResourceType>
 #include <HService>
 #include <HServiceId>
@@ -76,17 +77,29 @@ void UPnPMS::get( const KUrl &url )
 
 UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
   : QObject(0)
- , SlaveBase( "upnp", pool, app )
- , m_mediaServer( NULL )
+ , SlaveBase( "upnp-ms", pool, app )
 {
     HControlPointConfiguration config;
     config.setPerformInitialDiscovery(false);
     m_controlPoint = new HControlPoint( &config, this );
+    connect(m_controlPoint,
+            SIGNAL(rootDeviceOnline(Herqq::Upnp::HDevice *)),
+            this,
+            SLOT(rootDeviceOnline(Herqq::Upnp::HDevice *)));
     if( !m_controlPoint->init() )
     {
-      kDebug(7109) << "Error initing control point";
+      kDebug() << m_controlPoint->errorDescription();
+      kDebug() << "Error initing control point";
     }
 
+    QTimer::singleShot(1000, this, SIGNAL(done()));
+    enterLoop();
+}
+
+void UPnPMS::rootDeviceOnline(HDevice *device)
+{
+  kDebug() << "Device is online " ;
+  emit done();
 }
 
 void UPnPMS::enterLoop()
@@ -96,6 +109,10 @@ void UPnPMS::enterLoop()
   loop.exec( QEventLoop::ExcludeUserInputEvents );
 }
 
+/**
+ * Updates device information from Cagibi and gets
+ * HUPnP to find the device.
+ */
 void UPnPMS::updateDeviceInfo( const KUrl& url )
 {
     kDebug() << "Updating device info";
@@ -108,6 +125,12 @@ void UPnPMS::updateDeviceInfo( const KUrl& url )
       error(KIO::ERR_COULD_NOT_CONNECT, udn);
     }
     m_deviceInfo = res.value();
+
+    HDiscoveryType specific(m_deviceInfo.udn());
+    if( !m_controlPoint->scan(specific) ) {
+      kDebug() << m_controlPoint->errorDescription();
+    }
+    enterLoop();
 }
   
 void UPnPMS::stat( const KUrl &url )
@@ -176,17 +199,16 @@ void UPnPMS::browseDevice( const HDevice *dev, const QString &path )
 
 void UPnPMS::browseDevice( const KUrl &url )
 {
-  kDebug() << "!!!!!!!!!!!!!!!!!!! BROWSING !!!!!!!!!!!!!!!!";
+    kDebug() << "Should connect to " << m_deviceInfo.host() << m_deviceInfo.port() << m_deviceInfo.presentationUrl();
+    HDevice *dev = m_controlPoint->rootDevice( HUdn( url.host() ) );
+    kDebug() << " Device is " << dev;
 
-  HDevice *dev = m_controlPoint->rootDevice( HUdn( url.host() ) );
-  kDebug() << " Device is " << dev;
-
-  if( dev ) {
-    browseDevice( dev, url.path() );
-  }
-  else {
-    error( KIO::ERR_DOES_NOT_EXIST, url.prettyUrl() );
-  }
+    if( dev ) {
+      browseDevice( dev, url.path() );
+    }
+    else {
+      error( KIO::ERR_DOES_NOT_EXIST, url.prettyUrl() );
+    }
 }
 
 void UPnPMS::createDirectoryListing( const QString &didlString )
