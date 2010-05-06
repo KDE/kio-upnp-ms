@@ -49,7 +49,6 @@ using namespace Herqq::Upnp;
 
 extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
 {
-  qDBusRegisterMetaType<DeviceTypeMap>();
   qDBusRegisterMetaType<DeviceInfo>();
 
   KComponentData instance( "kio_upnp_ms" );
@@ -68,10 +67,6 @@ extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
 
 void UPnPMS::get( const KUrl &url )
 {
-  if( !deviceFound() ) {
-    waitForDevice();
-  }
-
   kDebug(7109) << "Entering function get";
   kDebug(7109)  << "Url is " << url;
 
@@ -84,48 +79,14 @@ UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
  , SlaveBase( "upnp", pool, app )
  , m_mediaServer( NULL )
 {
-  HControlPointConfiguration config;
-  config.setPerformInitialDiscovery(false);
-  m_controlPoint = new HControlPoint( &config, this );
-  connect( m_controlPoint, SIGNAL( rootDeviceOnline( Herqq::Upnp::HDevice *) ),
-      this, SLOT( rootDeviceAdded( Herqq::Upnp::HDevice *) ) );
-  if( !m_controlPoint->init() )
-  {
-    kDebug(7109) << "Error initing control point";
-  }
+    HControlPointConfiguration config;
+    config.setPerformInitialDiscovery(false);
+    m_controlPoint = new HControlPoint( &config, this );
+    if( !m_controlPoint->init() )
+    {
+      kDebug(7109) << "Error initing control point";
+    }
 
-  // QDBusConnection::sessionBus().connect("org.kde.Cagibi", "/", "org.kde.Cagibi", "devicesAdded", this, SLOT( devicesAdded( QList<QVariant> )));
-
-  QDBusConnection bus = QDBusConnection::sessionBus();
-  QDBusInterface iface( "org.kde.Cagibi", "/", "org.kde.Cagibi", bus );
-
-  QDBusReply<DeviceTypeMap> results = iface.call("allDevices");
-  qDebug() << "---------" << results.isValid();
-  DeviceTypeMap devices = results.value();
-
-  foreach(QString udn, devices.keys()) {
-    QDBusReply<DeviceInfo> res = iface.call("deviceDetails", udn);
-    kDebug() << "Details for " << udn << "valid?" << res.isValid();
-    DeviceInfo device = res.value();
-    kDebug() << device.udn() << device.friendlyName();
-  }
-  
-}
-
-void UPnPMS::devicesAdded(QList<QVariant> devices)
-{
-  Q_UNUSED(devices);
-}
-
-void UPnPMS::waitForDevice()
-{
-  enterLoop();
-}
-
-void UPnPMS::rootDeviceAdded( HDevice *dev )
-{
-  Q_UNUSED(dev);
-  emit done();
 }
 
 void UPnPMS::enterLoop()
@@ -135,46 +96,46 @@ void UPnPMS::enterLoop()
   loop.exec( QEventLoop::ExcludeUserInputEvents );
 }
 
+void UPnPMS::updateDeviceInfo( const KUrl& url )
+{
+    kDebug() << "Updating device info";
+    QDBusConnection bus = QDBusConnection::sessionBus();
+    QDBusInterface iface( "org.kde.Cagibi", "/", "org.kde.Cagibi", bus );
+    QString udn = "uuid:" + url.host();
+    QDBusReply<DeviceInfo> res = iface.call("deviceDetails", udn);
+    if( !res.isValid() ) {
+      kDebug() << "Invalid request";
+      error(KIO::ERR_COULD_NOT_CONNECT, udn);
+    }
+    m_deviceInfo = res.value();
+}
+  
 void UPnPMS::stat( const KUrl &url )
 {
-  if( !deviceFound() ) {
-    waitForDevice();
-  }
-  kDebug() << "URL is " << url;
-  
-  KIO::UDSEntry entry;
-  entry.insert( KIO::UDSEntry::UDS_NAME, url.fileName() );
-  entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
-  statEntry( entry );
+    if(  !m_deviceInfo.isValid()
+      || ("uuid:" + url.host()) != m_deviceInfo.udn() ) {
+        kDebug() << "Old udn is " << m_deviceInfo.udn();
+        kDebug() << m_deviceInfo.isValid();
+        updateDeviceInfo(url);
+        kDebug() << "New udn is " << m_deviceInfo.udn();
+    }
 
-  finished();
+    KIO::UDSEntry entry;
+    entry.insert( KIO::UDSEntry::UDS_NAME, url.fileName() );
+    entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
+    statEntry( entry );
+
+    finished();
 }
 
 void UPnPMS::listDir( const KUrl &url )
 {
   if( url.host().isEmpty() ) {
-    listDevices();
+    error(KIO::ERR_UNKNOWN_HOST, QString());
   }
   else {
     browseDevice( url );
   }
-}
-
-void UPnPMS::listDevices()
-{
-  KIO::UDSEntry entry;
-  foreach( HDevice *dev, m_controlPoint->rootDevices() ) {
-    if( dev->deviceInfo().deviceType().toString( HResourceType::TypeSuffix ) == "MediaServer" ) {
-      entry.insert( KIO::UDSEntry::UDS_NAME, dev->deviceInfo().udn().toSimpleUuid() );
-      entry.insert( KIO::UDSEntry::UDS_DISPLAY_NAME, dev->deviceInfo().friendlyName() );
-      // TODO : Should become upnp-ms
-      entry.insert( KIO::UDSEntry::UDS_TARGET_URL, "upnp-ms://" + dev->deviceInfo().udn().toSimpleUuid() );
-      entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
-      listEntry( entry, false );
-    }
-  }
-  listEntry( entry, true );
-  finished();
 }
 
 void UPnPMS::browseDevice( const HDevice *dev, const QString &path )
@@ -216,6 +177,7 @@ void UPnPMS::browseDevice( const HDevice *dev, const QString &path )
 void UPnPMS::browseDevice( const KUrl &url )
 {
   kDebug() << "!!!!!!!!!!!!!!!!!!! BROWSING !!!!!!!!!!!!!!!!";
+
   HDevice *dev = m_controlPoint->rootDevice( HUdn( url.host() ) );
   kDebug() << " Device is " << dev;
 

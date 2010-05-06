@@ -20,6 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef UPNP_MS_H
 #define UPNP_MS_H
 
+#include "deviceinfo.h"
+
 #include <QList>
 #include <QMap>
 #include <QThread>
@@ -53,31 +55,19 @@ class UPnPMS : public QObject, public KIO::SlaveBase
 
   private:
     void enterLoop();
+    void updateDeviceInfo( const KUrl &url );
     void browseDevice( const KUrl &url );
     void browseDevice( const Herqq::Upnp::HDevice *dev, const QString &path );
     void createDirectoryListing( const QString &didlString );
-    void waitForDevice();
-    void listDevices();
     inline bool deviceFound();
-    void devicesAdded(QList<QVariant>);
 
     Herqq::Upnp::HControlPoint *m_controlPoint;
     Herqq::Upnp::HDevice *m_mediaServer;
-    QUuid m_deviceUuid;
-
-  private slots:
-    void rootDeviceAdded( Herqq::Upnp::HDevice * );
+    DeviceInfo m_deviceInfo;
 
   Q_SIGNALS:
     void done();
 
 };
-
-typedef QMap<QString,QString> DeviceTypeMap;
-Q_DECLARE_METATYPE( DeviceTypeMap )
-
-inline bool UPnPMS::deviceFound() {
-  return m_mediaServer != NULL;
-}
 
 #endif
