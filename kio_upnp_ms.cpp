@@ -99,6 +99,7 @@ UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
 void UPnPMS::rootDeviceOnline(HDevice *device)
 {
   kDebug() << "Device is online " ;
+  m_device = device;
   emit done();
 }
 
@@ -165,16 +166,19 @@ void UPnPMS::browseDevice( const HDevice *dev, const QString &path )
 {
   Q_UNUSED(dev);
   Q_UNUSED(path);
+  foreach( HService *serv, dev->services() )
+      kDebug() << "Service: " << serv->serviceId().toString();
   HService *contentDir = dev->serviceById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
   if( contentDir == NULL ) {
-    error( KIO::ERR_UNSUPPORTED_ACTION, "UPnPMS device " + dev->deviceInfo().friendlyName() + " does not support browsing" );
-    return;
+      contentDir = dev->serviceById( HServiceId("urn:schemas-upnp-org:serviceId:ContentDirectory") );
+      if( contentDir == NULL ) {
+          error( KIO::ERR_UNSUPPORTED_ACTION, "UPnPMS device " + dev->deviceInfo().friendlyName() + " does not support browsing" );
+          return;
+      }
   }
 
   HAction *browseAct = contentDir->actionByName( "Browse" );
-  kDebug() << "browseaction " << browseAct;
   HActionArguments args = browseAct->inputArguments();
-  kDebug() << "browseactdfdafion " << browseAct;
 
   // TODO Use path to decide
   args["ObjectID"]->setValue( "1");
@@ -199,9 +203,7 @@ void UPnPMS::browseDevice( const HDevice *dev, const QString &path )
 
 void UPnPMS::browseDevice( const KUrl &url )
 {
-    kDebug() << "Should connect to " << m_deviceInfo.host() << m_deviceInfo.port() << m_deviceInfo.presentationUrl();
     HDevice *dev = m_controlPoint->rootDevice( HUdn( url.host() ) );
-    kDebug() << " Device is " << dev;
 
     if( dev ) {
       browseDevice( dev, url.path() );
@@ -213,7 +215,7 @@ void UPnPMS::browseDevice( const KUrl &url )
 
 void UPnPMS::createDirectoryListing( const QString &didlString )
 {
-  kDebug() << didlString;
+    kDebug() << didlString;
   QXmlStreamReader reader( didlString );
 
   KIO::UDSEntry entry;

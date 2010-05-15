@@ -62,7 +62,8 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     inline bool deviceFound();
 
     Herqq::Upnp::HControlPoint *m_controlPoint;
-    Herqq::Upnp::HDevice *m_mediaServer;
+
+    Herqq::Upnp::HDevice *m_device;
     DeviceInfo m_deviceInfo;
 
   private slots:
