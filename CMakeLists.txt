@@ -5,6 +5,8 @@ INCLUDE_DIRECTORIES( ${KDE4_INCLUDES} . build )
 set(kio_upnp_ms_PART_SRCS
    kio_upnp_ms.cpp
    dbuscodec.cpp
+   didlparser.cpp
+   didlobjects.cpp
    )
 
 find_path( HUpnp_INCLUDE_DIRS HUpnp )
