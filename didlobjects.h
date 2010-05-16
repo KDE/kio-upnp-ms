@@ -28,7 +28,7 @@ namespace DIDL {
 // but this is there just to get templates to work fine
 // ah.. the things needed for standards compliance :-)
 // oops, ok id is common
-class SuperItem : public QObject
+class SuperObject : public QObject
 {
   Q_OBJECT
   public:
@@ -38,7 +38,7 @@ class SuperItem : public QObject
         Container
     };
 
-    SuperItem( Type t, const QString &id ) : m_type(t), m_id(id) {};
+    SuperObject( Type t, const QString &id ) : m_type(t), m_id(id) {};
     Type type() const { return m_type; };
     QString id() const { return m_id; };
 
@@ -54,7 +54,7 @@ class SuperItem : public QObject
  * A description doesn't care about internal elements and so on.
  * It stores everything inside as text.
  */
-class Description : public SuperItem
+class Description : public SuperObject
 {
   Q_OBJECT
   public:
@@ -64,12 +64,14 @@ class Description : public SuperItem
     Description( const QString &id, const QUrl &ns );
 
     QString description() const { return m_description; };
-    void setDescription( const QString &desc );
+    void setDescription( const QString &desc ) { m_description = desc; };
+
 
     QUrl nameSpace() const { return m_namespace; };
 
     QString type() const { return m_type; };
-    void setType( const QString &type );
+    void setType( const QString &type ) { m_type = type; };
+
 
   private:
     QString m_description;
@@ -77,15 +79,45 @@ class Description : public SuperItem
     QUrl m_namespace;
 };
 
-inline void Description::setDescription( const QString &desc )
+class Object : public SuperObject
 {
-    m_description = desc;
-}
+  Q_OBJECT
+  public:
+    Object( Type type, const QString &id, const QString &parentId, bool restricted );
 
-inline void Description::setType( const QString &type )
+    QString parentId() const { return m_parentId; };
+    bool restricted() const { return m_restricted; };
+
+    // since dc:title and upnp:class are REQUIRED
+    // but child elements, they aren't in the constructor
+    QString title() const { return m_title; };
+    QString upnpClass() const { return m_upnpClass; };
+
+    void setTitle( const QString &title ) { m_title = title; };
+    void setUpnpClass( const QString &upnpClass ) { m_upnpClass = upnpClass; };
+
+  private:
+    QString m_parentId;
+    bool m_restricted;
+    QString m_title;
+    QString m_upnpClass;
+};
+
+class Container : public Object
 {
-    m_type = type;
-}
+  Q_OBJECT
+  public:
+    Container( const QString &id, const QString &parentId, bool restricted );
+
+};
+
+class Item : public Object
+{
+  Q_OBJECT
+  public:
+    Item( const QString &id, const QString &parentId, bool restricted );
+
+};
 } //~ namespace
 
 #endif

@@ -30,7 +30,7 @@ namespace DIDL {
 class Container;
 class Item;
 class Description;
-class SuperItem;
+class SuperObject;
 
 /**
  * This class implements a parser for the 
@@ -97,7 +97,7 @@ class Parser : public QObject
 
  private:
     QXmlStreamReader *m_reader;
-    QStack<SuperItem> m_stack;
+    QStack<SuperObject> m_stack;
 };
 
 } //~ namespace
