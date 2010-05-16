@@ -24,10 +24,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace DIDL {
 
-// container and item form a nice hierarchy,
-// but this is there just to get templates to work fine
-// ah.. the things needed for standards compliance :-)
-// oops, ok id is common
 class SuperObject : public QObject
 {
   Q_OBJECT
