@@ -67,7 +67,7 @@ class UPnPMS : public QObject, public KIO::SlaveBase
 
   private slots:
     void rootDeviceOnline(Herqq::Upnp::HDevice *device);
-    void slotError();
+    void slotParseError( const QString &errorString );
 
   Q_SIGNALS:
     void done();

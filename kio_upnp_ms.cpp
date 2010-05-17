@@ -199,9 +199,9 @@ void UPnPMS::browseDevice( const KUrl &url )
     createDirectoryListing( output["Result"]->value().toString() );
 }
 
-void UPnPMS::slotError()
+void UPnPMS::slotParseError( const QString &errorString )
 {
-    error(KIO::ERR_SLAVE_DEFINED, "Parse error");
+    error(KIO::ERR_SLAVE_DEFINED, errorString);
 }
 
 void UPnPMS::createDirectoryListing( const QString &didlString )
@@ -209,7 +209,7 @@ void UPnPMS::createDirectoryListing( const QString &didlString )
     kDebug() << didlString;
 
     DIDL::Parser parser;
-    connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotError()) );
+    connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
     connect( &parser, SIGNAL(done()), this, SIGNAL(done()) );
     parser.parse(didlString);
     enterLoop();
