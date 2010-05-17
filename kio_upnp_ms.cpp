@@ -70,6 +70,7 @@ extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
 
 void UPnPMS::get( const KUrl &url )
 {
+    kDebug() << url;
 }
 
 UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
@@ -133,6 +134,7 @@ void UPnPMS::updateDeviceInfo( const KUrl& url )
   
 void UPnPMS::stat( const KUrl &url )
 {
+    kDebug() << url;
     if(  !m_deviceInfo.isValid()
       || ("uuid:" + url.host()) != m_deviceInfo.udn() ) {
         kDebug() << m_deviceInfo.isValid();
@@ -149,6 +151,7 @@ void UPnPMS::stat( const KUrl &url )
 
 void UPnPMS::listDir( const KUrl &url )
 {
+    kDebug() << url;
   if( url.host().isEmpty() ) {
     error(KIO::ERR_UNKNOWN_HOST, QString());
   }
@@ -204,6 +207,23 @@ void UPnPMS::slotParseError( const QString &errorString )
     error(KIO::ERR_SLAVE_DEFINED, errorString);
 }
 
+void UPnPMS::slotContainer( DIDL::Container *c )
+{
+    KIO::UDSEntry entry;
+    entry.insert( KIO::UDSEntry::UDS_NAME, c->id() );
+    entry.insert( KIO::UDSEntry::UDS_DISPLAY_NAME, c->title() );
+    entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
+    kDebug() << "GOT ENTRY" << c->title();
+    listEntry(entry, false);
+}
+
+void UPnPMS::slotListDirDone()
+{
+    kDebug() << "DONE";
+    listEntry(KIO::UDSEntry(), true);
+    finished();
+}
+
 void UPnPMS::createDirectoryListing( const QString &didlString )
 {
     kDebug() << didlString;
@@ -211,6 +231,9 @@ void UPnPMS::createDirectoryListing( const QString &didlString )
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
     connect( &parser, SIGNAL(done()), this, SIGNAL(done()) );
+    connect( &parser, SIGNAL(done()), this, SLOT(slotListDirDone()) );
+
+    connect( &parser, SIGNAL(container(DIDL::Container *)), this, SLOT(slotContainer(DIDL::Container *)) );
     parser.parse(didlString);
     enterLoop();
 }

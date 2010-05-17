@@ -41,6 +41,11 @@ namespace Herqq
   }
 }
 
+namespace DIDL
+{
+  class Container;
+}
+
 /**
   This class implements a upnp kioslave
  */
@@ -68,6 +73,8 @@ class UPnPMS : public QObject, public KIO::SlaveBase
   private slots:
     void rootDeviceOnline(Herqq::Upnp::HDevice *device);
     void slotParseError( const QString &errorString );
+    void slotListDirDone();
+    void slotContainer( DIDL::Container *c );
 
   Q_SIGNALS:
     void done();
