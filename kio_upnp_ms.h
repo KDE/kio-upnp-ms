@@ -57,7 +57,6 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     void enterLoop();
     void updateDeviceInfo( const KUrl &url );
     void browseDevice( const KUrl &url );
-    void browseDevice( const Herqq::Upnp::HDevice *dev, const QString &path );
     void createDirectoryListing( const QString &didlString );
     inline bool deviceFound();
 
