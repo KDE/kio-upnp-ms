@@ -35,6 +35,7 @@ Parser::~Parser()
 
 void Parser::parse(const QString &input)
 {
+    emit error("Boom");
 }
 
 } //~ namespace

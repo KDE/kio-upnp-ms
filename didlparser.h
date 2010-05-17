@@ -72,7 +72,7 @@ class Parser : public QObject
      * Emitted in case of an error at any point
      * The parser will stop parsing after this.
      */
-    void error(const QString errorString);
+    void error(const QString &errorString);
 
     /**
      * Emitted when parsing is finished.

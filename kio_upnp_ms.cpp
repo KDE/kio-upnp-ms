@@ -166,7 +166,6 @@ void UPnPMS::browseDevice( const KUrl &url )
 
     QString path = url.path();
 
-    foreach( HService *serv, m_device->services() )
     HService *contentDir = m_device->serviceById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
     if( contentDir == NULL ) {
         contentDir = m_device->serviceById( HServiceId("urn:schemas-upnp-org:serviceId:ContentDirectory") );
@@ -200,44 +199,18 @@ void UPnPMS::browseDevice( const KUrl &url )
     createDirectoryListing( output["Result"]->value().toString() );
 }
 
+void UPnPMS::slotError()
+{
+    error(KIO::ERR_SLAVE_DEFINED, "Parse error");
+}
+
 void UPnPMS::createDirectoryListing( const QString &didlString )
 {
     kDebug() << didlString;
-  QXmlStreamReader reader( didlString );
 
-  KIO::UDSEntry entry;
-  while( !reader.atEnd() ) {
-    reader.readNext();
-
-    if( reader.isStartElement() ) {
-      if( reader.name() == "item" ) {
-        entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
-      }
-      else if( reader.name() == "container" ) {
-        entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
-      }
-      else {
-        continue;
-      }
-
-      while( reader.name() != "title" ) {
-        reader.readNext();
-      }
-
-      reader.readNext();
-      if( reader.isCharacters() ) {
-        entry.insert( KIO::UDSEntry::UDS_NAME, reader.text().toString() );
-      }
-
-      entry.insert( KIO::UDSEntry::UDS_ACCESS, S_IRUSR | S_IRGRP | S_IROTH );
-      listEntry( entry, false );
-    }
-  }
-
-  if( reader.hasError() ) {
-    error( KIO::ERR_SLAVE_DEFINED, reader.errorString() );
-  }
-
-  listEntry( entry, true );
-  finished();
+    DIDL::Parser parser;
+    connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotError()) );
+    connect( &parser, SIGNAL(done()), this, SIGNAL(done()) );
+    parser.parse(didlString);
+    enterLoop();
 }
