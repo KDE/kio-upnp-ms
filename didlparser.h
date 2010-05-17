@@ -83,17 +83,17 @@ class Parser : public QObject
     /**
      * Emitted when a top-level <item> is completely parsed
      */
-    void item(Item *);
+    void item(DIDL::Item *);
 
     /**
      * Emitted when a top-level <container> is completely parsed.
      */
-    void container(Container *);
+    void container(DIDL::Container *);
 
     /**
      * Emitted for a top-level <desc> element is parsed.
      */
-    void desc(Description *);
+    void desc(DIDL::Description *);
 
  private:
     QXmlStreamReader *m_reader;

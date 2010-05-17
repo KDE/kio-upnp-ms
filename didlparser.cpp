@@ -35,7 +35,10 @@ Parser::~Parser()
 
 void Parser::parse(const QString &input)
 {
-    emit error("Boom");
+    Container *c = new Container("0", "-1", false);
+    c->setTitle("Testing");
+    emit container(c);
+    emit done();
 }
 
 } //~ namespace
