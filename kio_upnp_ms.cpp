@@ -272,16 +272,15 @@ QString UPnPMS::resolvePathToId( const QString &path )
     QStringList pathList = path.split( QDir::separator() );
     kDebug() << "Path is " << pathList;
 
+    QString startAt;
+
     QStringListIterator it(pathList);
     it.toBack();
     while( it.hasPrevious() ) {
         QString segment = it.previous();
         QString id = idForName( segment );
         kDebug() << segment << id;
-        if( id.isNull() ) {
-            // here is where you query the server in a blocking call
-        }
-        else {
+        if( !id.isNull() ) {
             // if its the ID we are looking for, good
             // otherwise we are at a certain point in the path
             // whose ID we know, now go downwards, trying to resolve
@@ -290,9 +289,23 @@ QString UPnPMS::resolvePathToId( const QString &path )
                 return id;
             }
             else {
-                //query and continue loop
+                // we know 'a' ID, but not the one we want.
+                // we can go forward from this point,
+                // so break out of the loop
+                startAt = segment;
             }
         }
+        else {
+            // well if its null, see if any parent is non null,
+            // so just continue
+            // don't delete this branch from the code,
+            // it helps to understand
+            // and the compiler will optimize it out anyway
+        }
     }
+
+    kDebug() << "Start resolving from" << startAt;
+
+    // here is where you query the server in a blocking call
     return QString();
 }
