@@ -207,7 +207,7 @@ void UPnPMS::browseDevice( const KUrl &url )
     qint32 res;
     HAction::InvocationWaitReturnValue ret = browseAct->waitForInvoke( id, &res, &output, 20000 );
     Q_UNUSED(ret);
-   
+
     createDirectoryListing( output["Result"]->value().toString() );
 }
 
@@ -237,12 +237,10 @@ void UPnPMS::createDirectoryListing( const QString &didlString )
 
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
-    connect( &parser, SIGNAL(done()), this, SIGNAL(done()) );
     connect( &parser, SIGNAL(done()), this, SLOT(slotListDirDone()) );
 
     connect( &parser, SIGNAL(container(DIDL::Container *)), this, SLOT(slotContainer(DIDL::Container *)) );
     parser.parse(didlString);
-    enterLoop();
 }
 
 QString UPnPMS::idForName( const QString &name )
