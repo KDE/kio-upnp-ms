@@ -191,7 +191,14 @@ void UPnPMS::browseDevice( const KUrl &url )
     HActionArguments args = browseAct->inputArguments();
    
     // TODO Use path to decide
-    args["ObjectID"]->setValue( idForName(path) );
+    QString idString = resolvePathToId(path);
+
+    if( idString.isNull() ) {
+        error( KIO::ERR_DOES_NOT_EXIST, path );
+        return;
+    }
+
+    args["ObjectID"]->setValue( idString );
     args["BrowseFlag"]->setValue( "BrowseDirectChildren");
     args["Filter"]->setValue( "*");
     args["StartingIndex"]->setValue( 0);
@@ -250,5 +257,42 @@ QString UPnPMS::idForName( const QString &name )
     }
     if( m_reverseCache.contains( name ) )
         return m_reverseCache[name]->id();
+    return QString();
+}
+
+/**
+ * Tries to resolve a complete path to the right
+ * ObjectID for the path. Tries to use the cache.
+ * If there is cache miss, backtracks along the path
+ * or queries the UPnP device.
+ * If the Id is not found, returns a null string
+ */
+QString UPnPMS::resolvePathToId( const QString &path )
+{
+    QStringList pathList = path.split( QDir::separator() );
+    kDebug() << "Path is " << pathList;
+
+    QStringListIterator it(pathList);
+    it.toBack();
+    while( it.hasPrevious() ) {
+        QString segment = it.previous();
+        QString id = idForName( segment );
+        kDebug() << segment << id;
+        if( id.isNull() ) {
+            // here is where you query the server in a blocking call
+        }
+        else {
+            // if its the ID we are looking for, good
+            // otherwise we are at a certain point in the path
+            // whose ID we know, now go downwards, trying to resolve
+            // the exact path
+            if( id == idForName( pathList.last() ) ) {
+                return id;
+            }
+            else {
+                //query and continue loop
+            }
+        }
+    }
     return QString();
 }

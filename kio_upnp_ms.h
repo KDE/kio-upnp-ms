@@ -70,6 +70,7 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     inline bool deviceFound();
 
     QString idForName( const QString &name );
+    QString resolvePathToId( const QString &path );
 
     Herqq::Upnp::HControlPoint *m_controlPoint;
 
