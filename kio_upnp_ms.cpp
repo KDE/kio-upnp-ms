@@ -210,8 +210,7 @@ void UPnPMS::slotParseError( const QString &errorString )
 void UPnPMS::slotContainer( DIDL::Container *c )
 {
     KIO::UDSEntry entry;
-    entry.insert( KIO::UDSEntry::UDS_NAME, c->id() );
-    entry.insert( KIO::UDSEntry::UDS_DISPLAY_NAME, c->title() );
+    entry.insert( KIO::UDSEntry::UDS_NAME, c->title() );
     entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
     kDebug() << "GOT ENTRY" << c->title();
     listEntry(entry, false);
