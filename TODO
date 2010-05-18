@@ -1,3 +1,10 @@
 watch for signals from cagibi about device
 disconnections
 be ready to update device info if it changes
+Support arbitrary browsing. If user directly
+goes to upnp-ms://uuid/path/to/file, then use
+Browse() or Search() to resolve the right ID.
+ - Backtrack along the path until we get an ID,
+   then call recursive Browse() with only dc:title in
+   the filter (to reduce the transfer) and get the right
+   ID?
