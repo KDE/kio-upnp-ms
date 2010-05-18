@@ -248,5 +248,7 @@ QString UPnPMS::idForName( const QString &name )
     if( name.isEmpty() || name == "/" ) {
         return "0";
     }
-    return m_reverseCache[name]->id();
+    if( m_reverseCache.contains( name ) )
+        return m_reverseCache[name]->id();
+    return QString();
 }
