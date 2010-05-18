@@ -182,7 +182,7 @@ void UPnPMS::browseDevice( const KUrl &url )
     HActionArguments args = browseAct->inputArguments();
    
     // TODO Use path to decide
-    args["ObjectID"]->setValue( "1");
+    args["ObjectID"]->setValue( idForName(path) );
     args["BrowseFlag"]->setValue( "BrowseDirectChildren");
     args["Filter"]->setValue( "*");
     args["StartingIndex"]->setValue( 0);
@@ -236,4 +236,12 @@ void UPnPMS::createDirectoryListing( const QString &didlString )
     connect( &parser, SIGNAL(container(DIDL::Container *)), this, SLOT(slotContainer(DIDL::Container *)) );
     parser.parse(didlString);
     enterLoop();
+}
+
+QString UPnPMS::idForName( const QString &name )
+{
+    if( name.isEmpty() || name == "/" ) {
+        return "0";
+    }
+    return m_reverseCache[name]->id();
 }

@@ -22,11 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "deviceinfo.h"
 
-#include <QList>
-#include <QMap>
-#include <QThread>
-#include <QUuid>
-#include <QVariant>
+#include <QCache>
 
 #include <kio/slavebase.h>
 
@@ -43,8 +39,16 @@ namespace Herqq
 
 namespace DIDL
 {
+  class Object;
+  class Item;
   class Container;
+  class Description;
 }
+
+// we map to DIDL object since <desc> have no cache value
+// why not cache just the ID? QCache wants a pointer. So might
+// as well store the Item/Container we receive from the parser
+typedef QCache<QString, DIDL::Object> NameToObjectCache;
 
 /**
   This class implements a upnp kioslave
@@ -65,10 +69,14 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     void createDirectoryListing( const QString &didlString );
     inline bool deviceFound();
 
+    QString idForName( const QString &name );
+
     Herqq::Upnp::HControlPoint *m_controlPoint;
 
     Herqq::Upnp::HDevice *m_device;
     DeviceInfo m_deviceInfo;
+
+    NameToObjectCache m_reverseCache;
 
   private slots:
     void rootDeviceOnline(Herqq::Upnp::HDevice *device);
