@@ -105,7 +105,9 @@ void UPnPMS::enterLoop()
 {
   QEventLoop loop;
   connect( this, SIGNAL( done() ), &loop, SLOT( quit() ) );
+  kDebug() << "================= ENTERING LOOP ===============";
   loop.exec( QEventLoop::ExcludeUserInputEvents );
+  kDebug() << "================= OUT OF LOOP ===============";
 }
 
 /**
@@ -118,16 +120,23 @@ void UPnPMS::updateDeviceInfo( const KUrl& url )
     QDBusConnection bus = QDBusConnection::sessionBus();
     QDBusInterface iface( "org.kde.Cagibi", "/", "org.kde.Cagibi", bus );
     QString udn = "uuid:" + url.host();
+    kDebug() << "Searching for" << udn;
     QDBusReply<DeviceInfo> res = iface.call("deviceDetails", udn);
     if( !res.isValid() ) {
       kDebug() << "Invalid request";
       error(KIO::ERR_COULD_NOT_CONNECT, udn);
     }
     m_deviceInfo = res.value();
+    if( m_deviceInfo.udn().isEmpty() ) {
+        error( KIO::ERR_UNKNOWN_HOST, m_deviceInfo.udn() );
+        return;
+    }
 
     HDiscoveryType specific(m_deviceInfo.udn());
     if( !m_controlPoint->scan(specific) ) {
       kDebug() << m_controlPoint->errorDescription();
+      error( KIO::ERR_UNKNOWN_HOST, m_deviceInfo.udn() );
+      return;
     }
     enterLoop();
 }
@@ -212,7 +221,6 @@ void UPnPMS::slotContainer( DIDL::Container *c )
     KIO::UDSEntry entry;
     entry.insert( KIO::UDSEntry::UDS_NAME, c->title() );
     entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
-    kDebug() << "GOT ENTRY" << c->title();
     listEntry(entry, false);
 }
 
