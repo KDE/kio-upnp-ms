@@ -72,9 +72,8 @@ void Parser::parse(const QString &input)
                 emit itemParsed( static_cast<Item*>( object ) );
             else
                 emit containerParsed( static_cast<Container*>( object ) );
-            while( m_reader->readNextStartElement() )
-                ;
-            m_reader->readNext();
+            // skip remaining attributes for now
+            m_reader->skipCurrentElement();
 
         }
     }
