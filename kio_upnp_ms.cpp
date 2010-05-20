@@ -265,7 +265,7 @@ void UPnPMS::createDirectoryListing( const QString &didlString )
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
     connect( &parser, SIGNAL(done()), this, SLOT(slotListDirDone()) );
 
-    connect( &parser, SIGNAL(container(DIDL::Container *)), this, SLOT(slotContainer(DIDL::Container *)) );
+    connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotContainer(DIDL::Container *)) );
     parser.parse(didlString);
 }
 

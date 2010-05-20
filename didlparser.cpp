@@ -37,7 +37,7 @@ void Parser::parse(const QString &input)
 {
     Container *c = new Container("0", "-1", false);
     c->setTitle("Testing");
-    emit container(c);
+    emit containerParsed(c);
     emit done();
 }
 
