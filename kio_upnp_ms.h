@@ -34,6 +34,7 @@ namespace Herqq
   {
     class HControlPoint;
     class HDevice;
+    class HActionArguments;
   }
 }
 
@@ -49,6 +50,9 @@ namespace DIDL
 // why not cache just the ID? QCache wants a pointer. So might
 // as well store the Item/Container we receive from the parser
 typedef QCache<QString, DIDL::Object> NameToObjectCache;
+
+#define BROWSE_DIRECT_CHILDREN "BrowseDirectChildren"
+#define BROWSE_METADATA "BrowseMetadata"
 
 /**
   This class implements a upnp kioslave
@@ -68,6 +72,12 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     void browseDevice( const KUrl &url );
     void createDirectoryListing( const QString &didlString );
     inline bool deviceFound();
+    Herqq::Upnp::HActionArguments browseDevice( const QString &id,
+                                                const QString &browseFlag,
+                                                const QString &filter,
+                                                const int startIndex,
+                                                const int requestedCount,
+                                                const QString &sortCriteria );
 
     QString idForName( const QString &name );
     QString resolvePathToId( const QString &path );

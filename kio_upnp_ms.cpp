@@ -178,18 +178,6 @@ void UPnPMS::browseDevice( const KUrl &url )
 
     QString path = url.path();
 
-    HService *contentDir = m_device->serviceById( HServiceId("urn:schemas-upnp-org:serviceId:ContentDirectory") );
-    if( contentDir == NULL ) {
-        contentDir = m_device->serviceById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
-        if( contentDir == NULL ) {
-            error( KIO::ERR_UNSUPPORTED_ACTION, "UPnPMS device " + m_device->deviceInfo().friendlyName() + " does not support browsing" );
-            return;
-        }
-    }
-   
-    HAction *browseAct = contentDir->actionByName( "Browse" );
-    HActionArguments args = browseAct->inputArguments();
-   
     // TODO Use path to decide
     QString idString = resolvePathToId(path);
 
@@ -198,24 +186,55 @@ void UPnPMS::browseDevice( const KUrl &url )
         return;
     }
 
-    args["ObjectID"]->setValue( idString );
-    args["BrowseFlag"]->setValue( "BrowseDirectChildren");
-    args["Filter"]->setValue( "*");
-    args["StartingIndex"]->setValue( 0);
-    args["RequestedCount"]->setValue( 0 );
-    args["SortCriteria"]->setValue( "" );
-   
+    HActionArguments output = browseDevice( idString,
+                                            BROWSE_DIRECT_CHILDREN,
+                                            "*",
+                                            0,
+                                            0,
+                                            "" );
+// TODO check reply
+    createDirectoryListing( output["Result"]->value().toString() );
+}
+
+HActionArguments UPnPMS::browseDevice( const QString &id,
+                                       const QString &browseFlag,
+                                       const QString &filter,
+                                       const int startIndex,
+                                       const int requestedCount,
+                                       const QString &sortCriteria )
+{
     HActionArguments output;
+
+    HService *contentDir = m_device->serviceById( HServiceId("urn:schemas-upnp-org:serviceId:ContentDirectory") );
+    if( contentDir == NULL ) {
+        contentDir = m_device->serviceById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
+        if( contentDir == NULL ) {
+            error( KIO::ERR_UNSUPPORTED_ACTION, "UPnPMS device " + m_device->deviceInfo().friendlyName() + " does not support browsing" );
+            return output;
+        }
+    }
+   
+    HAction *browseAct = contentDir->actionByName( "Browse" );
+    HActionArguments args = browseAct->inputArguments();
+   
+    args["ObjectID"]->setValue( id );
+    args["BrowseFlag"]->setValue( browseFlag );
+    args["Filter"]->setValue( filter );
+    args["StartingIndex"]->setValue( startIndex );
+    args["RequestedCount"]->setValue( requestedCount );
+    args["SortCriteria"]->setValue( sortCriteria );
+   
     connect( browseAct, SIGNAL( invokeComplete( const QUuid& ) ),
         this, SIGNAL( done() ) );
-    QUuid id = browseAct->beginInvoke( args );
+    QUuid invocationId = browseAct->beginInvoke( args );
     enterLoop();
    
     qint32 res;
-    HAction::InvocationWaitReturnValue ret = browseAct->waitForInvoke( id, &res, &output, 20000 );
+    HAction::InvocationWaitReturnValue ret = browseAct->waitForInvoke( invocationId, &res, &output, 20000 );
     Q_UNUSED(ret);
 
-    createDirectoryListing( output["Result"]->value().toString() );
+    // TODO check for success
+    return output;
 }
 
 void UPnPMS::slotParseError( const QString &errorString )
