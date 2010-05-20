@@ -242,11 +242,19 @@ void UPnPMS::slotParseError( const QString &errorString )
     error(KIO::ERR_SLAVE_DEFINED, errorString);
 }
 
-void UPnPMS::slotContainer( DIDL::Container *c )
+void UPnPMS::slotListContainer( DIDL::Container *c )
 {
     KIO::UDSEntry entry;
     entry.insert( KIO::UDSEntry::UDS_NAME, c->title() );
     entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
+    listEntry(entry, false);
+}
+
+void UPnPMS::slotListItem( DIDL::Item *c )
+{
+    KIO::UDSEntry entry;
+    entry.insert( KIO::UDSEntry::UDS_NAME, c->title() );
+    entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
     listEntry(entry, false);
 }
 
@@ -265,7 +273,8 @@ void UPnPMS::createDirectoryListing( const QString &didlString )
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
     connect( &parser, SIGNAL(done()), this, SLOT(slotListDirDone()) );
 
-    connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotContainer(DIDL::Container *)) );
+    connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) );
+    connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListItem(DIDL::Item *)) );
     parser.parse(didlString);
 }
 
