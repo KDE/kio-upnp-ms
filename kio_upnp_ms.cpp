@@ -365,7 +365,7 @@ QString UPnPMS::resolvePathToId( const QString &path )
         // document isn't parsed.
         
         // if we didn't find the ID, no point in continuing
-        kDebug() << "RESOLVED ID " << m_resolvedObject->id();
+        kDebug() << "RESOLVED ID " << m_resolvedObject->id() << "for" << m_resolvedObject->title();
         if( m_resolvedObject == NULL )
             return QString();
         else
