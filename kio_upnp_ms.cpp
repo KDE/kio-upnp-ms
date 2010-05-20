@@ -323,8 +323,66 @@ QString UPnPMS::resolvePathToId( const QString &path )
         }
     }
 
-    kDebug() << "Start resolving from" << startAt;
+    kDebug() << "Start resolving from" << startAt << "whose id is" << idForName(startAt);
 
-    // here is where you query the server in a blocking call
-    return QString();
+// TODO
+// most CDS support Search() on basic attributes
+// check it, and if allowed, use Search
+// but remember to handle multiple results
+
+    int index = pathList.lastIndexOf(startAt);
+
+    for( /* index above */ ; index < pathList.length()-1; index++ ) {
+        QString segment = pathList[index];
+        m_resolveLookingFor = pathList[index+1];
+        m_resolvedObject = NULL;
+        HActionArguments results = browseDevice( idForName(segment),
+                                                 BROWSE_DIRECT_CHILDREN,
+                                                 "*",
+                                                 0,
+                                                 0,
+                                                 "dc:title" );
+        // TODO check error
+
+        DIDL::Parser parser;
+        connect( &parser, SIGNAL(itemParsed(DIDL::Item *)),
+                 this, SLOT(slotResolveId(DIDL::Item *)) );
+        connect( &parser, SIGNAL(containerParsed(DIDL::Container *)),
+                 this, SLOT(slotResolveId(DIDL::Container *)) );
+
+        parser.parse( results["Result"]->value().toString() );
+        // TODO have some kind of slot to stop the parser as 
+        // soon as we find our guy, so that the rest of the
+        // document isn't parsed.
+        
+        // if we didn't find the ID, no point in continuing
+        kDebug() << "RESOLVED ID " << m_resolvedObject->id();
+        if( m_resolvedObject == NULL )
+            return QString();
+        else
+            m_reverseCache.insert( m_resolveLookingFor, m_resolvedObject );
+    }
+
+    return m_resolvedObject->id();
+}
+
+
+void UPnPMS::slotResolveId( DIDL::Object *object )
+{
+    // set m_resolvedId and update cache
+    kDebug() << "Looking for " << m_resolveLookingFor;
+    kDebug() << "Received" << object->title();
+    if( object->title() == m_resolveLookingFor ) {
+        m_resolvedObject = object;
+    }
+}
+
+void UPnPMS::slotResolveId( DIDL::Item *object )
+{
+    slotResolveId( static_cast<DIDL::Object*>( object ) );
+}
+
+void UPnPMS::slotResolveId( DIDL::Container *object )
+{
+    slotResolveId( static_cast<DIDL::Object*>( object ) );
 }

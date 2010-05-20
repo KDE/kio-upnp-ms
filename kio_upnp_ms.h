@@ -89,11 +89,17 @@ class UPnPMS : public QObject, public KIO::SlaveBase
 
     NameToObjectCache m_reverseCache;
 
+    QString m_resolveLookingFor;
+    DIDL::Object *m_resolvedObject;
+
   private slots:
     void rootDeviceOnline(Herqq::Upnp::HDevice *device);
     void slotParseError( const QString &errorString );
     void slotListDirDone();
     void slotContainer( DIDL::Container *c );
+    void slotResolveId( DIDL::Object *object );
+    void slotResolveId( DIDL::Item *object );
+    void slotResolveId( DIDL::Container *object );
 
   Q_SIGNALS:
     void done();
