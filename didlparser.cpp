@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QXmlStreamReader>
 
+#include <kdebug.h>
+
 namespace DIDL {
 Parser::Parser()
     : QObject(NULL)
@@ -35,10 +37,52 @@ Parser::~Parser()
 
 void Parser::parse(const QString &input)
 {
-    Container *c = new Container("0", "-1", false);
-    c->setTitle("Testing");
-    emit containerParsed(c);
-    emit done();
+    // minimal parsing just to test the resolver
+    if( m_reader ) {
+        // TODO should probably just create this on the stack
+        delete m_reader;
+    }
+    m_reader = new QXmlStreamReader(input);
+    while( !m_reader->atEnd() ) {
+        if( !m_reader->readNextStartElement() )
+            break;
+        QXmlStreamAttributes attributes = m_reader->attributes();
+        Object *object = NULL;
+        if( m_reader->name() == "item" ) {
+            object = new Item( attributes.value("id").toString(),
+                               attributes.value("parentID").toString(),
+                // TODO boolean conversion
+                               false );
+        }
+        else if( m_reader->name() == "container" ) {
+            object = new Container( attributes.value("id").toString(),
+                               attributes.value("parentID").toString(),
+                // TODO boolean conversion
+                               false );
+        }
+
+        if( object ) {
+            // process title
+            m_reader->readNextStartElement();
+            if( m_reader->name() == "title" ) {
+                object->setTitle( m_reader->readElementText() );
+            }
+
+            if( object->type() == SuperObject::Item )
+                emit itemParsed( static_cast<Item*>( object ) );
+            else
+                emit containerParsed( static_cast<Container*>( object ) );
+            while( m_reader->readNextStartElement() )
+                ;
+            m_reader->readNext();
+
+        }
+    }
+
+    if( m_reader->hasError() )
+        emit error(m_reader->errorString());
+    else
+        emit done();
 }
 
 } //~ namespace
