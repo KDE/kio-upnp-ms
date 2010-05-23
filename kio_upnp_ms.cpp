@@ -242,18 +242,32 @@ void UPnPMS::slotParseError( const QString &errorString )
     error(KIO::ERR_SLAVE_DEFINED, errorString);
 }
 
+void UPnPMS::slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object *obj )
+{
+    entry.insert( KIO::UDSEntry::UDS_NAME, obj->title() );
+    long long access = 0;
+    // perform all permissions checks here
+
+    access |= S_IRUSR | S_IRGRP | S_IROTH;
+    if( !obj->restricted() ) {
+        access |= S_IWUSR | S_IWGRP | S_IWOTH;
+    }
+
+    entry.insert( KIO::UDSEntry::UDS_ACCESS, access );
+}
+
 void UPnPMS::slotListContainer( DIDL::Container *c )
 {
     KIO::UDSEntry entry;
-    entry.insert( KIO::UDSEntry::UDS_NAME, c->title() );
+    slotListFillCommon( entry, c );
     entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
     listEntry(entry, false);
 }
 
-void UPnPMS::slotListItem( DIDL::Item *c )
+void UPnPMS::slotListItem( DIDL::Item *item )
 {
     KIO::UDSEntry entry;
-    entry.insert( KIO::UDSEntry::UDS_NAME, c->title() );
+    slotListFillCommon( entry, item );
     entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
     listEntry(entry, false);
 }

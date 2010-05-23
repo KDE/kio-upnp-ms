@@ -96,6 +96,7 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     void rootDeviceOnline(Herqq::Upnp::HDevice *device);
     void slotParseError( const QString &errorString );
     void slotListDirDone();
+    void slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object *obj );
     void slotListContainer( DIDL::Container *c );
     void slotListItem( DIDL::Item *c );
 
