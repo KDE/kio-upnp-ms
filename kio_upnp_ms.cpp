@@ -311,23 +311,27 @@ QString UPnPMS::idForName( const QString &name )
  */
 QString UPnPMS::resolvePathToId( const QString &path )
 {
-    QStringList pathList = path.split( QDir::separator() );
-    kDebug() << "Path is " << pathList;
+
+#define SEP_POS( string, from ) string.indexOf( QDir::separator(), (from) )
+#define LAST_SEP_POS( string, from ) string.lastIndexOf( QDir::separator(), (from) )
+
+    int from = -1; // see QString::lastIndexOf()
 
     QString startAt;
 
-    QStringListIterator it(pathList);
-    it.toBack();
-    while( it.hasPrevious() ) {
-        QString segment = it.previous();
+    // path is without a trailing slash, but we still want
+    // to check for the last part of the path
+    // to avoid a mandatory UPnP call. So the do { } while;
+    int subpathLength = path.length();
+    do {
+        QString segment = path.left(subpathLength);
+        kDebug() << "Segment is" << segment;
         QString id = idForName( segment );
         kDebug() << segment << id;
         if( !id.isNull() ) {
-            // if its the ID we are looking for, good
-            // otherwise we are at a certain point in the path
-            // whose ID we know, now go downwards, trying to resolve
-            // the exact path
-            if( id == idForName( pathList.last() ) ) {
+            // we already had it cached
+            // this only happens on the first loop run
+            if( id == idForName( path ) ) {
                 return id;
             }
             else {
@@ -335,6 +339,7 @@ QString UPnPMS::resolvePathToId( const QString &path )
                 // we can go forward from this point,
                 // so break out of the loop
                 startAt = segment;
+                break;
             }
         }
         else {
@@ -344,7 +349,9 @@ QString UPnPMS::resolvePathToId( const QString &path )
             // it helps to understand
             // and the compiler will optimize it out anyway
         }
-    }
+
+        from = -(path.length() - subpathLength + 1);
+    } while( (subpathLength = LAST_SEP_POS( path, from ) ) != -1 );
 
     kDebug() << "Start resolving from" << startAt << "whose id is" << idForName(startAt);
 
@@ -353,11 +360,11 @@ QString UPnPMS::resolvePathToId( const QString &path )
 // check it, and if allowed, use Search
 // but remember to handle multiple results
 
-    int index = pathList.lastIndexOf(startAt);
-
-    for( /* index above */ ; index < pathList.length()-1; index++ ) {
-        QString segment = pathList[index];
-        m_resolveLookingFor = pathList[index+1];
+    for( from = SEP_POS( path, startAt.length() ) ; from != -1 ; ) {
+        QString segment = path.left( from );
+        // from is now the position of the slash, skip it
+        from++;
+        m_resolveLookingFor = path.mid( from, SEP_POS( path, from ) - from );
         m_resolvedObject = NULL;
         HActionArguments results = browseDevice( idForName(segment),
                                                  BROWSE_DIRECT_CHILDREN,
@@ -379,14 +386,19 @@ QString UPnPMS::resolvePathToId( const QString &path )
         // document isn't parsed.
         
         // if we didn't find the ID, no point in continuing
-        kDebug() << "RESOLVED ID " << m_resolvedObject->id() << "for" << m_resolvedObject->title();
-        if( m_resolvedObject == NULL )
+        if( m_resolvedObject == NULL ) {
             return QString();
-        else
-            m_reverseCache.insert( m_resolveLookingFor, m_resolvedObject );
+        }
+        else {
+            m_reverseCache.insert( ( segment + QDir::separator() + m_resolvedObject->title() ), m_resolvedObject );
+            from = SEP_POS( path, ( segment + QDir::separator() + m_resolvedObject->title() ).length() );
+        }
     }
 
     return m_resolvedObject->id();
+
+#undef SEP_POS
+#undef LAST_SEP_POS
 }
 
 
