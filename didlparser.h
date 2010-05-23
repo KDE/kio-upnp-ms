@@ -96,6 +96,8 @@ class Parser : public QObject
     void descriptionParsed(DIDL::Description *);
 
  private:
+    bool interpretRestricted(const QStringRef &res);
+
     QXmlStreamReader *m_reader;
     QStack<SuperObject> m_stack;
 };

@@ -35,6 +35,13 @@ Parser::~Parser()
 {
 }
 
+bool Parser::interpretRestricted(const QStringRef &res)
+{
+    if( res == "1" )
+        return true;
+    return false;
+}
+
 void Parser::parse(const QString &input)
 {
     // minimal parsing just to test the resolver
@@ -51,14 +58,12 @@ void Parser::parse(const QString &input)
         if( m_reader->name() == "item" ) {
             object = new Item( attributes.value("id").toString(),
                                attributes.value("parentID").toString(),
-                // TODO boolean conversion
-                               false );
+                               interpretRestricted( attributes.value("restricted") ) );
         }
         else if( m_reader->name() == "container" ) {
             object = new Container( attributes.value("id").toString(),
                                attributes.value("parentID").toString(),
-                // TODO boolean conversion
-                               false );
+                               interpretRestricted( attributes.value("restricted") ) );
         }
 
         if( object ) {
