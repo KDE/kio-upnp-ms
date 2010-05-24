@@ -302,12 +302,12 @@ QString UPnPMS::idForName( const QString &name )
 
 /**
  * Tries to resolve a complete path to the right
- * ObjectID for the path. Tries to use the cache.
+ * Object for the path. Tries to use the cache.
  * If there is cache miss, backtracks along the path
  * or queries the UPnP device.
- * If the Id is not found, returns a null string
+ * If not found, returns NULL
  */
-QString UPnPMS::resolvePathToId( const QString &path )
+DIDL::Object* UPnPMS::resolvePathToObject( const QString &path )
 {
 
 #define SEP_POS( string, from ) string.indexOf( QDir::separator(), (from) )
@@ -328,7 +328,7 @@ QString UPnPMS::resolvePathToId( const QString &path )
             // we already had it cached
             // this only happens on the first loop run
             if( id == idForName( path ) ) {
-                return id;
+                return m_reverseCache[path];
             }
             else {
                 // we know 'a' ID, but not the one we want.
@@ -382,7 +382,7 @@ QString UPnPMS::resolvePathToId( const QString &path )
         
         // if we didn't find the ID, no point in continuing
         if( m_resolvedObject == NULL ) {
-            return QString();
+            return NULL;
         }
         else {
             m_reverseCache.insert( ( segment + QDir::separator() + m_resolvedObject->title() ), m_resolvedObject );
@@ -390,12 +390,19 @@ QString UPnPMS::resolvePathToId( const QString &path )
         }
     }
 
-    return m_resolvedObject->id();
+    return m_resolvedObject;
 
 #undef SEP_POS
 #undef LAST_SEP_POS
 }
 
+QString UPnPMS::resolvePathToId( const QString &path )
+{
+    DIDL::Object *obj = resolvePathToObject( path );
+    if( obj != NULL )
+        return obj->id();
+    return QString();
+}
 
 void UPnPMS::slotResolveId( DIDL::Object *object )
 {

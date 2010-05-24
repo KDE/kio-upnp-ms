@@ -80,6 +80,7 @@ class UPnPMS : public QObject, public KIO::SlaveBase
                                                 const QString &sortCriteria );
 
     QString idForName( const QString &name );
+    DIDL::Object* resolvePathToObject( const QString &path );
     QString resolvePathToId( const QString &path );
 
     Herqq::Upnp::HControlPoint *m_controlPoint;
