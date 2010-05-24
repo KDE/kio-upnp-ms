@@ -40,6 +40,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <HResourceType>
 #include <HService>
 #include <HServiceId>
+#include <HStateVariable>
 #include <HUdn>
 #include <HUpnp>
 
@@ -138,6 +139,20 @@ void UPnPMS::updateDeviceInfo( const KUrl& url )
       return;
     }
     enterLoop();
+
+    // connect to any state variables here
+    HStateVariable *systemUpdateID = contentDirectory()->stateVariableByName( "SystemUpdateID" );
+    kDebug() << "SystemUpdateID is" << systemUpdateID->value();
+    connect( systemUpdateID,
+             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
+             this,
+             SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) );
+
+    HStateVariable *containerUpdates = contentDirectory()->stateVariableByName( "ContainerUpdateIDs" );
+    connect( containerUpdates,
+             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
+             this,
+             SLOT( slotContainerUpdates(const Herqq::Upnp::HStateVariableEvent&) ) );
 }
 
 /*
@@ -164,7 +179,7 @@ void UPnPMS::stat( const KUrl &url )
         m_reverseCache.clear();
     }
 
-    DIDL::Object *obj = resolvePathToObject( url.path() );
+    DIDL::Object *obj = resolvePathToObject( url.path(KUrl::RemoveTrailingSlash) );
     if( obj != NULL ) {
         KIO::UDSEntry entry;
         entry.insert( KIO::UDSEntry::UDS_NAME, obj->title() );
@@ -198,7 +213,7 @@ void UPnPMS::browseDevice( const KUrl &url )
       return;
     }
 
-    QString path = url.path();
+    QString path = url.path(KUrl::RemoveTrailingSlash);
 
     // TODO Use path to decide
     QString idString = resolvePathToId(path);
@@ -443,4 +458,14 @@ void UPnPMS::slotResolveId( DIDL::Item *object )
 void UPnPMS::slotResolveId( DIDL::Container *object )
 {
     slotResolveId( static_cast<DIDL::Object*>( object ) );
+}
+
+void UPnPMS::slotCDSUpdated( const HStateVariableEvent &event )
+{
+    kDebug() << "UPDATE" << event.newValue();
+}
+
+void UPnPMS::slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event )
+{
+    kDebug() << "UPDATED containers" << event.newValue();
 }

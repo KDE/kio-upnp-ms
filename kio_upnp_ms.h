@@ -107,7 +107,10 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     void slotResolveId( DIDL::Item *object );
     void slotResolveId( DIDL::Container *object );
 
-  Q_SIGNALS:
+    void slotCDSUpdated( const Herqq::Upnp::HStateVariableEvent &event );
+    void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
+
+ signals:
     void done();
 
 };
