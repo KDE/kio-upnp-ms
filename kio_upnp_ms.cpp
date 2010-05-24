@@ -105,9 +105,7 @@ void UPnPMS::enterLoop()
 {
   QEventLoop loop;
   connect( this, SIGNAL( done() ), &loop, SLOT( quit() ) );
-  kDebug() << "================= ENTERING LOOP ===============";
   loop.exec( QEventLoop::ExcludeUserInputEvents );
-  kDebug() << "================= OUT OF LOOP ===============";
 }
 
 /**
@@ -144,6 +142,7 @@ void UPnPMS::updateDeviceInfo( const KUrl& url )
 void UPnPMS::stat( const KUrl &url )
 {
     kDebug() << url;
+    kDebug() << metaData("details");
     if(  !m_deviceInfo.isValid()
       || ("uuid:" + url.host()) != m_deviceInfo.udn() ) {
         kDebug() << m_deviceInfo.isValid();
@@ -281,7 +280,6 @@ void UPnPMS::slotListDirDone()
 
 void UPnPMS::createDirectoryListing( const QString &didlString )
 {
-    kDebug() << didlString;
 
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
@@ -325,9 +323,7 @@ QString UPnPMS::resolvePathToId( const QString &path )
     int subpathLength = path.length();
     do {
         QString segment = path.left(subpathLength);
-        kDebug() << "Segment is" << segment;
         QString id = idForName( segment );
-        kDebug() << segment << id;
         if( !id.isNull() ) {
             // we already had it cached
             // this only happens on the first loop run
@@ -353,7 +349,6 @@ QString UPnPMS::resolvePathToId( const QString &path )
         from = -(path.length() - subpathLength + 1);
     } while( (subpathLength = LAST_SEP_POS( path, from ) ) != -1 );
 
-    kDebug() << "Start resolving from" << startAt << "whose id is" << idForName(startAt);
 
 // TODO
 // most CDS support Search() on basic attributes
@@ -405,8 +400,6 @@ QString UPnPMS::resolvePathToId( const QString &path )
 void UPnPMS::slotResolveId( DIDL::Object *object )
 {
     // set m_resolvedId and update cache
-    kDebug() << "Looking for " << m_resolveLookingFor;
-    kDebug() << "Received" << object->title();
     if( object->title() == m_resolveLookingFor ) {
         m_resolvedObject = object;
     }
