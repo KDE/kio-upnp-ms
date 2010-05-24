@@ -390,6 +390,10 @@ DIDL::Object* UPnPMS::resolvePathToObject( const QString &path )
         else {
             m_reverseCache.insert( ( segment + QDir::separator() + m_resolvedObject->title() ), m_resolvedObject );
             from = SEP_POS( path, ( segment + QDir::separator() + m_resolvedObject->title() ).length() );
+            // ignore trailing slashes
+            if( from == path.length()-1 ) {
+                from = -1;
+            }
         }
     }
 
