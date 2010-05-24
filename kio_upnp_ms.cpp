@@ -139,6 +139,18 @@ void UPnPMS::updateDeviceInfo( const KUrl& url )
     }
     enterLoop();
 }
+
+/*
+ * Returns a ContentDirectory service or NULL
+ */
+HService* UPnPMS::contentDirectory() const
+{
+    HService *contentDir = m_device->serviceById( HServiceId("urn:schemas-upnp-org:serviceId:ContentDirectory") );
+    if( contentDir == NULL ) {
+        contentDir = m_device->serviceById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
+    }
+    return contentDir;
+}
   
 void UPnPMS::stat( const KUrl &url )
 {
@@ -215,16 +227,12 @@ HActionArguments UPnPMS::browseDevice( const QString &id,
 {
     HActionArguments output;
 
-    HService *contentDir = m_device->serviceById( HServiceId("urn:schemas-upnp-org:serviceId:ContentDirectory") );
-    if( contentDir == NULL ) {
-        contentDir = m_device->serviceById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
-        if( contentDir == NULL ) {
+    if( contentDirectory() == NULL ) {
             error( KIO::ERR_UNSUPPORTED_ACTION, "UPnPMS device " + m_device->deviceInfo().friendlyName() + " does not support browsing" );
             return output;
-        }
     }
    
-    HAction *browseAct = contentDir->actionByName( "Browse" );
+    HAction *browseAct = contentDirectory()->actionByName( "Browse" );
     HActionArguments args = browseAct->inputArguments();
    
     args["ObjectID"]->setValue( id );

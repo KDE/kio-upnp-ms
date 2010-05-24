@@ -83,6 +83,8 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     DIDL::Object* resolvePathToObject( const QString &path );
     QString resolvePathToId( const QString &path );
 
+    Herqq::Upnp::HService* contentDirectory() const;
+
     Herqq::Upnp::HControlPoint *m_controlPoint;
 
     Herqq::Upnp::HDevice *m_device;
