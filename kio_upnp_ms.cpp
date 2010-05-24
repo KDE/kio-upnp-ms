@@ -152,12 +152,20 @@ void UPnPMS::stat( const KUrl &url )
         m_reverseCache.clear();
     }
 
-    // TODO use the reverse cache to decide type
-    KIO::UDSEntry entry;
-    entry.insert( KIO::UDSEntry::UDS_NAME, url.fileName() );
-    entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
-    statEntry( entry );
-    finished();
+    DIDL::Object *obj = resolvePathToObject( url.path() );
+    if( obj != NULL ) {
+        KIO::UDSEntry entry;
+        entry.insert( KIO::UDSEntry::UDS_NAME, obj->title() );
+        if( obj->type() == DIDL::SuperObject::Container )
+            entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
+        else
+            entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
+        statEntry( entry );
+        finished();
+    }
+    else {
+        error( KIO::ERR_DOES_NOT_EXIST, url.path() );
+    }
 }
 
 void UPnPMS::listDir( const KUrl &url )
