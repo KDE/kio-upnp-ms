@@ -71,6 +71,7 @@ extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
 void UPnPMS::get( const KUrl &url )
 {
     kDebug() << url;
+    error( KIO::ERR_CANNOT_OPEN_FOR_READING, url.prettyUrl() );
 }
 
 UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
@@ -280,7 +281,7 @@ void UPnPMS::slotListDirDone()
 
 void UPnPMS::createDirectoryListing( const QString &didlString )
 {
-
+    kDebug() << didlString;
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
     connect( &parser, SIGNAL(done()), this, SLOT(slotListDirDone()) );
