@@ -148,6 +148,8 @@ void UPnPMS::stat( const KUrl &url )
       || ("uuid:" + url.host()) != m_deviceInfo.udn() ) {
         kDebug() << m_deviceInfo.isValid();
         updateDeviceInfo(url);
+        // invalidate the cache when the device changes
+        m_reverseCache.clear();
     }
 
     // TODO use the reverse cache to decide type
