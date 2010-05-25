@@ -42,6 +42,62 @@ bool Parser::interpretRestricted(const QStringRef &res)
     return false;
 }
 
+void Parser::raiseError( const QString &errorStr )
+{
+    m_reader->raiseError( errorStr );
+    emit error( errorStr );
+    m_reader->clear();
+}
+
+QString Parser::parseTitle()
+{
+    m_reader->readNextStartElement();
+    if( m_reader->name() == "title" ) {
+        return m_reader->readElementText();
+    }
+    raiseError("Expected dc:title");
+    return QString();
+}
+
+void Parser::parseItem()
+{
+    QXmlStreamAttributes attributes = m_reader->attributes();
+    Item *item = new Item(
+        attributes.value("id").toString(),
+        attributes.value("parentID").toString(),
+        interpretRestricted( attributes.value("restricted") ) );
+
+    item->setTitle( parseTitle() );
+    // skip remaining attributes for now
+    m_reader->skipCurrentElement();
+
+    emit itemParsed( item );
+}
+
+void Parser::parseContainer()
+{
+    QXmlStreamAttributes attributes = m_reader->attributes();
+    Container *container = new Container(
+        attributes.value("id").toString(),
+        attributes.value("parentID").toString(),
+        interpretRestricted( attributes.value("restricted") ) );
+
+    container->setTitle( parseTitle() );
+    // skip remaining attributes for now
+    m_reader->skipCurrentElement();
+
+    emit containerParsed( container );
+}
+
+void Parser::parseDescription()
+{
+    QXmlStreamAttributes attributes = m_reader->attributes();
+    Description *description = new Description(
+        attributes.value("id").toString(),
+        attributes.value("nameSpace").toString() );
+    description->setDescription( m_reader->readElementText() );
+}
+
 void Parser::parse(const QString &input)
 {
     // minimal parsing just to test the resolver
@@ -53,38 +109,25 @@ void Parser::parse(const QString &input)
     while( !m_reader->atEnd() ) {
         if( !m_reader->readNextStartElement() )
             break;
-        QXmlStreamAttributes attributes = m_reader->attributes();
         Object *object = NULL;
         if( m_reader->name() == "item" ) {
-            object = new Item( attributes.value("id").toString(),
-                               attributes.value("parentID").toString(),
-                               interpretRestricted( attributes.value("restricted") ) );
+            parseItem();
         }
         else if( m_reader->name() == "container" ) {
-            object = new Container( attributes.value("id").toString(),
-                               attributes.value("parentID").toString(),
-                               interpretRestricted( attributes.value("restricted") ) );
+            parseContainer();
         }
-
-        if( object ) {
-            // process title
-            m_reader->readNextStartElement();
-            if( m_reader->name() == "title" ) {
-                object->setTitle( m_reader->readElementText() );
-            }
-
-            if( object->type() == SuperObject::Item )
-                emit itemParsed( static_cast<Item*>( object ) );
-            else
-                emit containerParsed( static_cast<Container*>( object ) );
-            // skip remaining attributes for now
-            m_reader->skipCurrentElement();
-
+        else if( m_reader->name() == "description" ) {
+            parseDescription();
+        }
+        else if( m_reader->name() == "DIDL-Lite" ) {
+        }
+        else {
+            raiseError("Unexpected element" + m_reader->name().toString() );
         }
     }
 
     if( m_reader->hasError() )
-        emit error(m_reader->errorString());
+        raiseError(m_reader->errorString());
     else
         emit done();
 }

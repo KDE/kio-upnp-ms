@@ -97,6 +97,13 @@ class Parser : public QObject
 
  private:
     bool interpretRestricted(const QStringRef &res);
+    void parseItem();
+    void parseContainer();
+    void parseDescription();
+    QString parseTitle();
+
+    // emits error() and stops the parser
+    void raiseError( const QString &errorStr=QString() );
 
     QXmlStreamReader *m_reader;
     QStack<SuperObject> m_stack;
