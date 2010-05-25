@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <kcomponentdata.h>
 #include <kcmdlineargs.h>
 #include <kaboutdata.h>
+#include <KDirNotify>
 
 #include <QCoreApplication>
 #include <QtDBus>
@@ -480,4 +481,5 @@ void UPnPMS::slotCDSUpdated( const HStateVariableEvent &event )
 void UPnPMS::slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event )
 {
     kDebug() << "UPDATED containers" << event.newValue();
+    OrgKdeKDirNotifyInterface::emitFilesChanged( QStringList()<< "b.txt");
 }
