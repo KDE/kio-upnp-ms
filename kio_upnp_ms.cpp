@@ -177,6 +177,8 @@ void UPnPMS::stat( const KUrl &url )
         updateDeviceInfo(url);
         // invalidate the cache when the device changes
         m_reverseCache.clear();
+        m_reverseCache.insert( "", new DIDL::Container( "0", "-1", false ) );
+        m_reverseCache.insert( "/", new DIDL::Container( "0", "-1", false ) );
     }
 
     DIDL::Object *obj = resolvePathToObject( url.path(KUrl::RemoveTrailingSlash) );
@@ -326,9 +328,6 @@ void UPnPMS::createDirectoryListing( const QString &didlString )
 
 QString UPnPMS::idForName( const QString &name )
 {
-    if( name.isEmpty() || name == "/" ) {
-        return "0";
-    }
     if( m_reverseCache.contains( name ) )
         return m_reverseCache[name]->id();
     return QString();
@@ -343,7 +342,6 @@ QString UPnPMS::idForName( const QString &name )
  */
 DIDL::Object* UPnPMS::resolvePathToObject( const QString &path )
 {
-
 #define SEP_POS( string, from ) string.indexOf( QDir::separator(), (from) )
 #define LAST_SEP_POS( string, from ) string.lastIndexOf( QDir::separator(), (from) )
 
@@ -388,8 +386,8 @@ DIDL::Object* UPnPMS::resolvePathToObject( const QString &path )
 // most CDS support Search() on basic attributes
 // check it, and if allowed, use Search
 // but remember to handle multiple results
-
-    for( from = SEP_POS( path, startAt.length() ) ; from != -1 ; ) {
+    from = SEP_POS( path, startAt.length() ) ;
+    do {
         QString segment = path.left( from );
         // from is now the position of the slash, skip it
         from++;
@@ -426,7 +424,7 @@ DIDL::Object* UPnPMS::resolvePathToObject( const QString &path )
                 from = -1;
             }
         }
-    }
+    } while( from != -1 );
 
     return m_resolvedObject;
 
