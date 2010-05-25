@@ -69,6 +69,7 @@ class UPnPMS : public QObject, public KIO::SlaveBase
   private:
     void enterLoop();
     void updateDeviceInfo( const KUrl &url );
+    bool ensureDevice( const KUrl &url );
     void browseDevice( const KUrl &url );
     void createDirectoryListing( const QString &didlString );
     inline bool deviceFound();

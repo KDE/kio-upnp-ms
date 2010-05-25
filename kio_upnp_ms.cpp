@@ -114,6 +114,7 @@ void UPnPMS::enterLoop()
  * Updates device information from Cagibi and gets
  * HUPnP to find the device.
  */
+// TODO update to return boolean
 void UPnPMS::updateDeviceInfo( const KUrl& url )
 {
     kDebug() << "Updating device info";
@@ -167,10 +168,8 @@ HService* UPnPMS::contentDirectory() const
     return contentDir;
 }
   
-void UPnPMS::stat( const KUrl &url )
+bool UPnPMS::ensureDevice( const KUrl &url )
 {
-    kDebug() << url;
-    kDebug() << metaData("details");
     if(  !m_deviceInfo.isValid()
       || ("uuid:" + url.host()) != m_deviceInfo.udn() ) {
         kDebug() << m_deviceInfo.isValid();
@@ -179,6 +178,19 @@ void UPnPMS::stat( const KUrl &url )
         m_reverseCache.clear();
         m_reverseCache.insert( "", new DIDL::Container( "0", "-1", false ) );
         m_reverseCache.insert( "/", new DIDL::Container( "0", "-1", false ) );
+    }
+
+    return true;
+}
+
+void UPnPMS::stat( const KUrl &url )
+{
+    kDebug() << url;
+    kDebug() << metaData("details");
+
+    if( !ensureDevice( url ) ) {
+        //TODO error()
+        return;
     }
 
     DIDL::Object *obj = resolvePathToObject( url.path(KUrl::RemoveTrailingSlash) );
@@ -210,7 +222,9 @@ void UPnPMS::listDir( const KUrl &url )
 
 void UPnPMS::browseDevice( const KUrl &url )
 {
+    ensureDevice( url );
     if( !m_device ) {
+// TODO once ensureDevice() returns proper status, use that for check
       error( KIO::ERR_DOES_NOT_EXIST, url.prettyUrl() );
       return;
     }
