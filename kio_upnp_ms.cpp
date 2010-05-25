@@ -99,7 +99,6 @@ UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
 
 void UPnPMS::rootDeviceOnline(HDevice *device)
 {
-  kDebug() << "Device is online " ;
   m_device = device;
   emit done();
 }
@@ -107,7 +106,9 @@ void UPnPMS::rootDeviceOnline(HDevice *device)
 void UPnPMS::enterLoop()
 {
   QEventLoop loop;
+  kDebug() << "------------------------ENTER LOOP";
   connect( this, SIGNAL( done() ), &loop, SLOT( quit() ) );
+  kDebug() << "------------------------EXIT LOOP";
   loop.exec( QEventLoop::ExcludeUserInputEvents );
 }
 
@@ -118,15 +119,14 @@ void UPnPMS::enterLoop()
 // TODO update to return boolean
 void UPnPMS::updateDeviceInfo( const KUrl& url )
 {
-    kDebug() << "Updating device info";
     QDBusConnection bus = QDBusConnection::sessionBus();
     QDBusInterface iface( "org.kde.Cagibi", "/", "org.kde.Cagibi", bus );
     QString udn = "uuid:" + url.host();
-    kDebug() << "Searching for" << udn;
     QDBusReply<DeviceInfo> res = iface.call("deviceDetails", udn);
     if( !res.isValid() ) {
       kDebug() << "Invalid request";
       error(KIO::ERR_COULD_NOT_CONNECT, udn);
+      return;
     }
     m_deviceInfo = res.value();
     if( m_deviceInfo.udn().isEmpty() ) {
@@ -246,7 +246,11 @@ void UPnPMS::browseDevice( const KUrl &url )
                                             0,
                                             0,
                                             "" );
-// TODO check reply
+    if( output["Error"] ) {
+        kDebug() << output["Error"]->value().toString();
+        error( KIO::ERR_SLAVE_DEFINED, output["Error"]->value().toString() );
+        return;
+    }
     createDirectoryListing( output["Result"]->value().toString() );
 }
 
@@ -277,11 +281,16 @@ HActionArguments UPnPMS::browseDevice( const QString &id,
     connect( browseAct, SIGNAL( invokeComplete( const QUuid& ) ),
         this, SIGNAL( done() ) );
     QUuid invocationId = browseAct->beginInvoke( args );
+    kDebug() << "Entering loop";
     enterLoop();
    
+    kDebug() << "Loop done";
+    browseAct->disconnect();
     qint32 res;
     HAction::InvocationWaitReturnValue ret = browseAct->waitForInvoke( invocationId, &res, &output, 20000 );
+    kDebug() << "Blocked on ret";
     Q_UNUSED(ret);
+
 
     // TODO check for success
     return output;
