@@ -141,18 +141,18 @@ void UPnPMS::updateDeviceInfo( const KUrl& url )
     enterLoop();
 
     // connect to any state variables here
-    HStateVariable *systemUpdateID = contentDirectory()->stateVariableByName( "SystemUpdateID" );
-    kDebug() << "SystemUpdateID is" << systemUpdateID->value();
-    connect( systemUpdateID,
-             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
-             this,
-             SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) );
-
-    HStateVariable *containerUpdates = contentDirectory()->stateVariableByName( "ContainerUpdateIDs" );
-    connect( containerUpdates,
-             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
-             this,
-             SLOT( slotContainerUpdates(const Herqq::Upnp::HStateVariableEvent&) ) );
+//    HStateVariable *systemUpdateID = contentDirectory()->stateVariableByName( "SystemUpdateID" );
+//    kDebug() << "SystemUpdateID is" << systemUpdateID->value();
+//    connect( systemUpdateID,
+//             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
+//             this,
+//             SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) );
+// 
+//    HStateVariable *containerUpdates = contentDirectory()->stateVariableByName( "ContainerUpdateIDs" );
+//    connect( containerUpdates,
+//             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
+//             this,
+//             SLOT( slotContainerUpdates(const Herqq::Upnp::HStateVariableEvent&) ) );
 }
 
 /*
