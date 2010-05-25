@@ -23,3 +23,11 @@ install(TARGETS kio_upnp_ms  DESTINATION ${PLUGIN_INSTALL_DIR})
 ########### install files ###############
 
 install(FILES kio_upnp_ms.protocol DESTINATION ${SERVICES_INSTALL_DIR})
+
+KDE4_ADD_EXECUTABLE(upnpmstest main.cpp)
+ 
+TARGET_LINK_LIBRARIES(upnpmstest ${KDE4_KDEUI_LIBS}
+    ${KDE4_KPARTS_LIBS} )
+ 
+install(TARGETS upnpmstest  DESTINATION ${BIN_INSTALL_DIR}
+    )
