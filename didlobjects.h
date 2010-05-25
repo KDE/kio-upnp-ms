@@ -62,16 +62,9 @@ class Description : public SuperObject
     QString description() const { return m_description; };
     void setDescription( const QString &desc ) { m_description = desc; };
 
-
     QUrl nameSpace() const { return m_namespace; };
-
-    QString type() const { return m_type; };
-    void setType( const QString &type ) { m_type = type; };
-
-
   private:
     QString m_description;
-    QString m_type;
     QUrl m_namespace;
 };
 
