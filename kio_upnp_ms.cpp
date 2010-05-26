@@ -49,6 +49,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "dbuscodec.h"
 #include "didlparser.h"
 #include "didlobjects.h"
+#include "upnptypes.h"
 
 using namespace Herqq::Upnp;
 
@@ -313,6 +314,10 @@ void UPnPMS::slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object *obj )
     }
 
     entry.insert( KIO::UDSEntry::UDS_ACCESS, access );
+
+    if( !obj->upnpClass().isNull() ) {
+        entry.insert( KIO::UPNP_CLASS, obj->upnpClass() );
+    }
 }
 
 void UPnPMS::slotListContainer( DIDL::Container *c )

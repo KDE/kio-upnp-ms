@@ -18,13 +18,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *********************************************************************/
 
 #include "didlparser.h"
-#include "didlobjects.h"
 
 #include <QStringList>
 #include <QXmlStreamReader>
 #include <klocale.h>
 
 #include <kdebug.h>
+
+#include "didlobjects.h"
 
 namespace DIDL {
 Parser::Parser()
@@ -96,6 +97,9 @@ void Parser::parseItem()
         if( m_reader->name() == "res" ) {
             item->addResource( parseResource() );
         }
+        else if( m_reader->name() == "class" ) {
+            item->setUpnpClass( m_reader->readElementText() );
+        }
         else {
             m_reader->skipCurrentElement();
         }
@@ -113,8 +117,16 @@ void Parser::parseContainer()
         interpretRestricted( attributes.value("restricted") ) );
 
     container->setTitle( parseTitle() );
-    // skip remaining attributes for now
-    m_reader->skipCurrentElement();
+
+    while( m_reader->readNextStartElement() ) {
+        kDebug() << m_reader->name();
+        if( m_reader->name() == "class" ) {
+            container->setUpnpClass( m_reader->readElementText() );
+        }
+        else {
+            m_reader->skipCurrentElement();
+        }
+    }
 
     emit containerParsed( container );
 }

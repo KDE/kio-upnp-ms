@@ -1,3 +1,5 @@
+#include "main.h"
+
 #include <kmainwindow.h>
 #include <kio/scheduler.h>
 #include <kurl.h>
@@ -7,9 +9,8 @@
 #include <KAboutData>
 #include <KUrl>
 #include <kdebug.h>
+#include <kio/upnptypes.h>
  
-#include "main.h"
-
 upnptest::upnptest(const KUrl &url)
     : QObject(NULL)
 {
@@ -32,7 +33,9 @@ void upnptest::entries(KIO::Job *job, const KIO::UDSEntryList &list )
 {
     kDebug() << "-------------------------------------------";
     foreach( KIO::UDSEntry entry, list ) {
-        kDebug() << entry.stringValue( KIO::UDSEntry::UDS_NAME ) << entry.stringValue( KIO::UDSEntry::UDS_MIME_TYPE ) << entry.stringValue( KIO::UDSEntry::UDS_TARGET_URL );
+        kDebug() << entry.stringValue( KIO::UDSEntry::UDS_NAME )
+                 << entry.stringValue( KIO::UDSEntry::UDS_MIME_TYPE )
+                 << entry.stringValue( KIO::UPNP_CLASS );
     }
     kDebug() << "-------------------------------------------";
 }
@@ -51,6 +54,6 @@ int main (int argc, char *argv[])
 
   KApplication khello;
  
-  upnptest *mw = new upnptest( KCmdLineArgs::parsedArgs()->url(0).url() );
+  new upnptest( KCmdLineArgs::parsedArgs()->url(0).url() );
   khello.exec();
 }
