@@ -1,6 +1,7 @@
 PROJECT( kio_upnp_ms )
 FIND_PACKAGE(KDE4 REQUIRED)
-INCLUDE_DIRECTORIES( ${KDE4_INCLUDES} . build )
+INCLUDE_DIRECTORIES( ${KDE4_INCLUDES}
+    ${CMAKE_SOURCE_DIR} build . )
 
 set(kio_upnp_ms_PART_SRCS
    kio_upnp_ms.cpp
@@ -28,6 +29,10 @@ KDE4_ADD_EXECUTABLE(upnpmstest main.cpp)
  
 TARGET_LINK_LIBRARIES(upnpmstest ${KDE4_KDEUI_LIBS}
     ${KDE4_KPARTS_LIBS} )
+
+# so other programs can access the types
+install(FILES upnptypes.h DESTINATION
+    ${INCLUDE_INSTALL_DIR}/kio COMPONENT devel)
  
 install(TARGETS upnpmstest  DESTINATION ${BIN_INSTALL_DIR}
     )
