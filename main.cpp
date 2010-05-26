@@ -16,12 +16,15 @@ upnptest::upnptest(const KUrl &url)
     KIO::ListJob *job = KIO::listDir(url);
     connect( job, SIGNAL(entries(KIO::Job *, const KIO::UDSEntryList&)),
              this, SLOT(entries(KIO::Job *, const KIO::UDSEntryList&)));
-    connect( job, SIGNAL(result(KJob *)), this, SLOT(done()));
+    connect( job, SIGNAL(result(KJob *)), this, SLOT(done(KJob *)));
 }
 
-void upnptest::done()
+void upnptest::done(KJob *job)
 {
     kDebug() << "Done";
+    if( job->error() ) {
+        kDebug() << "ERROR!" << job->errorString();
+    }
     kapp->quit();
 }
 
@@ -29,7 +32,7 @@ void upnptest::entries(KIO::Job *job, const KIO::UDSEntryList &list )
 {
     kDebug() << "-------------------------------------------";
     foreach( KIO::UDSEntry entry, list ) {
-        kDebug() << entry.stringValue( KIO::UDSEntry::UDS_NAME );
+        kDebug() << entry.stringValue( KIO::UDSEntry::UDS_NAME ) << entry.stringValue( KIO::UDSEntry::UDS_MIME_TYPE ) << entry.stringValue( KIO::UDSEntry::UDS_TARGET_URL );
     }
     kDebug() << "-------------------------------------------";
 }
