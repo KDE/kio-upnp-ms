@@ -43,4 +43,21 @@ Item::Item( const QString &id, const QString &parentId, bool restricted )
     : Object( SuperObject::Item, id, parentId, restricted )
 {
 }
+
+bool Item::hasResource()
+{
+    // if we decide to go the QList<Resource> way, all of these can
+    // be changed without affecting the API too much
+    return !m_resource.empty();
+}
+
+Resource Item::resource()
+{
+    return m_resource;
+}
+
+void Item::addResource( const Resource &source )
+{
+    m_resource = source;
+}
 } //~ namespace

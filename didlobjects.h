@@ -24,6 +24,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace DIDL {
 
+typedef QHash<QString, QString> Resource;
+
 class SuperObject : public QObject
 {
   Q_OBJECT
@@ -106,7 +108,18 @@ class Item : public Object
   public:
     Item( const QString &id, const QString &parentId, bool restricted );
 
+    bool hasResource();
+    Resource resource();
+    void addResource( const Resource &res );
+
+  private:
+    // Container can have a <res>, but is it done in
+    // practice. Similarly we should hold a list
+    // for multiple resources, but does it happen?
+    Resource m_resource;
+
 };
+
 } //~ namespace
 
 #endif
