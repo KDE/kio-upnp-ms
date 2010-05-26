@@ -309,9 +309,6 @@ void UPnPMS::slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object *obj )
     // perform all permissions checks here
 
     access |= S_IRUSR | S_IRGRP | S_IROTH;
-    if( !obj->restricted() ) {
-        access |= S_IWUSR | S_IWGRP | S_IWOTH;
-    }
 
     entry.insert( KIO::UDSEntry::UDS_ACCESS, access );
 
