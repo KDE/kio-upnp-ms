@@ -20,7 +20,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "didlparser.h"
 #include "didlobjects.h"
 
+#include <QStringList>
 #include <QXmlStreamReader>
+#include <klocale.h>
 
 #include <kdebug.h>
 
@@ -59,6 +61,27 @@ QString Parser::parseTitle()
     return QString();
 }
 
+Resource Parser::parseResource()
+{
+    Resource r;
+    QString protocolInfo = m_reader->attributes().value("protocolInfo").toString();
+    if( !protocolInfo.isEmpty() ) {
+        QStringList fields = protocolInfo.split(":");
+        if( fields.length() != 4 ) {
+            raiseError( i18n("Bad protocolInfo %1", (protocolInfo)) );
+            return Resource();
+        }
+        r["mimetype"] = fields[2];
+    }
+
+    foreach( QXmlStreamAttribute attr, m_reader->attributes() ) {
+        r[attr.name().toString()] = attr.value().toString();
+    }
+    r["uri"] = m_reader->readElementText();
+
+    return r;
+}
+
 void Parser::parseItem()
 {
     QXmlStreamAttributes attributes = m_reader->attributes();
@@ -68,8 +91,15 @@ void Parser::parseItem()
         interpretRestricted( attributes.value("restricted") ) );
 
     item->setTitle( parseTitle() );
-    // skip remaining attributes for now
-    m_reader->skipCurrentElement();
+
+    while( m_reader->readNextStartElement() ) {
+        if( m_reader->name() == "res" ) {
+            item->addResource( parseResource() );
+        }
+        else {
+            m_reader->skipCurrentElement();
+        }
+    }
 
     emit itemParsed( item );
 }

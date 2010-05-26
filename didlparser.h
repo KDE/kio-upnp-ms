@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define DIDL_PARSER_H
 
 #include <QObject>
-#include <QStack>
+#include <QHash>
 
 class QXmlStreamReader;
 
@@ -31,6 +31,8 @@ class Container;
 class Item;
 class Description;
 class SuperObject;
+
+typedef QHash<QString, QString> Resource;
 
 /**
  * This class implements a parser for the 
@@ -101,12 +103,12 @@ class Parser : public QObject
     void parseContainer();
     void parseDescription();
     QString parseTitle();
+    Resource parseResource();
 
     // emits error() and stops the parser
     void raiseError( const QString &errorStr=QString() );
 
     QXmlStreamReader *m_reader;
-    QStack<SuperObject> m_stack;
 };
 
 } //~ namespace
