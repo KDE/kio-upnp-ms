@@ -330,6 +330,20 @@ void UPnPMS::slotListItem( DIDL::Item *item )
     KIO::UDSEntry entry;
     slotListFillCommon( entry, item );
     entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
+    if( item->hasResource() ) {
+        DIDL::Resource res = item->resource();
+        entry.insert( KIO::UDSEntry::UDS_MIME_TYPE, res["mimetype"] );
+        entry.insert( KIO::UDSEntry::UDS_SIZE, res["size"].toULongLong() );
+        entry.insert( KIO::UDSEntry::UDS_TARGET_URL, res["uri"] );
+
+        // TODO extra meta-data
+    }
+    else {
+        long long access = entry.numberValue( KIO::UDSEntry::UDS_ACCESS );
+        // undo slotListFillCommon
+        access ^= S_IRUSR | S_IRGRP | S_IROTH;
+        entry.insert( KIO::UDSEntry::UDS_ACCESS, access );
+    }
     listEntry(entry, false);
 }
 
