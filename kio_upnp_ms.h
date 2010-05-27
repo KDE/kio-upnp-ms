@@ -33,7 +33,7 @@ namespace Herqq
   namespace Upnp
   {
     class HControlPoint;
-    class HDevice;
+    class HDeviceProxy;
     class HActionArguments;
   }
 }
@@ -84,11 +84,11 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     DIDL::Object* resolvePathToObject( const QString &path );
     QString resolvePathToId( const QString &path );
 
-    Herqq::Upnp::HService* contentDirectory() const;
+    Herqq::Upnp::HServiceProxy* contentDirectory() const;
 
     Herqq::Upnp::HControlPoint *m_controlPoint;
 
-    Herqq::Upnp::HDevice *m_device;
+    Herqq::Upnp::HDeviceProxy *m_device;
     DeviceInfo m_deviceInfo;
 
     NameToObjectCache m_reverseCache;
@@ -96,8 +96,10 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     QString m_resolveLookingFor;
     DIDL::Object *m_resolvedObject;
 
+    int m_actionCount;
+
   private slots:
-    void rootDeviceOnline(Herqq::Upnp::HDevice *device);
+    void rootDeviceOnline(Herqq::Upnp::HDeviceProxy *device);
     void slotParseError( const QString &errorString );
     void slotListDirDone();
     void slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object *obj );

@@ -35,12 +35,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <HActionArguments>
 #include <HControlPoint>
 #include <HControlPointConfiguration>
-#include <HDevice>
 #include <HDeviceInfo>
+#include <HDeviceProxy>
 #include <HDiscoveryType>
 #include <HResourceType>
-#include <HService>
 #include <HServiceId>
+#include <HServiceProxy>
 #include <HStateVariable>
 #include <HUdn>
 #include <HUpnp>
@@ -79,26 +79,31 @@ void UPnPMS::get( const KUrl &url )
 
 UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
   : QObject(0)
- , SlaveBase( "upnp-ms", pool, app )
+  , SlaveBase( "upnp-ms", pool, app )
+  , m_actionCount(0)
 {
     HControlPointConfiguration config;
-    config.setPerformInitialDiscovery(false);
-    m_controlPoint = new HControlPoint( &config, this );
-    connect(m_controlPoint,
-            SIGNAL(rootDeviceOnline(Herqq::Upnp::HDevice *)),
-            this,
-            SLOT(rootDeviceOnline(Herqq::Upnp::HDevice *)));
+    config.setAutoDiscovery(false);
+    m_controlPoint = new HControlPoint( config, this );
+    Q_ASSERT( 
+        connect(m_controlPoint,
+                SIGNAL(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)),
+                this,
+                SLOT(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)))
+    ); 
+
     if( !m_controlPoint->init() )
     {
       kDebug() << m_controlPoint->errorDescription();
       kDebug() << "Error initing control point";
     }
 
+// TODO probably remove this, and instead react to errors, its a timeout
     QTimer::singleShot(1000, this, SIGNAL(done()));
     enterLoop();
 }
 
-void UPnPMS::rootDeviceOnline(HDevice *device)
+void UPnPMS::rootDeviceOnline(HDeviceProxy *device)
 {
   m_device = device;
   emit done();
@@ -108,9 +113,10 @@ void UPnPMS::enterLoop()
 {
   QEventLoop loop;
   kDebug() << "------------------------ENTER LOOP";
-  connect( this, SIGNAL( done() ), &loop, SLOT( quit() ) );
-  kDebug() << "------------------------EXIT LOOP";
+  Q_ASSERT( connect( this, SIGNAL( done() ), &loop, SLOT( quit() ) ) );
   loop.exec( QEventLoop::ExcludeUserInputEvents );
+  loop.disconnect();
+  kDebug() << "------------------------EXIT LOOP";
 }
 
 /**
@@ -161,11 +167,11 @@ void UPnPMS::updateDeviceInfo( const KUrl& url )
 /*
  * Returns a ContentDirectory service or NULL
  */
-HService* UPnPMS::contentDirectory() const
+HServiceProxy* UPnPMS::contentDirectory() const
 {
-    HService *contentDir = m_device->serviceById( HServiceId("urn:schemas-upnp-org:serviceId:ContentDirectory") );
+    HServiceProxy *contentDir = m_device->serviceProxyById( HServiceId("urn:schemas-upnp-org:serviceId:ContentDirectory") );
     if( contentDir == NULL ) {
-        contentDir = m_device->serviceById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
+        contentDir = m_device->serviceProxyById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
     }
     return contentDir;
 }
@@ -271,7 +277,8 @@ HActionArguments UPnPMS::browseDevice( const QString &id,
    
     HAction *browseAct = contentDirectory()->actionByName( "Browse" );
     HActionArguments args = browseAct->inputArguments();
-   
+  
+    kDebug() << "browsing" << id;
     args["ObjectID"]->setValue( id );
     args["BrowseFlag"]->setValue( browseFlag );
     args["Filter"]->setValue( filter );
@@ -279,18 +286,24 @@ HActionArguments UPnPMS::browseDevice( const QString &id,
     args["RequestedCount"]->setValue( requestedCount );
     args["SortCriteria"]->setValue( sortCriteria );
    
-    connect( browseAct, SIGNAL( invokeComplete( const QUuid& ) ),
-        this, SIGNAL( done() ) );
-    QUuid invocationId = browseAct->beginInvoke( args );
-    kDebug() << "Entering loop";
+    Q_ASSERT(connect( browseAct, SIGNAL( invokeComplete( const Herqq::Upnp::HAsyncOp& ) ),
+                      this, SIGNAL( done() ) ));
+    kDebug() << "Action has been invoked" << m_actionCount << "times";
+    HAsyncOp invocationOp = browseAct->beginInvoke( args );
+    invocationOp.setWaitTimeout( 2000 );
     enterLoop();
    
     kDebug() << "Loop done";
-    browseAct->disconnect();
+    Q_ASSERT(browseAct->disconnect());
     qint32 res;
-    HAction::InvocationWaitReturnValue ret = browseAct->waitForInvoke( invocationId, &res, &output, 20000 );
-    kDebug() << "Blocked on ret";
-    Q_UNUSED(ret);
+    bool ret = browseAct->waitForInvoke( &invocationOp, &output );
+    Q_ASSERT( ret );
+
+    if( invocationOp.waitCode() != HAsyncOp::WaitSuccess ) {
+        kDebug() << "Error invoking browse" << browseAct->errorCodeToString( invocationOp.returnValue() );
+        output["Error"]->setValue( browseAct->errorCodeToString( invocationOp.returnValue() ) );
+    }
+    m_actionCount++;
 
 
     // TODO check for success
@@ -358,11 +371,11 @@ void UPnPMS::createDirectoryListing( const QString &didlString )
 {
     kDebug() << didlString;
     DIDL::Parser parser;
-    connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
-    connect( &parser, SIGNAL(done()), this, SLOT(slotListDirDone()) );
+    Q_ASSERT( connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) ) );
+    Q_ASSERT( connect( &parser, SIGNAL(done()), this, SLOT(slotListDirDone()) ) );
 
-    connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) );
-    connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListItem(DIDL::Item *)) );
+    Q_ASSERT( connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) ) );
+    Q_ASSERT( connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListItem(DIDL::Item *)) ) );
     parser.parse(didlString);
 }
 
@@ -442,10 +455,10 @@ DIDL::Object* UPnPMS::resolvePathToObject( const QString &path )
         // TODO check error
 
         DIDL::Parser parser;
-        connect( &parser, SIGNAL(itemParsed(DIDL::Item *)),
-                 this, SLOT(slotResolveId(DIDL::Item *)) );
-        connect( &parser, SIGNAL(containerParsed(DIDL::Container *)),
-                 this, SLOT(slotResolveId(DIDL::Container *)) );
+        Q_ASSERT( connect( &parser, SIGNAL(itemParsed(DIDL::Item *)),
+                           this, SLOT(slotResolveId(DIDL::Item *)) ) );
+        Q_ASSERT( connect( &parser, SIGNAL(containerParsed(DIDL::Container *)),
+                 this, SLOT(slotResolveId(DIDL::Container *)) ) );
 
         parser.parse( results["Result"]->value().toString() );
         // TODO have some kind of slot to stop the parser as 
