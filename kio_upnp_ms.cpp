@@ -112,11 +112,9 @@ void UPnPMS::rootDeviceOnline(HDeviceProxy *device)
 void UPnPMS::enterLoop()
 {
   QEventLoop loop;
-  kDebug() << "------------------------ENTER LOOP";
   Q_ASSERT( connect( this, SIGNAL( done() ), &loop, SLOT( quit() ) ) );
   loop.exec( QEventLoop::ExcludeUserInputEvents );
   loop.disconnect();
-  kDebug() << "------------------------EXIT LOOP";
 }
 
 /**
@@ -193,8 +191,6 @@ bool UPnPMS::ensureDevice( const KUrl &url )
 
 void UPnPMS::stat( const KUrl &url )
 {
-    kDebug() << url;
-    kDebug() << metaData("details");
 
     if( !ensureDevice( url ) ) {
         //TODO error()
@@ -278,7 +274,6 @@ HActionArguments UPnPMS::browseDevice( const QString &id,
     HAction *browseAct = contentDirectory()->actionByName( "Browse" );
     HActionArguments args = browseAct->inputArguments();
   
-    kDebug() << "browsing" << id;
     args["ObjectID"]->setValue( id );
     args["BrowseFlag"]->setValue( browseFlag );
     args["Filter"]->setValue( filter );
@@ -288,12 +283,10 @@ HActionArguments UPnPMS::browseDevice( const QString &id,
    
     Q_ASSERT(connect( browseAct, SIGNAL( invokeComplete( const Herqq::Upnp::HAsyncOp& ) ),
                       this, SIGNAL( done() ) ));
-    kDebug() << "Action has been invoked" << m_actionCount << "times";
     HAsyncOp invocationOp = browseAct->beginInvoke( args );
     invocationOp.setWaitTimeout( 2000 );
     enterLoop();
    
-    kDebug() << "Loop done";
     Q_ASSERT(browseAct->disconnect());
     qint32 res;
     bool ret = browseAct->waitForInvoke( &invocationOp, &output );
@@ -369,7 +362,6 @@ void UPnPMS::slotListDirDone()
 
 void UPnPMS::createDirectoryListing( const QString &didlString )
 {
-    kDebug() << didlString;
     DIDL::Parser parser;
     Q_ASSERT( connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) ) );
     Q_ASSERT( connect( &parser, SIGNAL(done()), this, SLOT(slotListDirDone()) ) );
