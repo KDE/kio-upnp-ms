@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace KIO {
 enum UPnPFieldTypes {
-    UPNP_CLASS = UDSEntry::UDS_EXTRA + 1 | UDSEntry::UDS_STRING,
+    UPNP_CLASS = ( UDSEntry::UDS_EXTRA + 1 ) | UDSEntry::UDS_STRING,
 };
 }
 
