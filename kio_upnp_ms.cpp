@@ -54,8 +54,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 using namespace Herqq::Upnp;
 
+// because somebody made
+// QThread::msleep protected
+class Sleeper : public QThread
+{
+public:
+    using QThread::msleep;
+};
+
 extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
 {
+    Herqq::Upnp::SetLoggingLevel(Herqq::Upnp::Debug);
   qDBusRegisterMetaType<DeviceInfo>();
 
   KComponentData instance( "kio_upnp_ms" );
@@ -458,6 +467,12 @@ DIDL::Object* UPnPMS::resolvePathToObject( const QString &path )
                  this, SLOT(slotResolveId(DIDL::Container *)) ) );
 
         parser.parse( results["Result"]->value().toString() );
+
+        // we sleep because devices ( atleast MediaTomb )
+        // seem to block continous TCP connections after some time
+        // this interval might need modification
+        Sleeper::msleep(500);
+
         // TODO have some kind of slot to stop the parser as 
         // soon as we find our guy, so that the rest of the
         // document isn't parsed.
