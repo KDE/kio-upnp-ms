@@ -38,6 +38,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <HDeviceInfo>
 #include <HDeviceProxy>
 #include <HDiscoveryType>
+#include <HEndpoint>
 #include <HResourceType>
 #include <HServiceId>
 #include <HServiceProxy>
@@ -140,12 +141,16 @@ void UPnPMS::updateDeviceInfo( const KUrl& url )
     }
 
     HDiscoveryType specific(m_deviceInfo.udn());
+    // Stick to multicast, unicast is a UDA 1.1 feature
+    // all devices don't support it
+    // Thanks to Tuomo Penttinen for pointing that out
     if( !m_controlPoint->scan(specific) ) {
       kDebug() << m_controlPoint->errorDescription();
       error( KIO::ERR_UNKNOWN_HOST, m_deviceInfo.udn() );
       return;
     }
     enterLoop();
+    kDebug() << "Device searching done";
 
     // connect to any state variables here
 //    HStateVariable *systemUpdateID = contentDirectory()->stateVariableByName( "SystemUpdateID" );
@@ -178,8 +183,8 @@ bool UPnPMS::ensureDevice( const KUrl &url )
 {
     if(  !m_deviceInfo.isValid()
       || ("uuid:" + url.host()) != m_deviceInfo.udn() ) {
-        kDebug() << m_deviceInfo.isValid();
         updateDeviceInfo(url);
+        kDebug() << m_deviceInfo.isValid();
         // invalidate the cache when the device changes
         m_reverseCache.clear();
         m_reverseCache.insert( "", new DIDL::Container( "0", "-1", false ) );
