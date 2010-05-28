@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 namespace DIDL {
 
 typedef QHash<QString, QString> Resource;
+typedef QHash<QString, QString> ExtraData;
 
 class SuperObject : public QObject
 {
@@ -87,11 +88,29 @@ class Object : public SuperObject
     void setTitle( const QString &title ) { m_title = title; };
     void setUpnpClass( const QString &upnpClass ) { m_upnpClass = upnpClass; };
 
+    /**
+     * Any remaining meta-data or tags encountered
+     * and their text content is available in the data
+     * with tag name mapping to text content.
+     *
+     * Tag attributes are skipped.
+     */
+    inline ExtraData data() const { return m_extra; }
+
+    /**
+     * Set an extra data item.
+     * Meant to be used by the Parser.
+     */
+    inline void setDataItem( const QString &key, const QString &value ) {
+      m_extra[key] = value;
+    }
+
   private:
     QString m_parentId;
     bool m_restricted;
     QString m_title;
     QString m_upnpClass;
+    ExtraData m_extra;
 };
 
 class Container : public Object

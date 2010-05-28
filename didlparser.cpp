@@ -101,7 +101,7 @@ void Parser::parseItem()
             item->setUpnpClass( m_reader->readElementText() );
         }
         else {
-            m_reader->skipCurrentElement();
+            item->setDataItem( m_reader->name().toString(), m_reader->readElementText() );
         }
     }
 
@@ -124,7 +124,7 @@ void Parser::parseContainer()
             container->setUpnpClass( m_reader->readElementText() );
         }
         else {
-            m_reader->skipCurrentElement();
+            container->setDataItem( m_reader->name().toString(), m_reader->readElementText() );
         }
     }
 
