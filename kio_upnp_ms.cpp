@@ -54,6 +54,23 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 using namespace Herqq::Upnp;
 
+/**
+ * Fill UDSEntry @c entry,
+ * setting uint @c property by retrieving
+ * the value from the item/container @c object's meta-data
+ * where the key is @c name.
+ */
+#define FILL_METADATA(entry, property, object, name)\
+    if( object->data().contains(name) )\
+        entry.insert( property, object->data()[name] )
+
+/**
+ * Fill from resource attributes
+ */
+#define FILL_RESOURCE_METADATA(entry, property, object, name)\
+    if( object->resource().contains(name) )\
+        entry.insert( property, object->resource()[name] )
+
 // because somebody made
 // QThread::msleep protected
 class Sleeper : public QThread
@@ -342,6 +359,10 @@ void UPnPMS::slotListContainer( DIDL::Container *c )
     KIO::UDSEntry entry;
     slotListFillCommon( entry, c );
     entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
+
+    // TODO insert attributes into meta-data in parser
+    // or childCount won't be available
+    FILL_METADATA(entry, KIO::UPNP_ALBUM_CHILDCOUNT, c, "childCount");
     listEntry(entry, false);
 }
 
@@ -364,6 +385,17 @@ void UPnPMS::slotListItem( DIDL::Item *item )
         access ^= S_IRUSR | S_IRGRP | S_IROTH;
         entry.insert( KIO::UDSEntry::UDS_ACCESS, access );
     }
+
+    FILL_METADATA(entry, KIO::UPNP_CREATOR, item, "creator");
+    FILL_METADATA(entry, KIO::UPNP_ALBUM, item, "album");
+    FILL_METADATA(entry, KIO::UPNP_GENRE, item, "genre");
+// TODO processing
+    FILL_METADATA(entry, KIO::UPNP_DATE, item, "date");
+
+    FILL_RESOURCE_METADATA(entry, KIO::UPNP_DURATION, item, "duration");
+    FILL_RESOURCE_METADATA(entry, KIO::UPNP_IMAGE_RESOLUTION, item, "resolution");
+    FILL_METADATA(entry, KIO::UPNP_CHANNEL_NAME, item, "channelName");
+    FILL_METADATA(entry, KIO::UPNP_CHANNEL_NUMBER, item, "channelNr");
     listEntry(entry, false);
 }
 
