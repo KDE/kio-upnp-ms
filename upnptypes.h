@@ -46,7 +46,7 @@ namespace KIO {
 enum UPnPFieldTypes {
     UPNP_CLASS = ( UDSEntry::UDS_EXTRA + 1 ) | UDSEntry::UDS_STRING,
 
-    /// object.item.audioItem
+    // object.item.audioItem
 
     /// The creator is usually the Artist
     UPNP_CREATOR = ( UDSEntry::UDS_EXTRA + 2 ) | UDSEntry::UDS_STRING,
@@ -57,7 +57,7 @@ enum UPnPFieldTypes {
     /// Duration of the content in "HH:MM:SS"
     UPNP_DURATION = (UDSEntry::UDS_EXTRA + 5 ) | UDSEntry::UDS_STRING,
 
-    /// object.item.imageItem
+    // object.item.imageItem
 
     // NOTE: for date, should we convert if the device isn't formatting properly?
     // TODO: should we use the UDS_TIME format modeled by long long
@@ -75,10 +75,10 @@ enum UPnPFieldTypes {
     // object.item.videoItem
     // none unique
 
-    /// object.container.album.musicAlbum
+    // object.container.album.musicAlbum
     UPNP_ALBUM_CHILDCOUNT = ( UDSEntry::UDS_EXTRA + 8 ) | UDSEntry::UDS_NUMBER,
 
-    /// object.item.videoItem.videoBroadcast, object.item.audioItem.audioBroadcast
+    // object.item.videoItem.videoBroadcast, object.item.audioItem.audioBroadcast
     UPNP_CHANNEL_NAME = ( UDSEntry::UDS_EXTRA + 9 ) | UDSEntry::UDS_STRING,
     UPNP_CHANNEL_NUMBER = ( UDSEntry::UDS_EXTRA + 10 ) | UDSEntry::UDS_NUMBER
 
