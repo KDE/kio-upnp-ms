@@ -81,7 +81,7 @@ public:
 
 extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
 {
-    Herqq::Upnp::SetLoggingLevel(Herqq::Upnp::Debug);
+    Herqq::Upnp::SetLoggingLevel(Herqq::Upnp::Warning);
   qDBusRegisterMetaType<DeviceInfo>();
 
   KComponentData instance( "kio_upnp_ms" );
