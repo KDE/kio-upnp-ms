@@ -80,8 +80,10 @@ enum UPnPFieldTypes {
 
     // object.item.videoItem.videoBroadcast, object.item.audioItem.audioBroadcast
     UPNP_CHANNEL_NAME = ( UDSEntry::UDS_EXTRA + 9 ) | UDSEntry::UDS_STRING,
-    UPNP_CHANNEL_NUMBER = ( UDSEntry::UDS_EXTRA + 10 ) | UDSEntry::UDS_NUMBER
+    UPNP_CHANNEL_NUMBER = ( UDSEntry::UDS_EXTRA + 10 ) | UDSEntry::UDS_NUMBER,
 
+    /// Track number in the Album (audioItems)
+    UPNP_TRACK_NUMBER = ( UDSEntry::UDS_EXTRA + 11 ) | UDSEntry::UDS_STRING
 };
 }
 
