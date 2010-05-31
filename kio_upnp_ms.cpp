@@ -389,6 +389,7 @@ void UPnPMS::slotListItem( DIDL::Item *item )
     FILL_METADATA(entry, KIO::UPNP_CREATOR, item, "creator");
     FILL_METADATA(entry, KIO::UPNP_ALBUM, item, "album");
     FILL_METADATA(entry, KIO::UPNP_GENRE, item, "genre");
+    FILL_METADATA(entry, KIO::UPNP_TRACK_NUMBER, item, "originalTrackNumber");
 // TODO processing
     FILL_METADATA(entry, KIO::UPNP_DATE, item, "date");
 
