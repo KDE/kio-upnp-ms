@@ -387,6 +387,8 @@ void UPnPMS::slotListItem( DIDL::Item *item )
     }
 
     FILL_METADATA(entry, KIO::UPNP_CREATOR, item, "creator");
+// if the artist exists, choose the artist
+    FILL_METADATA(entry, KIO::UPNP_CREATOR, item, "artist");
     FILL_METADATA(entry, KIO::UPNP_ALBUM, item, "album");
     FILL_METADATA(entry, KIO::UPNP_GENRE, item, "genre");
     FILL_METADATA(entry, KIO::UPNP_TRACK_NUMBER, item, "originalTrackNumber");
