@@ -66,6 +66,24 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     void stat( const KUrl &url );
     void listDir( const KUrl &url );
 
+  private slots:
+    void rootDeviceOnline(Herqq::Upnp::HDeviceProxy *device);
+    void slotParseError( const QString &errorString );
+    void slotListDirDone();
+    void slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object *obj );
+    void slotListContainer( DIDL::Container *c );
+    void slotListItem( DIDL::Item *c );
+
+    void slotResolveId( DIDL::Object *object );
+    void slotResolveId( DIDL::Item *object );
+    void slotResolveId( DIDL::Container *object );
+
+    void slotCDSUpdated( const Herqq::Upnp::HStateVariableEvent &event );
+    void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
+
+  signals:
+    void done();
+
   private:
     void enterLoop();
     void updateDeviceInfo( const KUrl &url );
@@ -97,24 +115,6 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     DIDL::Object *m_resolvedObject;
 
     int m_actionCount;
-
-  private slots:
-    void rootDeviceOnline(Herqq::Upnp::HDeviceProxy *device);
-    void slotParseError( const QString &errorString );
-    void slotListDirDone();
-    void slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object *obj );
-    void slotListContainer( DIDL::Container *c );
-    void slotListItem( DIDL::Item *c );
-
-    void slotResolveId( DIDL::Object *object );
-    void slotResolveId( DIDL::Item *object );
-    void slotResolveId( DIDL::Container *object );
-
-    void slotCDSUpdated( const Herqq::Upnp::HStateVariableEvent &event );
-    void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
-
- signals:
-    void done();
 
 };
 
