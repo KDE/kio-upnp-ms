@@ -42,7 +42,18 @@ namespace KIO {
 *
 * Note: when adding new fields, remember, the restriction is 39
 * fields.
+*
+* Very Important: It seems fields using UDS_EXTRA as a base
+* can only be of type String. I don't know why since the UDSEntry
+* implementation never internally uses enum values but only
+* uint which should be able to fit a number too. But it doesn't seem to
+* work, atleast for UPNP_TRACK_NUMBER. The field is set properly,
+* it is accessible within the kioslave. Even copying the entry is fine.
+* 
+* When emitted to the Job, the Job's UDSEntry reports as containing
+* that field, but its value is reported as 0.
 */
+
 enum UPnPFieldTypes {
     UPNP_CLASS = ( UDSEntry::UDS_EXTRA + 1 ) | UDSEntry::UDS_STRING,
 
