@@ -94,7 +94,12 @@ enum UPnPFieldTypes {
     UPNP_CHANNEL_NUMBER = ( UDSEntry::UDS_EXTRA + 10 ) | UDSEntry::UDS_NUMBER,
 
     /// Track number in the Album (audioItems)
-    UPNP_TRACK_NUMBER = ( UDSEntry::UDS_EXTRA + 11 ) | UDSEntry::UDS_STRING
+    UPNP_TRACK_NUMBER = ( UDSEntry::UDS_EXTRA + 11 ) | UDSEntry::UDS_STRING,
+
+
+    // These are types not recommended by DLNA but good for
+    // Amarok :)
+    UPNP_BITRATE = ( UDSEntry::UDS_EXTRA + 12 ) | UDSEntry::UDS_STRING
 };
 }
 

@@ -394,6 +394,7 @@ void UPnPMS::slotListItem( DIDL::Item *item )
     FILL_METADATA(entry, KIO::UPNP_DATE, item, "date");
 
     FILL_RESOURCE_METADATA(entry, KIO::UPNP_DURATION, item, "duration");
+    FILL_RESOURCE_METADATA(entry, KIO::UPNP_BITRATE, item, "bitrate");
     FILL_RESOURCE_METADATA(entry, KIO::UPNP_IMAGE_RESOLUTION, item, "resolution");
     FILL_METADATA(entry, KIO::UPNP_CHANNEL_NAME, item, "channelName");
     FILL_METADATA(entry, KIO::UPNP_CHANNEL_NUMBER, item, "channelNr");
