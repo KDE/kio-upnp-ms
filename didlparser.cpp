@@ -151,7 +151,6 @@ void Parser::parse(const QString &input)
     while( !m_reader->atEnd() ) {
         if( !m_reader->readNextStartElement() )
             break;
-        Object *object = NULL;
         if( m_reader->name() == "item" ) {
             parseItem();
         }

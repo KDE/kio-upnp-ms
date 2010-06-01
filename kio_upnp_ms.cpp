@@ -318,7 +318,6 @@ HActionArguments UPnPMS::browseDevice( const QString &id,
     enterLoop();
    
     Q_ASSERT(browseAct->disconnect());
-    qint32 res;
     bool ret = browseAct->waitForInvoke( &invocationOp, &output );
 
     if( !ret || 
