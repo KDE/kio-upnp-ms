@@ -151,11 +151,11 @@ void UPnPMS::enterLoop()
 void UPnPMS::updateDeviceInfo( const KUrl& url )
 {
     QDBusConnection bus = QDBusConnection::sessionBus();
-    QDBusInterface iface( "org.kde.Cagibi", "/", "org.kde.Cagibi", bus );
+    QDBusInterface iface( "org.kde.Cagibi", "/org/kde/Cagibi", "org.kde.Cagibi", bus );
     QString udn = "uuid:" + url.host();
     QDBusReply<DeviceInfo> res = iface.call("deviceDetails", udn);
     if( !res.isValid() ) {
-      kDebug() << "Invalid request";
+        kDebug() << "Invalid request" << res.error().message();
       error(KIO::ERR_COULD_NOT_CONNECT, udn);
       return;
     }
