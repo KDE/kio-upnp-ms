@@ -1,10 +1,17 @@
+HOW DO YOU?
 watch for signals from cagibi about device
 disconnections
 be ready to update device info if it changes
-Support arbitrary browsing. If user directly
-goes to upnp-ms://uuid/path/to/file, then use
-Browse() or Search() to resolve the right ID.
- - Backtrack along the path until we get an ID,
-   then call recursive Browse() with only dc:title in
-   the filter (to reduce the transfer) and get the right
-   ID?
+
+when there is no event loop!
+If we keep the internal event loop always
+running, that will block the slave itself.
+
+An alternative is to always keep these signals connected
+so that whenever the event loop runs, we can watch
+for changes, and when it isn't running, not do so.
+
+TODO
+====
+
+* Support Search() with a decent syntax
