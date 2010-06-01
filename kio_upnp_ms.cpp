@@ -279,9 +279,9 @@ void UPnPMS::browseDevice( const KUrl &url )
                                             0,
                                             0,
                                             "" );
-    if( output["Error"] ) {
-        kDebug() << output["Error"]->value().toString();
-        error( KIO::ERR_SLAVE_DEFINED, output["Error"]->value().toString() );
+    if( output["Result"] == NULL ) {
+        kDebug() << m_lastErrorString;
+        error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
         return;
     }
     createDirectoryListing( output["Result"]->value().toString() );
@@ -320,11 +320,13 @@ HActionArguments UPnPMS::browseDevice( const QString &id,
     Q_ASSERT(browseAct->disconnect());
     qint32 res;
     bool ret = browseAct->waitForInvoke( &invocationOp, &output );
-    Q_ASSERT( ret );
 
-    if( invocationOp.waitCode() != HAsyncOp::WaitSuccess ) {
-        kDebug() << "Error invoking browse" << browseAct->errorCodeToString( invocationOp.returnValue() );
-        output["Error"]->setValue( browseAct->errorCodeToString( invocationOp.returnValue() ) );
+    if( !ret || 
+        ( invocationOp.waitCode() != HAsyncOp::WaitSuccess ) ) {
+        m_lastErrorString = browseAct->errorCodeToString( invocationOp.returnValue() );
+    }
+    else {
+        m_lastErrorString = QString();
     }
 
     // TODO check for success
@@ -491,6 +493,11 @@ DIDL::Object* UPnPMS::resolvePathToObject( const QString &path )
                                                  0,
                                                  "dc:title" );
         // TODO check error
+        if( results["Result"] == NULL ) {
+            kDebug() << "Error:" << m_lastErrorString;
+            error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
+            return NULL;
+        }
 
         DIDL::Parser parser;
         Q_ASSERT( connect( &parser, SIGNAL(itemParsed(DIDL::Item *)),

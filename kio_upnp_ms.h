@@ -114,6 +114,7 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     QString m_resolveLookingFor;
     DIDL::Object *m_resolvedObject;
 
+    QString m_lastErrorString;
 };
 
 #endif
