@@ -107,7 +107,6 @@ void UPnPMS::get( const KUrl &url )
 UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
   : QObject(0)
   , SlaveBase( "upnp-ms", pool, app )
-  , m_actionCount(0)
 {
     HControlPointConfiguration config;
     config.setAutoDiscovery(false);
@@ -327,8 +326,6 @@ HActionArguments UPnPMS::browseDevice( const QString &id,
         kDebug() << "Error invoking browse" << browseAct->errorCodeToString( invocationOp.returnValue() );
         output["Error"]->setValue( browseAct->errorCodeToString( invocationOp.returnValue() ) );
     }
-    m_actionCount++;
-
 
     // TODO check for success
     return output;
