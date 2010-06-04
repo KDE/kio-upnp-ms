@@ -31,6 +31,7 @@ class Container;
 class Item;
 class Description;
 class SuperObject;
+class Object;
 
 typedef QHash<QString, QString> Resource;
 
@@ -102,8 +103,13 @@ class Parser : public QObject
     void parseItem();
     void parseContainer();
     void parseDescription();
-    QString parseTitle();
     Resource parseResource();
+
+   /**
+     * returns true if it actually parsed something,
+     * false otherwise
+     */
+    bool parseObjectCommon( Object *o );
 
     // emits error() and stops the parser
     void raiseError( const QString &errorStr=QString() );

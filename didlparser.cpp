@@ -52,16 +52,6 @@ void Parser::raiseError( const QString &errorStr )
     m_reader->clear();
 }
 
-QString Parser::parseTitle()
-{
-    m_reader->readNextStartElement();
-    if( m_reader->name() == "title" ) {
-        return m_reader->readElementText();
-    }
-    raiseError("Expected dc:title");
-    return QString();
-}
-
 Resource Parser::parseResource()
 {
     Resource r;
@@ -83,6 +73,19 @@ Resource Parser::parseResource()
     return r;
 }
 
+bool Parser::parseObjectCommon( Object *o )
+{
+    if( m_reader->name() == "title" ) {
+        o->setTitle( m_reader->readElementText() );
+        return true;
+    }
+    else if( m_reader->name() == "class" ) {
+        o->setUpnpClass( m_reader->readElementText() );
+        return true;
+    }
+    return false;
+}
+
 void Parser::parseItem()
 {
     QXmlStreamAttributes attributes = m_reader->attributes();
@@ -91,14 +94,11 @@ void Parser::parseItem()
         attributes.value("parentID").toString(),
         interpretRestricted( attributes.value("restricted") ) );
 
-    item->setTitle( parseTitle() );
-
     while( m_reader->readNextStartElement() ) {
-        if( m_reader->name() == "res" ) {
-            item->addResource( parseResource() );
+        if( parseObjectCommon( item ) ) {
         }
-        else if( m_reader->name() == "class" ) {
-            item->setUpnpClass( m_reader->readElementText() );
+        else if( m_reader->name() == "res" ) {
+            item->addResource( parseResource() );
         }
         else {
             item->setDataItem( m_reader->name().toString(), m_reader->readElementText() );
@@ -116,12 +116,8 @@ void Parser::parseContainer()
         attributes.value("parentID").toString(),
         interpretRestricted( attributes.value("restricted") ) );
 
-    container->setTitle( parseTitle() );
-
     while( m_reader->readNextStartElement() ) {
-        kDebug() << m_reader->name();
-        if( m_reader->name() == "class" ) {
-            container->setUpnpClass( m_reader->readElementText() );
+        if( parseObjectCommon( container ) ) {
         }
         else {
             container->setDataItem( m_reader->name().toString(), m_reader->readElementText() );
