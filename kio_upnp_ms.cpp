@@ -190,10 +190,6 @@ void UPnPMS::updateDeviceInfo( const KUrl& url )
              SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
              this,
                        SLOT( slotContainerUpdates(const Herqq::Upnp::HStateVariableEvent&) ) ) );
-    connect( this,
-             SIGNAL( done() ),
-             this,
-             SLOT( checkUpdates() ) );
 }
 
 /*
@@ -228,10 +224,35 @@ bool UPnPMS::ensureDevice( const KUrl &url )
 
 void UPnPMS::stat( const KUrl &url )
 {
-
     if( !ensureDevice( url ) ) {
         //TODO error()
         return;
+    }
+
+    kDebug() << "Query" << url.queryItems();
+    // if just asking for an update
+    if( url.hasQueryItem("checkupdate") ) {
+        // you probably want to check if the path exists
+        // otherwise resolve it so that the updates are actually
+        // triggered 
+        DIDL::Object *obj = resolvePathToObject( url.path() );
+        Q_ASSERT(obj);
+        kDebug() << "PATH" << url.path();
+        kDebug() << "obj title" << obj->title();
+        // just enter loop and stop when done
+        // of course all this should be refactored
+        HStateVariable *containerUpdates = contentDirectory()->stateVariableByName( "ContainerUpdateIDs" );
+        Q_ASSERT( connect( containerUpdates,
+                           SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
+                           this,
+                           SIGNAL( done() ) ) );
+        // lets not wait too long
+        QTimer::singleShot( 1000, this, SIGNAL( done() ) );
+        enterLoop();
+        Q_ASSERT( disconnect( containerUpdates,
+                           SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
+                           this,
+                           SIGNAL( done() ) ) );
     }
 
     DIDL::Object *obj = resolvePathToObject( url.path(KUrl::RemoveTrailingSlash) );
@@ -532,6 +553,7 @@ DIDL::Object* UPnPMS::resolvePathToObject( const QString &path )
             m_reverseCache.insert( pathToInsert, m_resolvedObject );
             // TODO: if we already have the id, should we just update the
             // ContainerUpdateIDs
+            kDebug() << "INSERTING" << m_resolvedObject->id() << "Into hash";
             m_updatesHash.insert( m_resolvedObject->id(), UpdateValueAndPath( "0", pathToInsert ) );
             from = SEP_POS( path, pathToInsert.length() );
             // ignore trailing slashes
@@ -591,7 +613,6 @@ void UPnPMS::slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event
         QString updateValue = *it;
         it++;
 
-        kDebug() << "Now" << id << updateValue << m_updatesHash.contains(id);
         if( m_updatesHash.contains( id ) ) {
             if( m_updatesHash[id].first == updateValue )
                 continue;
@@ -602,10 +623,10 @@ void UPnPMS::slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event
             fullPath.setProtocol( "upnp-ms" );
             fullPath.setHost( m_deviceInfo.udn() );
             fullPath.setPath( updatedPath );
-            kDebug() << "Updated" << fullPath;
             filesAdded << fullPath.prettyUrl();
         }
     }
+    kDebug() << "Emitting" << filesAdded;
     OrgKdeKDirNotifyInterface::emitFilesChanged( filesAdded );
 }
 
