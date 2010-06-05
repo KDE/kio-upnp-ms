@@ -11,6 +11,18 @@ An alternative is to always keep these signals connected
 so that whenever the event loop runs, we can watch
 for changes, and when it isn't running, not do so.
 
+The problem with storing update hash mappings to
+only directories we have browsed before is the
+following.
+
+stat() will launch another upnp-ms slave with no shared
+history. Which means only the path passed to stat()
+along with ?checkupdate=1 will be checked for updates.
+There has to be a way to map any ID to a path.
+ -- Use the parentId attribute from the DIDL reply
+ -- and walk backwards just like we walk forwards
+ -- when resolving paths to objects.
+
 TODO
 ====
 
