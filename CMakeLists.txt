@@ -30,9 +30,14 @@ KDE4_ADD_EXECUTABLE(upnpmstest main.cpp)
 TARGET_LINK_LIBRARIES(upnpmstest ${KDE4_KDEUI_LIBS}
     ${KDE4_KPARTS_LIBS} )
 
+KDE4_ADD_EXECUTABLE(stattest stattest.cpp)
+ 
+TARGET_LINK_LIBRARIES(stattest ${KDE4_KDEUI_LIBS}
+    ${KDE4_KPARTS_LIBS} )
+
 # so other programs can access the types
 install(FILES upnptypes.h DESTINATION
     ${INCLUDE_INSTALL_DIR}/kio COMPONENT devel)
  
-install(TARGETS upnpmstest  DESTINATION ${BIN_INSTALL_DIR}
-    )
+install(TARGETS upnpmstest  DESTINATION ${BIN_INSTALL_DIR})
+install(TARGETS stattest  DESTINATION ${BIN_INSTALL_DIR})
