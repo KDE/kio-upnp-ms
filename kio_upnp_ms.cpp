@@ -178,18 +178,22 @@ void UPnPMS::updateDeviceInfo( const KUrl& url )
     kDebug() << "Device searching done";
 
     // connect to any state variables here
-//    HStateVariable *systemUpdateID = contentDirectory()->stateVariableByName( "SystemUpdateID" );
-//    kDebug() << "SystemUpdateID is" << systemUpdateID->value();
-//    connect( systemUpdateID,
-//             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
-//             this,
-//             SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) );
-// 
-//    HStateVariable *containerUpdates = contentDirectory()->stateVariableByName( "ContainerUpdateIDs" );
-//    connect( containerUpdates,
-//             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
-//             this,
-//             SLOT( slotContainerUpdates(const Herqq::Upnp::HStateVariableEvent&) ) );
+    HStateVariable *systemUpdateID = contentDirectory()->stateVariableByName( "SystemUpdateID" );
+    kDebug() << "SystemUpdateID is" << systemUpdateID->value();
+    connect( systemUpdateID,
+             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
+             this,
+             SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) );
+ 
+    HStateVariable *containerUpdates = contentDirectory()->stateVariableByName( "ContainerUpdateIDs" );
+    Q_ASSERT( connect( containerUpdates,
+             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
+             this,
+                       SLOT( slotContainerUpdates(const Herqq::Upnp::HStateVariableEvent&) ) ) );
+    connect( this,
+             SIGNAL( done() ),
+             this,
+             SLOT( checkUpdates() ) );
 }
 
 /*
@@ -211,8 +215,11 @@ bool UPnPMS::ensureDevice( const KUrl &url )
         updateDeviceInfo(url);
         kDebug() << m_deviceInfo.isValid();
         // invalidate the cache when the device changes
+        m_updatesHash.clear();
         m_reverseCache.clear();
+        m_updatesHash.insert( "", UpdateValueAndPath( "0", "" ) );
         m_reverseCache.insert( "", new DIDL::Container( "0", "-1", false ) );
+        m_updatesHash.insert( "/", UpdateValueAndPath( "0", "/" ) );
         m_reverseCache.insert( "/", new DIDL::Container( "0", "-1", false ) );
     }
 
@@ -521,8 +528,12 @@ DIDL::Object* UPnPMS::resolvePathToObject( const QString &path )
             return NULL;
         }
         else {
-            m_reverseCache.insert( ( segment + QDir::separator() + m_resolvedObject->title() ), m_resolvedObject );
-            from = SEP_POS( path, ( segment + QDir::separator() + m_resolvedObject->title() ).length() );
+            QString pathToInsert = ( segment + QDir::separator() + m_resolvedObject->title() );
+            m_reverseCache.insert( pathToInsert, m_resolvedObject );
+            // TODO: if we already have the id, should we just update the
+            // ContainerUpdateIDs
+            m_updatesHash.insert( m_resolvedObject->id(), UpdateValueAndPath( "0", pathToInsert ) );
+            from = SEP_POS( path, pathToInsert.length() );
             // ignore trailing slashes
             if( from == path.length()-1 ) {
                 from = -1;
@@ -570,5 +581,36 @@ void UPnPMS::slotCDSUpdated( const HStateVariableEvent &event )
 void UPnPMS::slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event )
 {
     kDebug() << "UPDATED containers" << event.newValue();
-    OrgKdeKDirNotifyInterface::emitFilesChanged( QStringList()<< "b.txt");
+    QStringList filesAdded;
+
+    QStringList updates = event.newValue().toString().split(",");
+    QStringList::const_iterator it;
+    for( it = updates.begin(); it != updates.end(); /* see loop */ ) {
+        QString id = *it;
+        it++;
+        QString updateValue = *it;
+        it++;
+
+        kDebug() << "Now" << id << updateValue << m_updatesHash.contains(id);
+        if( m_updatesHash.contains( id ) ) {
+            if( m_updatesHash[id].first == updateValue )
+                continue;
+
+            m_updatesHash[id].first = updateValue;
+            QString updatedPath = m_updatesHash[id].second;
+            KUrl fullPath;
+            fullPath.setProtocol( "upnp-ms" );
+            fullPath.setHost( m_deviceInfo.udn() );
+            fullPath.setPath( updatedPath );
+            kDebug() << "Updated" << fullPath;
+            filesAdded << fullPath.prettyUrl();
+        }
+    }
+    OrgKdeKDirNotifyInterface::emitFilesChanged( filesAdded );
+}
+
+void UPnPMS::checkUpdates()
+{
+    if( !m_device )
+        return;
 }

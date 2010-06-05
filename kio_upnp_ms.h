@@ -51,6 +51,11 @@ namespace DIDL
 // as well store the Item/Container we receive from the parser
 typedef QCache<QString, DIDL::Object> NameToObjectCache;
 
+typedef QPair<QString, QString> UpdateValueAndPath;
+
+// maps ID -> (update value, path) where path is a valid
+typedef QHash<QString, UpdateValueAndPath> ContainerUpdatesHash;
+
 #define BROWSE_DIRECT_CHILDREN "BrowseDirectChildren"
 #define BROWSE_METADATA "BrowseMetadata"
 
@@ -80,6 +85,7 @@ class UPnPMS : public QObject, public KIO::SlaveBase
 
     void slotCDSUpdated( const Herqq::Upnp::HStateVariableEvent &event );
     void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
+    void checkUpdates();
 
   signals:
     void done();
@@ -110,6 +116,20 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     DeviceInfo m_deviceInfo;
 
     NameToObjectCache m_reverseCache;
+    // entry in NameToObjectCache, that is inserted when
+    // the cache itself is filled.
+    // notice there is NO way to go from a ID to a path
+    // apart from this and linear searching the NameToObjectCache.
+    // so here is how this thing works.
+    // 1. What the user hasn't browsed a folder/Item
+    // we simply don't care about its update state :)
+    // 2. On first browse, we insert into cache as well
+    // as in m_updatesHash.
+    // 3. cache may expire, but m_updatesHash never does
+    // so we can always recover the Container/Item
+    // by a call to resolvePathToObject() since we have
+    // the path in m_updatesHash.
+    ContainerUpdatesHash m_updatesHash;
 
     QString m_resolveLookingFor;
     DIDL::Object *m_resolvedObject;
