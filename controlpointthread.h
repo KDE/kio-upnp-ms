@@ -107,7 +107,6 @@ class ControlPointThread : public QThread
   private:
     void updateDeviceInfo( const KUrl &url );
     bool ensureDevice( const KUrl &url );
-    void browseDevice( const KUrl &url );
     inline bool deviceFound();
     void browseDevice( const QString &id,
                        const QString &browseFlag,

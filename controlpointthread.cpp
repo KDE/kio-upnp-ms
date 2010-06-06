@@ -148,7 +148,6 @@ void ControlPointThread::updateDeviceInfo( const KUrl& url )
       emit error( KIO::ERR_UNKNOWN_HOST, m_deviceInfo.udn() );
       return;
     }
-    kDebug() << "Thread state!" << isRunning();
 
     QEventLoop local;
     Q_ASSERT( 
@@ -208,6 +207,34 @@ void ControlPointThread::browseDevice( const KUrl &url )
 {
     ensureDevice( url );
     if( !m_device ) {
+      emit error( KIO::ERR_DOES_NOT_EXIST, url.prettyUrl() );
+      return;
+    }
+
+    QString path = url.path(KUrl::RemoveTrailingSlash);
+    connect( this, SIGNAL( pathResolved( DIDL::Object * ) ),
+             this, SLOT( browseResolvedPath( DIDL::Object *) ), Qt::UniqueConnection );
+    resolvePathToObject(path);
+
+    kDebug() << "NOW BROWSING" << object->id() << object->title();
+
+    Q_ASSERT( connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
+                       this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments & ) ) ) );
+    browseDevice( object->id(),
+                  BROWSE_DIRECT_CHILDREN,
+                  "*",
+                  0,
+                  0,
+                  "" );
+}
+
+void ControlPointThread::listDir( const KUrl &url )
+{
+    start();
+    kDebug() << url;
+
+    ensureDevice( url );
+    if( !m_device ) {
 // TODO once ensureDevice() returns proper status, use that for check
       emit error( KIO::ERR_DOES_NOT_EXIST, url.prettyUrl() );
       return;
@@ -218,14 +245,6 @@ void ControlPointThread::browseDevice( const KUrl &url )
     connect( this, SIGNAL( pathResolved( DIDL::Object * ) ),
              this, SLOT( browseResolvedPath( DIDL::Object *) ), Qt::UniqueConnection );
     resolvePathToObject(path);
-
-}
-
-void ControlPointThread::listDir( const KUrl &url )
-{
-    start();
-    kDebug() << url;
-    browseDevice( url );
 }
 
 void ControlPointThread::browseResolvedPath( DIDL::Object *object )
