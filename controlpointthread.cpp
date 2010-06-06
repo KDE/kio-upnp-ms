@@ -106,14 +106,12 @@ ControlPointThread::~ControlPointThread()
 
 void ControlPointThread::run()
 {
-    kDebug() << "Running";
     exec();
 }
 
 void ControlPointThread::rootDeviceOnline(HDeviceProxy *device)
 {
   m_device = device;
-  kDebug() << "DEVICE FOUND";
 }
 
 /**
@@ -159,7 +157,6 @@ void ControlPointThread::updateDeviceInfo( const KUrl& url )
     local.exec();
     // connect to any state variables here
     HStateVariable *systemUpdateID = contentDirectory()->stateVariableByName( "SystemUpdateID" );
-    kDebug() << "SystemUpdateID is" << systemUpdateID->value();
     connect( systemUpdateID,
              SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
              this,
@@ -190,7 +187,6 @@ bool ControlPointThread::ensureDevice( const KUrl &url )
     if(  !m_deviceInfo.isValid()
       || ("uuid:" + url.host()) != m_deviceInfo.udn() ) {
         updateDeviceInfo(url);
-        kDebug() << m_deviceInfo.isValid();
         // invalidate the cache when the device changes
         m_updatesHash.clear();
         m_reverseCache.clear();
@@ -264,8 +260,6 @@ void ControlPointThread::browseResolvedPath( DIDL::Object *object )
         return;
     }
 
-    kDebug() << "NOW BROWSING" << object->id() << object->title();
-
     Q_ASSERT( connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
                        this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments & ) ) ) );
     browseDevice( object->id(),
@@ -300,7 +294,6 @@ void ControlPointThread::browseDevice( const QString &id,
     Q_ASSERT( connect( m_browseAct, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
                        this, SLOT( browseInvokeDone( Herqq::Upnp::HAsyncOp ) ) ) );
     HAsyncOp invocationOp = m_browseAct->beginInvoke( args );
-    kDebug() << "in browsedeivce opid" << invocationOp.id();
 
 }
 
@@ -308,11 +301,9 @@ void ControlPointThread::browseInvokeDone( HAsyncOp invocationOp )
 {
     Q_ASSERT( disconnect( m_browseAct, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
                        this, SLOT( browseInvokeDone( Herqq::Upnp::HAsyncOp ) ) ) );
-    kDebug() << "in browsedone opid" << invocationOp.id();
     HActionArguments output;
     bool ret = m_browseAct->waitForInvoke( &invocationOp, &output );
 
-    kDebug() << "Invokation opcode" << invocationOp.waitCode();
     if( invocationOp.waitCode() != HAsyncOp::WaitSuccess ) {
         m_lastErrorString = m_browseAct->errorCodeToString( invocationOp.returnValue() );
     }
@@ -432,7 +423,7 @@ QString ControlPointThread::idForName( const QString &name )
  * or queries the UPnP device.
  * If not found, returns NULL
  */
-DIDL::Object* ControlPointThread::resolvePathToObject( const QString &path )
+void ControlPointThread::resolvePathToObject( const QString &path )
 {
 
     //////////////////////////////////////////////////////////////
@@ -473,14 +464,12 @@ DIDL::Object* ControlPointThread::resolvePathToObject( const QString &path )
         from = -(path.length() - subpathLength + 1);
     } while( (subpathLength = LAST_SEP_POS( path, from ) ) != -1 );
 
-
 // TODO
 // most CDS support Search() on basic attributes
 // check it, and if allowed, use Search
 // but remember to handle multiple results
     m_resolve.pathIndex = SEP_POS( path, startAt.length() ) ;
 
-    kDebug() << "RESOLVING " << path << "FROM " << m_resolve.pathIndex;
     m_resolve.fullPath = path;
     resolvePathToObjectInternal();
 }
@@ -494,7 +483,6 @@ void ControlPointThread::resolvePathToObjectInternal()
     m_resolve.object = NULL;
     Q_ASSERT( connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
                        this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) ) );
-    kDebug() << "-------------" << m_resolve.segment << idForName(m_resolve.segment);
     browseDevice( idForName(m_resolve.segment),
                   BROWSE_DIRECT_CHILDREN,
                   "*",
@@ -539,14 +527,11 @@ void ControlPointThread::attemptResolution( const HActionArguments &args )
     }
     else {
         QString pathToInsert = ( m_resolve.segment + QDir::separator() + m_resolve.object->title() );
-        kDebug() << "Path to insert is" << pathToInsert;
         m_reverseCache.insert( pathToInsert, m_resolve.object );
         // TODO: if we already have the id, should we just update the
         // ContainerUpdateIDs
-        kDebug() << "INSERTING" << m_resolve.object->id() << "Into hash";
         m_updatesHash.insert( m_resolve.object->id(), UpdateValueAndPath( "0", pathToInsert ) );
         m_resolve.pathIndex = SEP_POS( m_resolve.fullPath, pathToInsert.length() );
-        kDebug() << "Path index after inserting " << m_resolve.object->title() << m_resolve.pathIndex;
         // ignore trailing slashes
         if( m_resolve.pathIndex == m_resolve.fullPath.length()-1 ) {
             m_resolve.pathIndex = -1;
@@ -612,7 +597,6 @@ void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariable
             filesAdded << fullPath.prettyUrl();
         }
     }
-    kDebug() << "Emitting" << filesAdded;
     OrgKdeKDirNotifyInterface::emitFilesChanged( filesAdded );
 }
 

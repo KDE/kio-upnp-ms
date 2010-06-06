@@ -119,7 +119,7 @@ class ControlPointThread : public QThread
                        const QString &sortCriteria );
 
     QString idForName( const QString &name );
-    DIDL::Object* resolvePathToObject( const QString &path );
+    void resolvePathToObject( const QString &path );
     QString resolvePathToId( const QString &path );
 
     Herqq::Upnp::HServiceProxy* contentDirectory() const;
