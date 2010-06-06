@@ -96,6 +96,7 @@ class ControlPointThread : public QThread
   signals:
     void listEntry( const KIO::UDSEntry & );
     void listingDone();
+    void error( int type, const QString & );
 
   private:
     void updateDeviceInfo( const KUrl &url );

@@ -25,6 +25,7 @@ void upnptest::done(KJob *job)
     kDebug() << "Done";
     if( job->error() ) {
         kDebug() << "ERROR!" << job->errorString();
+        kapp->quit();
     }
     kapp->quit();
 }

@@ -126,13 +126,13 @@ void ControlPointThread::updateDeviceInfo( const KUrl& url )
     QDBusReply<DeviceInfo> res = iface.call("deviceDetails", udn);
     if( !res.isValid() ) {
         kDebug() << "Invalid request" << res.error().message();
-        //error(KIO::ERR_COULD_NOT_CONNECT, udn);
+        emit error(KIO::ERR_COULD_NOT_CONNECT, udn);
       return;
     }
     m_deviceInfo = res.value();
     if( m_deviceInfo.udn().isEmpty() ) {
         kDebug() << "Error UNKNOWN HOST";
-        //error( KIO::ERR_UNKNOWN_HOST, m_deviceInfo.udn() );
+        emit error( KIO::ERR_UNKNOWN_HOST, m_deviceInfo.udn() );
         return;
     }
 
@@ -142,7 +142,7 @@ void ControlPointThread::updateDeviceInfo( const KUrl& url )
     // Thanks to Tuomo Penttinen for pointing that out
     if( !m_controlPoint->scan(specific) ) {
       kDebug() << m_controlPoint->errorDescription();
-      //error( KIO::ERR_UNKNOWN_HOST, m_deviceInfo.udn() );
+      emit error( KIO::ERR_UNKNOWN_HOST, m_deviceInfo.udn() );
       return;
     }
     kDebug() << "Thread state!" << isRunning();
@@ -206,7 +206,7 @@ void ControlPointThread::browseDevice( const KUrl &url )
     ensureDevice( url );
     if( !m_device ) {
 // TODO once ensureDevice() returns proper status, use that for check
-        //error( KIO::ERR_DOES_NOT_EXIST, url.prettyUrl() );
+      emit error( KIO::ERR_DOES_NOT_EXIST, url.prettyUrl() );
       return;
     }
 
@@ -252,8 +252,7 @@ HActionArguments ControlPointThread::browseDevice( const QString &id,
     HActionArguments output;
 
     if( contentDirectory() == NULL ) {
-        //error( KIO::ERR_UNSUPPORTED_ACTION, "ControlPointThread device " + m_device->deviceInfo().friendlyName() + " does not support browsing" );
-            return output;
+        emit error( KIO::ERR_UNSUPPORTED_ACTION, "ControlPointThread device " + m_device->deviceInfo().friendlyName() + " does not support browsing" );
     }
    
     m_browseAct = contentDirectory()->actionByName( "Browse" );
@@ -291,7 +290,7 @@ void ControlPointThread::browseInvokeDone( HAsyncOp invocationOp )
 
 void ControlPointThread::slotParseError( const QString &errorString )
 {
-    //error(KIO::ERR_SLAVE_DEFINED, errorString);
+    emit error(KIO::ERR_SLAVE_DEFINED, errorString);
 }
 
 void ControlPointThread::slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object *obj )

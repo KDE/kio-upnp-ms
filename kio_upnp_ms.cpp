@@ -72,6 +72,8 @@ UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
   : QObject(0)
   , SlaveBase( "upnp-ms", pool, app )
 {
+    Q_ASSERT( connect( &m_cpthread, SIGNAL( error( int, const QString & ) ),
+                       this, SLOT( slotError( int, const QString & ) ) ) );
 }
 
 UPnPMS::~UPnPMS()
@@ -89,6 +91,11 @@ void UPnPMS::enterLoop()
 
 void UPnPMS::stat( const KUrl &url )
 {
+}
+
+void UPnPMS::slotError( int type, const QString &message )
+{
+    error( type, message );
 }
 
 void UPnPMS::listDir( const KUrl &url )
