@@ -203,7 +203,7 @@ bool ControlPointThread::ensureDevice( const KUrl &url )
     return true;
 }
 
-void ControlPointThread::browseDevice( const KUrl &url )
+void ControlPointThread::stat( const KUrl &url )
 {
     ensureDevice( url );
     if( !m_device ) {
@@ -213,19 +213,28 @@ void ControlPointThread::browseDevice( const KUrl &url )
 
     QString path = url.path(KUrl::RemoveTrailingSlash);
     connect( this, SIGNAL( pathResolved( DIDL::Object * ) ),
-             this, SLOT( browseResolvedPath( DIDL::Object *) ), Qt::UniqueConnection );
-    resolvePathToObject(path);
+             this, SLOT( statResolvedPath( DIDL::Object * ) ) );
 
-    kDebug() << "NOW BROWSING" << object->id() << object->title();
+    resolvePathToObject( path );
+}
 
-    Q_ASSERT( connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
-                       this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments & ) ) ) );
-    browseDevice( object->id(),
-                  BROWSE_DIRECT_CHILDREN,
-                  "*",
-                  0,
-                  0,
-                  "" );
+void ControlPointThread::statResolvedPath( DIDL::Object *object )
+{
+    KIO::UDSEntry entry;
+
+    if( object == NULL ) {
+        kDebug() << "ERROR: idString null";
+        emit error( KIO::ERR_DOES_NOT_EXIST, QString() );
+        return;
+    }
+
+    entry.insert( KIO::UDSEntry::UDS_NAME, object->title() );
+    entry.insert( KIO::UPNP_CLASS, object->upnpClass() );
+    if( object->type() == DIDL::SuperObject::Container )
+        entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
+    else
+        entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
+    emit statEntry( entry );
 }
 
 void ControlPointThread::listDir( const KUrl &url )

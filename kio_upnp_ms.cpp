@@ -91,6 +91,13 @@ void UPnPMS::enterLoop()
 
 void UPnPMS::stat( const KUrl &url )
 {
+    kDebug() << url;
+    Q_ASSERT( connect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
+                       this, SLOT( slotStatEntry( const KIO::UDSEntry & ) ) ) );
+    Q_ASSERT( connect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
+                       this, SIGNAL( done() ) ) );
+    m_cpthread.stat(url);
+    enterLoop();
 }
 
 void UPnPMS::slotError( int type, const QString &message )
@@ -109,6 +116,12 @@ void UPnPMS::listDir( const KUrl &url )
                        this, SIGNAL( done() ) ) );
     m_cpthread.listDir(url);
     enterLoop();
+}
+
+void UPnPMS::slotStatEntry( const KIO::UDSEntry &entry )
+{
+    statEntry( entry );
+    finished();
 }
 
 void UPnPMS::slotListEntry( const KIO::UDSEntry &entry )

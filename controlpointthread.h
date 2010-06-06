@@ -74,6 +74,7 @@ class ControlPointThread : public QThread
     ControlPointThread( QObject *parent=0 );
     virtual ~ControlPointThread();
     void listDir( const KUrl &url );
+    void stat( const KUrl &url );
 
   protected:
     virtual void run();
@@ -93,11 +94,13 @@ class ControlPointThread : public QThread
     void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
     void browseInvokeDone( Herqq::Upnp::HAsyncOp );
     void browseResolvedPath( DIDL::Object * );
+    void statResolvedPath( DIDL::Object * );
     void createDirectoryListing( const Herqq::Upnp::HActionArguments & );
     void resolvePathToObjectInternal();
     void attemptResolution( const Herqq::Upnp::HActionArguments & );
 
   signals:
+    void statEntry( const KIO::UDSEntry & );
     void listEntry( const KIO::UDSEntry & );
     void listingDone();
     void error( int type, const QString & );
