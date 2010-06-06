@@ -23,6 +23,10 @@ There has to be a way to map any ID to a path.
  -- and walk backwards just like we walk forwards
  -- when resolving paths to objects.
 
+Replace disconnect() calls with UniqueConnection.
+The problem while developing is that a previously used
+UniqueConnection will cause assertions to fail.
+
 TODO
 ====
 
