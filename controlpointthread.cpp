@@ -72,9 +72,12 @@ using namespace Herqq::Upnp;
 ControlPointThread::ControlPointThread( QObject *parent )
     : QThread( parent )
     , m_device( NULL )
-    , m_resolvedObject( NULL )
 {
     qDBusRegisterMetaType<DeviceInfo>();
+
+    m_resolve.pathIndex = -1;
+    m_resolve.object = NULL;
+
     HControlPointConfiguration config;
     config.setAutoDiscovery(false);
     m_controlPoint = new HControlPoint( config, this );
@@ -212,27 +215,10 @@ void ControlPointThread::browseDevice( const KUrl &url )
 
     QString path = url.path(KUrl::RemoveTrailingSlash);
 
-    // TODO Use path to decide
-    QString idString = resolvePathToId(path);
+    connect( this, SIGNAL( pathResolved( DIDL::Object * ) ),
+             this, SLOT( browseResolvedPath( DIDL::Object *) ), Qt::UniqueConnection );
+    resolvePathToObject(path);
 
-    if( idString.isNull() ) {
-        kDebug() << "ERROR: idString null";
-        //error( KIO::ERR_DOES_NOT_EXIST, path );
-        return;
-    }
-
-    HActionArguments output = browseDevice( idString,
-                                            BROWSE_DIRECT_CHILDREN,
-                                            "*",
-                                            0,
-                                            0,
-                                            "" );
-    if( output["Result"] == NULL ) {
-        kDebug() << m_lastErrorString;
-        //error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
-        return;
-    }
-    Q_ASSERT(false);
 }
 
 void ControlPointThread::listDir( const KUrl &url )
@@ -242,15 +228,33 @@ void ControlPointThread::listDir( const KUrl &url )
     browseDevice( url );
 }
 
-HActionArguments ControlPointThread::browseDevice( const QString &id,
+void ControlPointThread::browseResolvedPath( DIDL::Object *object )
+{
+    if( object == NULL ) {
+        kDebug() << "ERROR: idString null";
+        emit error( KIO::ERR_DOES_NOT_EXIST, QString() );
+        return;
+    }
+
+    kDebug() << "NOW BROWSING" << object->id() << object->title();
+
+    Q_ASSERT( connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
+                       this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments & ) ) ) );
+    browseDevice( object->id(),
+                  BROWSE_DIRECT_CHILDREN,
+                  "*",
+                  0,
+                  0,
+                  "" );
+}
+
+void ControlPointThread::browseDevice( const QString &id,
                                        const QString &browseFlag,
                                        const QString &filter,
                                        const int startIndex,
                                        const int requestedCount,
                                        const QString &sortCriteria )
 {
-    HActionArguments output;
-
     if( contentDirectory() == NULL ) {
         emit error( KIO::ERR_UNSUPPORTED_ACTION, "ControlPointThread device " + m_device->deviceInfo().friendlyName() + " does not support browsing" );
     }
@@ -268,24 +272,28 @@ HActionArguments ControlPointThread::browseDevice( const QString &id,
     Q_ASSERT( connect( m_browseAct, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
                        this, SLOT( browseInvokeDone( Herqq::Upnp::HAsyncOp ) ) ) );
     HAsyncOp invocationOp = m_browseAct->beginInvoke( args );
+    kDebug() << "in browsedeivce opid" << invocationOp.id();
 
 }
 
 void ControlPointThread::browseInvokeDone( HAsyncOp invocationOp )
 {
+    Q_ASSERT( disconnect( m_browseAct, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
+                       this, SLOT( browseInvokeDone( Herqq::Upnp::HAsyncOp ) ) ) );
+    kDebug() << "in browsedone opid" << invocationOp.id();
     HActionArguments output;
     bool ret = m_browseAct->waitForInvoke( &invocationOp, &output );
 
-    if( ( invocationOp.waitCode() != HAsyncOp::WaitSuccess ) ) {
+    kDebug() << "Invokation opcode" << invocationOp.waitCode();
+    if( invocationOp.waitCode() != HAsyncOp::WaitSuccess ) {
         m_lastErrorString = m_browseAct->errorCodeToString( invocationOp.returnValue() );
     }
     else {
         m_lastErrorString = QString();
     }
 
-    Q_ASSERT( output["Result"] );
     // TODO check for success
-    createDirectoryListing( output["Result"]->value().toString() );
+    emit browseResult( output );
 }
 
 void ControlPointThread::slotParseError( const QString &errorString )
@@ -357,8 +365,19 @@ void ControlPointThread::slotListItem( DIDL::Item *item )
     emit listEntry(entry);
 }
 
-void ControlPointThread::createDirectoryListing( const QString &didlString )
+void ControlPointThread::createDirectoryListing( const HActionArguments &args )
 {
+    Q_ASSERT( disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
+                       this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments & ) ) ) );
+    if( args["Result"] == NULL ) {
+        kDebug() << "+++++++++++++++";
+        kDebug() << "+ ERROR       +";
+        kDebug() << "+++++++++++++++";
+        emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
+        return;
+    }
+
+    QString didlString = args["Result"]->value().toString();
     kDebug() << didlString;
     DIDL::Parser parser;
     Q_ASSERT( connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) ) );
@@ -376,6 +395,8 @@ QString ControlPointThread::idForName( const QString &name )
     return QString();
 }
 
+#define SEP_POS( string, from ) string.indexOf( QDir::separator(), (from) )
+#define LAST_SEP_POS( string, from ) string.lastIndexOf( QDir::separator(), (from) )
 /**
  * Tries to resolve a complete path to the right
  * Object for the path. Tries to use the cache.
@@ -385,9 +406,9 @@ QString ControlPointThread::idForName( const QString &name )
  */
 DIDL::Object* ControlPointThread::resolvePathToObject( const QString &path )
 {
-#define SEP_POS( string, from ) string.indexOf( QDir::separator(), (from) )
-#define LAST_SEP_POS( string, from ) string.lastIndexOf( QDir::separator(), (from) )
 
+    //////////////////////////////////////////////////////////////
+    // the first, no signal-slots used part of the resolver system
     int from = -1; // see QString::lastIndexOf()
 
     QString startAt;
@@ -429,82 +450,96 @@ DIDL::Object* ControlPointThread::resolvePathToObject( const QString &path )
 // most CDS support Search() on basic attributes
 // check it, and if allowed, use Search
 // but remember to handle multiple results
-    from = SEP_POS( path, startAt.length() ) ;
-    do {
-        QString segment = path.left( from );
-        // from is now the position of the slash, skip it
-        from++;
-        m_resolveLookingFor = path.mid( from, SEP_POS( path, from ) - from );
-        m_resolvedObject = NULL;
-        HActionArguments results = browseDevice( idForName(segment),
-                                                 BROWSE_DIRECT_CHILDREN,
-                                                 "*",
-                                                 0,
-                                                 0,
-                                                 "dc:title" );
-        // TODO check error
-        if( results["Result"] == NULL ) {
-            kDebug() << "Error:" << m_lastErrorString;
-            //error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
-            return NULL;
+    m_resolve.pathIndex = SEP_POS( path, startAt.length() ) ;
+
+    kDebug() << "RESOLVING " << path << "FROM " << m_resolve.pathIndex;
+    m_resolve.fullPath = path;
+    resolvePathToObjectInternal();
+}
+
+void ControlPointThread::resolvePathToObjectInternal()
+{
+    m_resolve.segment = m_resolve.fullPath.left( m_resolve.pathIndex );
+    // skip the '/'
+    m_resolve.pathIndex++;
+    m_resolve.lookingFor = m_resolve.fullPath.mid( m_resolve.pathIndex, SEP_POS( m_resolve.fullPath, m_resolve.pathIndex ) - m_resolve.pathIndex );
+    m_resolve.object = NULL;
+    Q_ASSERT( connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
+                       this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) ) );
+    kDebug() << "-------------" << m_resolve.segment << idForName(m_resolve.segment);
+    browseDevice( idForName(m_resolve.segment),
+                  BROWSE_DIRECT_CHILDREN,
+                  "*",
+                  0,
+                  0,
+                  "dc:title" );
+}
+
+void ControlPointThread::attemptResolution( const HActionArguments &args )
+{
+    // NOTE disconnection is important
+    Q_ASSERT( disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
+                       this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) ) );
+    if( args["Result"] == NULL ) {
+        kDebug() << "Error:" << m_lastErrorString;
+        emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
+        return;
+    }
+
+    DIDL::Parser parser;
+    Q_ASSERT( connect( &parser, SIGNAL(itemParsed(DIDL::Item *)),
+                       this, SLOT(slotResolveId(DIDL::Item *)) ) );
+    Q_ASSERT( connect( &parser, SIGNAL(containerParsed(DIDL::Container *)),
+             this, SLOT(slotResolveId(DIDL::Container *)) ) );
+
+    parser.parse( args["Result"]->value().toString() );
+
+    // we sleep because devices ( atleast MediaTomb )
+    // seem to block continous TCP connections after some time
+    // this interval might need modification
+    msleep(500);
+
+    // TODO have some kind of slot to stop the parser as 
+    // soon as we find our guy, so that the rest of the
+    // document isn't parsed.
+
+    // if we didn't find the ID, no point in continuing
+    if( m_resolve.object == NULL ) {
+        kDebug() << "NULL RESOLUTION";
+        emit pathResolved( NULL );
+        return;
+    }
+    else {
+        QString pathToInsert = ( m_resolve.segment + QDir::separator() + m_resolve.object->title() );
+        kDebug() << "Path to insert is" << pathToInsert;
+        m_reverseCache.insert( pathToInsert, m_resolve.object );
+        // TODO: if we already have the id, should we just update the
+        // ContainerUpdateIDs
+        kDebug() << "INSERTING" << m_resolve.object->id() << "Into hash";
+        m_updatesHash.insert( m_resolve.object->id(), UpdateValueAndPath( "0", pathToInsert ) );
+        m_resolve.pathIndex = SEP_POS( m_resolve.fullPath, pathToInsert.length() );
+        kDebug() << "Path index after inserting " << m_resolve.object->title() << m_resolve.pathIndex;
+        // ignore trailing slashes
+        if( m_resolve.pathIndex == m_resolve.fullPath.length()-1 ) {
+            m_resolve.pathIndex = -1;
         }
+    }
 
-        DIDL::Parser parser;
-        Q_ASSERT( connect( &parser, SIGNAL(itemParsed(DIDL::Item *)),
-                           this, SLOT(slotResolveId(DIDL::Item *)) ) );
-        Q_ASSERT( connect( &parser, SIGNAL(containerParsed(DIDL::Container *)),
-                 this, SLOT(slotResolveId(DIDL::Container *)) ) );
+    if( m_resolve.pathIndex == -1 )
+        emit pathResolved( m_resolve.object );
+    else
+        resolvePathToObjectInternal();
 
-        parser.parse( results["Result"]->value().toString() );
-
-        // we sleep because devices ( atleast MediaTomb )
-        // seem to block continous TCP connections after some time
-        // this interval might need modification
-        msleep(500);
-
-        // TODO have some kind of slot to stop the parser as 
-        // soon as we find our guy, so that the rest of the
-        // document isn't parsed.
-        
-        // if we didn't find the ID, no point in continuing
-        if( m_resolvedObject == NULL ) {
-            return NULL;
-        }
-        else {
-            QString pathToInsert = ( segment + QDir::separator() + m_resolvedObject->title() );
-            m_reverseCache.insert( pathToInsert, m_resolvedObject );
-            // TODO: if we already have the id, should we just update the
-            // ContainerUpdateIDs
-            kDebug() << "INSERTING" << m_resolvedObject->id() << "Into hash";
-            m_updatesHash.insert( m_resolvedObject->id(), UpdateValueAndPath( "0", pathToInsert ) );
-            from = SEP_POS( path, pathToInsert.length() );
-            // ignore trailing slashes
-            if( from == path.length()-1 ) {
-                from = -1;
-            }
-        }
-    } while( from != -1 );
-
-    return m_resolvedObject;
+}
 
 #undef SEP_POS
 #undef LAST_SEP_POS
-}
-
-QString ControlPointThread::resolvePathToId( const QString &path )
-{
-    kDebug() << "Resolve " << path;
-    DIDL::Object *obj = resolvePathToObject( path );
-    if( obj != NULL )
-        return obj->id();
-    return QString();
-}
 
 void ControlPointThread::slotResolveId( DIDL::Object *object )
 {
     // set m_resolvedId and update cache
-    if( object->title() == m_resolveLookingFor ) {
-        m_resolvedObject = object;
+    if( object->title() == m_resolve.lookingFor ) {
+        m_resolve.object = object;
     }
 }
 

@@ -92,24 +92,29 @@ class ControlPointThread : public QThread
     void slotCDSUpdated( const Herqq::Upnp::HStateVariableEvent &event );
     void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
     void browseInvokeDone( Herqq::Upnp::HAsyncOp );
+    void browseResolvedPath( DIDL::Object * );
+    void createDirectoryListing( const Herqq::Upnp::HActionArguments & );
+    void resolvePathToObjectInternal();
+    void attemptResolution( const Herqq::Upnp::HActionArguments & );
 
   signals:
     void listEntry( const KIO::UDSEntry & );
     void listingDone();
     void error( int type, const QString & );
+    void browseResult( const Herqq::Upnp::HActionArguments &args );
+    void pathResolved( DIDL::Object * );
 
   private:
     void updateDeviceInfo( const KUrl &url );
     bool ensureDevice( const KUrl &url );
     void browseDevice( const KUrl &url );
-    void createDirectoryListing( const QString &didlString );
     inline bool deviceFound();
-    Herqq::Upnp::HActionArguments browseDevice( const QString &id,
-                                                const QString &browseFlag,
-                                                const QString &filter,
-                                                const int startIndex,
-                                                const int requestedCount,
-                                                const QString &sortCriteria );
+    void browseDevice( const QString &id,
+                       const QString &browseFlag,
+                       const QString &filter,
+                       const int startIndex,
+                       const int requestedCount,
+                       const QString &sortCriteria );
 
     QString idForName( const QString &name );
     DIDL::Object* resolvePathToObject( const QString &path );
@@ -138,10 +143,16 @@ class ControlPointThread : public QThread
     // the path in m_updatesHash.
     ContainerUpdatesHash m_updatesHash;
 
-    QString m_resolveLookingFor;
-    DIDL::Object *m_resolvedObject;
+    struct {
+        int pathIndex;
+        QString segment;
+        QString id;
+        QString lookingFor;
+        QString fullPath;
+        DIDL::Object *object;
+    } m_resolve;
 
-    QString m_lastErrorString;
+   QString m_lastErrorString;
 
     QMutex m_mutex;
     Herqq::Upnp::HAction *m_browseAct;
