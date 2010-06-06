@@ -216,6 +216,8 @@ void ControlPointThread::stat( const KUrl &url )
 
 void ControlPointThread::statResolvedPath( DIDL::Object *object )
 {
+    disconnect( this, SIGNAL( pathResolved( DIDL::Object * ) ),
+             this, SLOT( statResolvedPath( DIDL::Object * ) ) );
     KIO::UDSEntry entry;
 
     if( object == NULL ) {
@@ -248,12 +250,14 @@ void ControlPointThread::listDir( const KUrl &url )
     QString path = url.path(KUrl::RemoveTrailingSlash);
 
     connect( this, SIGNAL( pathResolved( DIDL::Object * ) ),
-             this, SLOT( browseResolvedPath( DIDL::Object *) ), Qt::UniqueConnection );
+             this, SLOT( browseResolvedPath( DIDL::Object *) ) );
     resolvePathToObject(path);
 }
 
 void ControlPointThread::browseResolvedPath( DIDL::Object *object )
 {
+    disconnect( this, SIGNAL( pathResolved( DIDL::Object * ) ),
+                this, SLOT( browseResolvedPath( DIDL::Object *) ) );
     if( object == NULL ) {
         kDebug() << "ERROR: idString null";
         emit error( KIO::ERR_DOES_NOT_EXIST, QString() );
@@ -389,15 +393,11 @@ void ControlPointThread::createDirectoryListing( const HActionArguments &args )
     Q_ASSERT( disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
                        this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments & ) ) ) );
     if( args["Result"] == NULL ) {
-        kDebug() << "+++++++++++++++";
-        kDebug() << "+ ERROR       +";
-        kDebug() << "+++++++++++++++";
         emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
         return;
     }
 
     QString didlString = args["Result"]->value().toString();
-    kDebug() << didlString;
     DIDL::Parser parser;
     Q_ASSERT( connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) ) );
     Q_ASSERT( connect( &parser, SIGNAL(done()), this, SIGNAL(listingDone()) ) );
