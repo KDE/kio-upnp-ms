@@ -8,6 +8,7 @@ set(kio_upnp_ms_PART_SRCS
    dbuscodec.cpp
    didlparser.cpp
    didlobjects.cpp
+   controlpointthread.cpp
    )
 
 find_path( HUpnp_INCLUDE_DIRS HUpnp )
