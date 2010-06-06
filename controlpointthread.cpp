@@ -157,10 +157,10 @@ void ControlPointThread::updateDeviceInfo( const KUrl& url )
     local.exec();
     // connect to any state variables here
     HStateVariable *systemUpdateID = contentDirectory()->stateVariableByName( "SystemUpdateID" );
-    connect( systemUpdateID,
+    Q_ASSERT(connect( systemUpdateID,
              SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
              this,
-             SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) );
+                      SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) ));
  
     HStateVariable *containerUpdates = contentDirectory()->stateVariableByName( "ContainerUpdateIDs" );
     Q_ASSERT( connect( containerUpdates,

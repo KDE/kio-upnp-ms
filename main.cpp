@@ -27,7 +27,7 @@ void upnptest::done(KJob *job)
         kDebug() << "ERROR!" << job->errorString();
         kapp->quit();
     }
-    kapp->quit();
+    //kapp->quit();
 }
 
 void upnptest::entries(KIO::Job *job, const KIO::UDSEntryList &list )

@@ -86,8 +86,6 @@ void UPnPMS::stat( const KUrl &url )
     m_statBusy = true;
     Q_ASSERT( connect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
                        this, SLOT( slotStatEntry( const KIO::UDSEntry & ) ) ) );
-    Q_ASSERT( connect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
-                       this, SIGNAL( done() ) ) );
     m_cpthread.stat(url);
     while( m_statBusy )
         QCoreApplication::processEvents();
@@ -95,7 +93,6 @@ void UPnPMS::stat( const KUrl &url )
 
 void UPnPMS::slotError( int type, const QString &message )
 {
-    m_cpthread.disconnect();
     m_statBusy = false;
     m_listBusy = false;
     error( type, message );
@@ -108,8 +105,6 @@ void UPnPMS::listDir( const KUrl &url )
                        this, SLOT( slotListEntry( const KIO::UDSEntry & ) ) ) );
     Q_ASSERT( connect( &m_cpthread, SIGNAL( listingDone() ),
                        this, SLOT( slotListingDone() ) ) );
-    Q_ASSERT( connect( &m_cpthread, SIGNAL( listingDone() ),
-                       this, SIGNAL( done() ) ) );
     m_cpthread.listDir(url);
     while( m_listBusy )
         QCoreApplication::processEvents();
@@ -117,7 +112,8 @@ void UPnPMS::listDir( const KUrl &url )
 
 void UPnPMS::slotStatEntry( const KIO::UDSEntry &entry )
 {
-    m_cpthread.disconnect();
+    Q_ASSERT( disconnect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
+              this, SLOT( slotStatEntry( const KIO::UDSEntry & ) ) ) );
     statEntry( entry );
     finished();
     m_statBusy = false;
@@ -130,7 +126,10 @@ void UPnPMS::slotListEntry( const KIO::UDSEntry &entry )
 
 void UPnPMS::slotListingDone()
 {
-    m_cpthread.disconnect();
+    Q_ASSERT( disconnect( &m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
+              this, SLOT( slotListEntry( const KIO::UDSEntry & ) ) ) );
+    Q_ASSERT( disconnect( &m_cpthread, SIGNAL( listingDone() ),
+                       this, SLOT( slotListingDone() ) ) );
     KIO::UDSEntry entry;
     listEntry( entry, true );
     finished();

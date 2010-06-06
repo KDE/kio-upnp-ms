@@ -79,9 +79,6 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     void slotListingDone();
     void slotError( int, const QString & );
 
-  signals:
-    void done();
-
   private:
 
     ControlPointThread m_cpthread;
