@@ -230,8 +230,16 @@ void ControlPointThread::statResolvedPath( DIDL::Object *object )
     entry.insert( KIO::UPNP_CLASS, object->upnpClass() );
     if( object->type() == DIDL::SuperObject::Container )
         entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
-    else
+    else {
         entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
+        //entry.insert( KIO::UDSEntry::UDS_TARGET_URL, 
+        DIDL::Item *item = static_cast<DIDL::Item *>( object );
+        if( item && item->hasResource() ) {
+            DIDL::Resource res = item->resource();
+            entry.insert( KIO::UDSEntry::UDS_TARGET_URL, res["uri"] );
+            entry.insert( KIO::UDSEntry::UDS_TARGET_URL, res["size"].toULongLong() );
+        }
+    }
     emit statEntry( entry );
 }
 
