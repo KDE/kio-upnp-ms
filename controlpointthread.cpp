@@ -443,7 +443,8 @@ void ControlPointThread::resolvePathToObject( const QString &path )
             // we already had it cached
             // this only happens on the first loop run
             if( id == idForName( path ) ) {
-                return m_reverseCache[path];
+                emit pathResolved( m_reverseCache[path] );
+                return;
             }
             else {
                 // we know 'a' ID, but not the one we want.
