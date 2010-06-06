@@ -83,9 +83,10 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     void done();
 
   private:
-    void enterLoop();
 
     ControlPointThread m_cpthread;
+    bool m_statBusy;
+    bool m_listBusy;
 };
 
 #endif

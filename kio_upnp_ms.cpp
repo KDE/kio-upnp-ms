@@ -64,13 +64,14 @@ extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
 
 void UPnPMS::get( const KUrl &url )
 {
-    kDebug() << url;
     error( KIO::ERR_CANNOT_OPEN_FOR_READING, url.prettyUrl() );
 }
 
 UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
   : QObject(0)
   , SlaveBase( "upnp-ms", pool, app )
+  , m_statBusy( false )
+  , m_listBusy( false )
 {
     Q_ASSERT( connect( &m_cpthread, SIGNAL( error( int, const QString & ) ),
                        this, SLOT( slotError( int, const QString & ) ) ) );
@@ -80,34 +81,29 @@ UPnPMS::~UPnPMS()
 {
 }
 
-void UPnPMS::enterLoop()
-{
-  QEventLoop loop;
-  kDebug() << "ENTERING LOOP";
-  Q_ASSERT( connect( this, SIGNAL( done() ), &loop, SLOT( quit() ) ) );
-  loop.exec( QEventLoop::ExcludeUserInputEvents );
-  loop.disconnect();
-}
-
 void UPnPMS::stat( const KUrl &url )
 {
-    kDebug() << url;
+    m_statBusy = true;
     Q_ASSERT( connect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
                        this, SLOT( slotStatEntry( const KIO::UDSEntry & ) ) ) );
     Q_ASSERT( connect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
                        this, SIGNAL( done() ) ) );
     m_cpthread.stat(url);
-    enterLoop();
+    while( m_statBusy )
+        QCoreApplication::processEvents();
 }
 
 void UPnPMS::slotError( int type, const QString &message )
 {
+    m_cpthread.disconnect();
+    m_statBusy = false;
+    m_listBusy = false;
     error( type, message );
 }
 
 void UPnPMS::listDir( const KUrl &url )
 {
-    kDebug() << url;
+    m_listBusy = true;
     Q_ASSERT( connect( &m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
                        this, SLOT( slotListEntry( const KIO::UDSEntry & ) ) ) );
     Q_ASSERT( connect( &m_cpthread, SIGNAL( listingDone() ),
@@ -115,13 +111,16 @@ void UPnPMS::listDir( const KUrl &url )
     Q_ASSERT( connect( &m_cpthread, SIGNAL( listingDone() ),
                        this, SIGNAL( done() ) ) );
     m_cpthread.listDir(url);
-    enterLoop();
+    while( m_listBusy )
+        QCoreApplication::processEvents();
 }
 
 void UPnPMS::slotStatEntry( const KIO::UDSEntry &entry )
 {
+    m_cpthread.disconnect();
     statEntry( entry );
     finished();
+    m_statBusy = false;
 }
 
 void UPnPMS::slotListEntry( const KIO::UDSEntry &entry )
@@ -131,7 +130,9 @@ void UPnPMS::slotListEntry( const KIO::UDSEntry &entry )
 
 void UPnPMS::slotListingDone()
 {
+    m_cpthread.disconnect();
     KIO::UDSEntry entry;
     listEntry( entry, true );
     finished();
+    m_listBusy = false;
 }
