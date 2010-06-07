@@ -82,7 +82,8 @@ ControlPointThread::ControlPointThread( QObject *parent )
 
     HControlPointConfiguration config;
     config.setAutoDiscovery(false);
-    m_controlPoint = new HControlPoint( config, this );
+    // no parent so that we can move it to this thread
+    m_controlPoint = new HControlPoint( config, NULL );
     Q_ASSERT( 
         connect(m_controlPoint,
                 SIGNAL(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)),
@@ -96,6 +97,9 @@ ControlPointThread::ControlPointThread( QObject *parent )
       kDebug() << "Error initing control point";
     }
 
+    start();
+    QObject::moveToThread(this);
+    m_controlPoint->moveToThread(this);
 }
 
 ControlPointThread::~ControlPointThread()
