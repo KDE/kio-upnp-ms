@@ -76,11 +76,13 @@ class ControlPointThread : public QThread
     virtual ~ControlPointThread();
     void listDir( const KUrl &url );
     void stat( const KUrl &url );
+    void stopWait();
 
   protected:
     virtual void run();
 
   private slots:
+    void busyWait();
     void rootDeviceOnline(Herqq::Upnp::HDeviceProxy *device);
     void slotParseError( const QString &errorString );
     void slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object *obj );
@@ -159,6 +161,8 @@ class ControlPointThread : public QThread
 
     QMutex m_mutex;
     Herqq::Upnp::HAction *m_browseAct;
+
+    bool m_waiting;
 };
 
 #endif

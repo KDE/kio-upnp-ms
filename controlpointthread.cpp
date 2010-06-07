@@ -72,6 +72,7 @@ using namespace Herqq::Upnp;
 ControlPointThread::ControlPointThread( QObject *parent )
     : QThread( parent )
     , m_device( NULL )
+    , m_waiting( false )
 {
     qRegisterMetaType<KIO::UDSEntry>();
     qDBusRegisterMetaType<DeviceInfo>();
@@ -410,6 +411,7 @@ void ControlPointThread::createDirectoryListing( const HActionArguments &args )
     DIDL::Parser parser;
     Q_ASSERT( connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) ) );
     Q_ASSERT( connect( &parser, SIGNAL(done()), this, SIGNAL(listingDone()) ) );
+    Q_ASSERT( connect( &parser, SIGNAL(done()), this, SLOT(busyWait()) ) );
 
     Q_ASSERT( connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) ) );
     Q_ASSERT( connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListItem(DIDL::Item *)) ) );
@@ -608,5 +610,20 @@ void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariable
         }
     }
     OrgKdeKDirNotifyInterface::emitFilesChanged( filesAdded );
+}
+
+void ControlPointThread::busyWait()
+{
+    disconnect( this, 0, this, SLOT( busyWait() ) );
+    m_waiting = true;
+    while( m_waiting )
+        QCoreApplication::processEvents();
+}
+
+void ControlPointThread::stopWait()
+{
+    if( m_waiting ) {
+        m_waiting = false;
+    }
 }
 
