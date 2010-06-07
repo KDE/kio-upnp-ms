@@ -73,6 +73,7 @@ ControlPointThread::ControlPointThread( QObject *parent )
     : QThread( parent )
     , m_device( NULL )
 {
+    qRegisterMetaType<KIO::UDSEntry>();
     qDBusRegisterMetaType<DeviceInfo>();
 
     m_resolve.pathIndex = -1;

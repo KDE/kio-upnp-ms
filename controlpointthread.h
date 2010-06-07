@@ -64,6 +64,7 @@ typedef QHash<QString, UpdateValueAndPath> ContainerUpdatesHash;
 #define BROWSE_DIRECT_CHILDREN "BrowseDirectChildren"
 #define BROWSE_METADATA "BrowseMetadata"
 
+Q_DECLARE_METATYPE( KIO::UDSEntry );
 /**
   This class implements a upnp kioslave
  */
