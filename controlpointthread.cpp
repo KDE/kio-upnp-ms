@@ -242,12 +242,13 @@ void ControlPointThread::statResolvedPath( DIDL::Object *object )
             entry.insert( KIO::UDSEntry::UDS_TARGET_URL, res["size"].toULongLong() );
         }
     }
+    connect( this, SIGNAL(statEntry(const KIO::UDSEntry &)),
+             this, SLOT( busyWait() ));
     emit statEntry( entry );
 }
 
 void ControlPointThread::listDir( const KUrl &url )
 {
-    start();
     kDebug() << url;
 
     ensureDevice( url );
