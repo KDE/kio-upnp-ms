@@ -607,13 +607,18 @@ void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariable
 
             m_updatesHash[id].first = updateValue;
             QString updatedPath = m_updatesHash[id].second;
+
             KUrl fullPath;
+            QString host = m_deviceInfo.udn();
+            host.replace("uuid:", "");
+
             fullPath.setProtocol( "upnp-ms" );
-            fullPath.setHost( m_deviceInfo.udn() );
+            fullPath.setHost( host );
             fullPath.setPath( updatedPath );
             filesAdded << fullPath.prettyUrl();
         }
     }
+    kDebug() << "Files Changed" << filesAdded;
     OrgKdeKDirNotifyInterface::emitFilesChanged( filesAdded );
 }
 
