@@ -73,6 +73,7 @@ ControlPointThread::ControlPointThread( QObject *parent )
     : QThread( parent )
     , m_device( NULL )
     , m_waiting( false )
+    , m_controlPoint( NULL )
 {
     qRegisterMetaType<KIO::UDSEntry>();
     qDBusRegisterMetaType<DeviceInfo>();
@@ -80,10 +81,20 @@ ControlPointThread::ControlPointThread( QObject *parent )
     m_resolve.pathIndex = -1;
     m_resolve.object = NULL;
 
+    start();
+    QObject::moveToThread(this);
+}
+
+ControlPointThread::~ControlPointThread()
+{
+}
+
+void ControlPointThread::run()
+{
     HControlPointConfiguration config;
     config.setAutoDiscovery(false);
     // no parent so that we can move it to this thread
-    m_controlPoint = new HControlPoint( config, NULL );
+    m_controlPoint = new HControlPoint( config, this );
     Q_ASSERT( 
         connect(m_controlPoint,
                 SIGNAL(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)),
@@ -97,22 +108,9 @@ ControlPointThread::ControlPointThread( QObject *parent )
       kDebug() << "Error initing control point";
     }
 
-    start();
-    QObject::moveToThread(this);
-    m_controlPoint->moveToThread(this);
-}
-
-ControlPointThread::~ControlPointThread()
-{
-    if( isRunning() ) {
-        quit();
-        delete m_controlPoint;
-    }
-}
-
-void ControlPointThread::run()
-{
     exec();
+
+    delete m_controlPoint;
 }
 
 void ControlPointThread::rootDeviceOnline(HDeviceProxy *device)
@@ -590,6 +588,7 @@ void ControlPointThread::slotCDSUpdated( const HStateVariableEvent &event )
 
 void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event )
 {
+// TODO back resolution from ID to *uncached* paths
     kDebug() << "UPDATED containers" << event.newValue();
     QStringList filesAdded;
 
