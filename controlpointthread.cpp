@@ -350,6 +350,8 @@ void ControlPointThread::slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object 
     if( !obj->upnpClass().isNull() ) {
         entry.insert( KIO::UPNP_CLASS, obj->upnpClass() );
     }
+    entry.insert( KIO::UPNP_ID, obj->id() );
+    entry.insert( KIO::UPNP_PARENT_ID, obj->parentId() );
 }
 
 void ControlPointThread::slotListContainer( DIDL::Container *c )
@@ -601,11 +603,14 @@ void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariable
         it++;
 
         if( m_updatesHash.contains( id ) ) {
+// NOTE what about CDS's with tracking changes option?
+// TODO implement later
             if( m_updatesHash[id].first == updateValue )
                 continue;
 
             m_updatesHash[id].first = updateValue;
             QString updatedPath = m_updatesHash[id].second;
+            kDebug() << "ID" << id << "Path" << updatedPath;
 
             KUrl fullPath;
             QString host = m_deviceInfo.udn();
