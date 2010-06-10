@@ -104,7 +104,9 @@ enum UPnPFieldTypes {
     // and these are good for UPNP-aware applications
     // which will need to keep track of changes and so on.
     UPNP_ID = ( UDSEntry::UDS_EXTRA + 13 ) | UDSEntry::UDS_STRING,
-    UPNP_PARENT_ID = ( UDSEntry::UDS_EXTRA + 14 ) | UDSEntry::UDS_STRING
+    UPNP_PARENT_ID = ( UDSEntry::UDS_EXTRA + 14 ) | UDSEntry::UDS_STRING,
+
+    UPNP_ALBUMART_URI = ( UDSEntry::UDS_EXTRA + 15 ) | UDSEntry::UDS_STRING
 };
 }
 

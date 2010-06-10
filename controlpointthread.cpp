@@ -409,6 +409,7 @@ void ControlPointThread::slotListItem( DIDL::Item *item )
     FILL_RESOURCE_METADATA(entry, KIO::UPNP_IMAGE_RESOLUTION, item, "resolution");
     FILL_METADATA(entry, KIO::UPNP_CHANNEL_NAME, item, "channelName");
     FILL_METADATA(entry, KIO::UPNP_CHANNEL_NUMBER, item, "channelNr");
+    FILL_METADATA(entry, KIO::UPNP_ALBUMART_URI, item, "albumArtURI");
     emit listEntry(entry);
 }
 
