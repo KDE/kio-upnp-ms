@@ -76,19 +76,11 @@ class ControlPointThread : public QThread
     virtual ~ControlPointThread();
     void listDir( const KUrl &url );
     void stat( const KUrl &url );
-    void stopWait();
 
   protected:
     virtual void run();
 
   private slots:
-    /**
-     * Connect any signal which is going to pass
-     * on a result to the main thread to this slot.
-     * Or call this slot manually just before emitting the signal.
-     * This way we continue to monitor for events.
-     */
-    void busyWait();
     void rootDeviceOnline(Herqq::Upnp::HDeviceProxy *device);
     void slotParseError( const QString &errorString );
     void slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object *obj );
@@ -189,8 +181,6 @@ class ControlPointThread : public QThread
    QString m_lastErrorString;
 
     Herqq::Upnp::HAction *m_browseAct;
-
-    bool m_waiting;
 };
 
 #endif

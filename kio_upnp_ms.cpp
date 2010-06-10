@@ -100,7 +100,6 @@ void UPnPMS::stat( const KUrl &url )
     m_statBusy = true;
     Q_ASSERT( connect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
                        this, SLOT( slotStatEntry( const KIO::UDSEntry & ) ) ) );
-    m_cpthread.stopWait();
     m_cpthread.stat(url);
     while( m_statBusy )
         QCoreApplication::processEvents();
@@ -120,7 +119,6 @@ void UPnPMS::listDir( const KUrl &url )
                        this, SLOT( slotListEntry( const KIO::UDSEntry & ) ) ) );
     Q_ASSERT( connect( &m_cpthread, SIGNAL( listingDone() ),
                        this, SLOT( slotListingDone() ) ) );
-    m_cpthread.stopWait();
     m_cpthread.listDir(url);
     while( m_listBusy )
         QCoreApplication::processEvents();
