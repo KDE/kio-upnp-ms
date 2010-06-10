@@ -82,6 +82,11 @@ ControlPointThread::ControlPointThread( QObject *parent )
     m_resolve.object = NULL;
 
     start();
+
+    // necessary due to Qt's concept of thread affinity
+    // since ControlPointThread is created in UPnPMS, it
+    // belongs to the main thread. We reparent it to the
+    // ControlPointThread.
     QObject::moveToThread(this);
 }
 
@@ -91,9 +96,11 @@ ControlPointThread::~ControlPointThread()
 
 void ControlPointThread::run()
 {
+    // Again for reasons of thread affinity
+    // HControlPoint creation and destruction
+    // should take place in run()
     HControlPointConfiguration config;
     config.setAutoDiscovery(false);
-    // no parent so that we can move it to this thread
     m_controlPoint = new HControlPoint( config, this );
     Q_ASSERT( 
         connect(m_controlPoint,
@@ -151,6 +158,10 @@ void ControlPointThread::updateDeviceInfo( const KUrl& url )
       return;
     }
 
+    // local blocking event loop.
+    // This is the only point at which the ControlPointThread
+    // ever blocks. Until we have a device, there is no point
+    // in continuing processing.
     QEventLoop local;
     Q_ASSERT( 
         connect(m_controlPoint,
@@ -159,6 +170,8 @@ void ControlPointThread::updateDeviceInfo( const KUrl& url )
                 SLOT(quit()))
     ); 
     local.exec();
+
+    // TODO: below code can be much cleaner
     // connect to any state variables here
     HStateVariable *systemUpdateID = contentDirectory()->stateVariableByName( "SystemUpdateID" );
     Q_ASSERT(connect( systemUpdateID,
@@ -236,7 +249,6 @@ void ControlPointThread::statResolvedPath( DIDL::Object *object )
         entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
     else {
         entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
-        //entry.insert( KIO::UDSEntry::UDS_TARGET_URL, 
         DIDL::Item *item = static_cast<DIDL::Item *>( object );
         if( item && item->hasResource() ) {
             DIDL::Resource res = item->resource();
@@ -432,13 +444,6 @@ QString ControlPointThread::idForName( const QString &name )
 
 #define SEP_POS( string, from ) string.indexOf( QDir::separator(), (from) )
 #define LAST_SEP_POS( string, from ) string.lastIndexOf( QDir::separator(), (from) )
-/**
- * Tries to resolve a complete path to the right
- * Object for the path. Tries to use the cache.
- * If there is cache miss, backtracks along the path
- * or queries the UPnP device.
- * If not found, returns NULL
- */
 void ControlPointThread::resolvePathToObject( const QString &path )
 {
 
@@ -555,6 +560,8 @@ void ControlPointThread::attemptResolution( const HActionArguments &args )
         }
     }
 
+    // if we are done, emit the relevant Object
+    // otherwise recurse with a new (m_)resolve :)
     if( m_resolve.pathIndex == -1 )
         emit pathResolved( m_resolve.object );
     else

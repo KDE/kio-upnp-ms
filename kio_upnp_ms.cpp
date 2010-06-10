@@ -28,6 +28,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QCoreApplication>
 
+/*
+ * The main thread running in UPnPMS is mainly a forwarder
+ * of calls to the ControlPointThread. The KIO system is
+ * that once one of the blocking calls like listDir() or
+ * stat() are done with a call to finish(), the thread is put
+ * to sleep and expected to be responsive the next time a method
+ * is called. We are interested in monitoring the remote CDS
+ * for updates, which have to be continuous. The ControlPointThread
+ * uses its own thread to be continuously running without blocking
+ * the slave and uses slots to communicate results.
+ * The driver of the event loop is the ControlPointThread since
+ * UPnPMS has no event loop.
+ */
+
 /**
  * Fill UDSEntry @c entry,
  * setting uint @c property by retrieving

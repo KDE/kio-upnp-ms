@@ -82,6 +82,12 @@ class ControlPointThread : public QThread
     virtual void run();
 
   private slots:
+    /**
+     * Connect any signal which is going to pass
+     * on a result to the main thread to this slot.
+     * Or call this slot manually just before emitting the signal.
+     * This way we continue to monitor for events.
+     */
     void busyWait();
     void rootDeviceOnline(Herqq::Upnp::HDeviceProxy *device);
     void slotParseError( const QString &errorString );
@@ -114,6 +120,12 @@ class ControlPointThread : public QThread
     void updateDeviceInfo( const KUrl &url );
     bool ensureDevice( const KUrl &url );
     inline bool deviceFound();
+    /**
+     * Begins a UPnP Browse() action
+     * Connect to the browseResult() signal
+     * to receive the HActionArguments received
+     * from the result.
+     */
     void browseDevice( const QString &id,
                        const QString &browseFlag,
                        const QString &filter,
@@ -122,8 +134,17 @@ class ControlPointThread : public QThread
                        const QString &sortCriteria );
 
     QString idForName( const QString &name );
+
+    /**
+     * Tries to resolve a complete path to the right
+     * Object for the path. Tries to use the cache.
+     * If there is cache miss, backtracks along the path
+     * or queries the UPnP device.
+     * Connect to the pathResolved() signal to receive
+     * a pointer to the DIDL::Object or NULL if path
+     * does not exist.
+     */
     void resolvePathToObject( const QString &path );
-    QString resolvePathToId( const QString &path );
 
     Herqq::Upnp::HServiceProxy* contentDirectory() const;
 
@@ -148,6 +169,14 @@ class ControlPointThread : public QThread
     // the path in m_updatesHash.
     ContainerUpdatesHash m_updatesHash;
 
+    /**
+     * Make sure you don't have two
+     * resolutions taking place at the same time.
+     * KIO calls won't let that happen since the slave
+     * is considered blocked until it says its finished
+     * But don't do nesting inside code you might
+     * write to extend this kioslave
+     */
     struct {
         int pathIndex;
         QString segment;
@@ -159,7 +188,6 @@ class ControlPointThread : public QThread
 
    QString m_lastErrorString;
 
-    QMutex m_mutex;
     Herqq::Upnp::HAction *m_browseAct;
 
     bool m_waiting;
