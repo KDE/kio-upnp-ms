@@ -32,6 +32,7 @@ void upnptest::done(KJob *job)
 
 void upnptest::entries(KIO::Job *job, const KIO::UDSEntryList &list )
 {
+    Q_UNUSED( job );
     kDebug() << "-------------------------------------------";
     foreach( KIO::UDSEntry entry, list ) {
         kDebug() << entry.stringValue( KIO::UDSEntry::UDS_NAME )

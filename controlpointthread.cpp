@@ -71,8 +71,8 @@ using namespace Herqq::Upnp;
 
 ControlPointThread::ControlPointThread( QObject *parent )
     : QThread( parent )
-    , m_device( NULL )
     , m_controlPoint( NULL )
+    , m_device( NULL )
 {
     qRegisterMetaType<KIO::UDSEntry>();
     qDBusRegisterMetaType<DeviceInfo>();
@@ -328,7 +328,7 @@ void ControlPointThread::browseInvokeDone( HAsyncOp invocationOp )
     Q_ASSERT( disconnect( m_browseAct, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
                        this, SLOT( browseInvokeDone( Herqq::Upnp::HAsyncOp ) ) ) );
     HActionArguments output;
-    bool ret = m_browseAct->waitForInvoke( &invocationOp, &output );
+    m_browseAct->waitForInvoke( &invocationOp, &output );
 
     if( invocationOp.waitCode() != HAsyncOp::WaitSuccess ) {
         m_lastErrorString = m_browseAct->errorCodeToString( invocationOp.returnValue() );
