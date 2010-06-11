@@ -101,12 +101,10 @@ void ControlPointThread::run()
     HControlPointConfiguration config;
     config.setAutoDiscovery(false);
     m_controlPoint = new HControlPoint( config, this );
-    Q_ASSERT( 
-        connect(m_controlPoint,
-                SIGNAL(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)),
-                this,
-                SLOT(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)))
-    ); 
+    connect(m_controlPoint,
+            SIGNAL(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)),
+            this,
+            SLOT(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)));
 
     if( !m_controlPoint->init() )
     {
@@ -164,21 +162,19 @@ void ControlPointThread::updateDeviceInfo( const KUrl& url )
     // ever blocks. Until we have a device, there is no point
     // in continuing processing.
     QEventLoop local;
-    Q_ASSERT( 
-        connect(m_controlPoint,
-                SIGNAL(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)),
-                &local,
-                SLOT(quit()))
-    ); 
+    connect(m_controlPoint,
+            SIGNAL(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)),
+            &local,
+            SLOT(quit()));
     local.exec();
 
     // TODO: below code can be much cleaner
     // connect to any state variables here
     HStateVariable *systemUpdateID = contentDirectory()->stateVariableByName( "SystemUpdateID" );
-    Q_ASSERT(connect( systemUpdateID,
+    connect( systemUpdateID,
              SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
              this,
-                      SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) ));
+             SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) );
  
     HStateVariable *containerUpdates = contentDirectory()->stateVariableByName( "ContainerUpdateIDs" );
     if( containerUpdates ) {
@@ -294,8 +290,8 @@ void ControlPointThread::browseResolvedPath( DIDL::Object *object )
         return;
     }
 
-    Q_ASSERT( connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
-                       this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments & ) ) ) );
+    connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
+             this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments & ) ) );
     browseDevice( object->id(),
                   BROWSE_DIRECT_CHILDREN,
                   "*",
@@ -325,16 +321,18 @@ void ControlPointThread::browseDevice( const QString &id,
     args["RequestedCount"]->setValue( requestedCount );
     args["SortCriteria"]->setValue( sortCriteria );
    
-    Q_ASSERT( connect( m_browseAct, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
-                       this, SLOT( browseInvokeDone( Herqq::Upnp::HAsyncOp ) ) ) );
+    connect( m_browseAct, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
+             this, SLOT( browseInvokeDone( Herqq::Upnp::HAsyncOp ) ) );
     HAsyncOp invocationOp = m_browseAct->beginInvoke( args );
 
 }
 
 void ControlPointThread::browseInvokeDone( HAsyncOp invocationOp )
 {
-    Q_ASSERT( disconnect( m_browseAct, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
-                       this, SLOT( browseInvokeDone( Herqq::Upnp::HAsyncOp ) ) ) );
+    bool ok = disconnect( m_browseAct, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
+                this, SLOT( browseInvokeDone( Herqq::Upnp::HAsyncOp ) ) );
+    Q_ASSERT( ok );
+    Q_UNUSED( ok );
     HActionArguments output;
     m_browseAct->waitForInvoke( &invocationOp, &output );
 
@@ -423,8 +421,10 @@ void ControlPointThread::slotListItem( DIDL::Item *item )
 
 void ControlPointThread::createDirectoryListing( const HActionArguments &args )
 {
-    Q_ASSERT( disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
-                       this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments & ) ) ) );
+    bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
+                          this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments & ) ) );
+    Q_ASSERT( ok );
+    Q_UNUSED( ok );
     if( args["Result"] == NULL ) {
         emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
         return;
@@ -432,11 +432,11 @@ void ControlPointThread::createDirectoryListing( const HActionArguments &args )
 
     QString didlString = args["Result"]->value().toString();
     DIDL::Parser parser;
-    Q_ASSERT( connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) ) );
-    Q_ASSERT( connect( &parser, SIGNAL(done()), this, SIGNAL(listingDone()) ) );
+    connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
+    connect( &parser, SIGNAL(done()), this, SIGNAL(listingDone()) );
 
-    Q_ASSERT( connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) ) );
-    Q_ASSERT( connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListItem(DIDL::Item *)) ) );
+    connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) );
+    connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListItem(DIDL::Item *)) );
     parser.parse(didlString);
 }
 
@@ -508,8 +508,8 @@ void ControlPointThread::resolvePathToObjectInternal()
     m_resolve.pathIndex++;
     m_resolve.lookingFor = m_resolve.fullPath.mid( m_resolve.pathIndex, SEP_POS( m_resolve.fullPath, m_resolve.pathIndex ) - m_resolve.pathIndex );
     m_resolve.object = NULL;
-    Q_ASSERT( connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
-                       this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) ) );
+    connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
+             this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) );
     browseDevice( idForName(m_resolve.segment),
                   BROWSE_DIRECT_CHILDREN,
                   "*",
@@ -521,8 +521,10 @@ void ControlPointThread::resolvePathToObjectInternal()
 void ControlPointThread::attemptResolution( const HActionArguments &args )
 {
     // NOTE disconnection is important
-    Q_ASSERT( disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
-                       this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) ) );
+    bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
+                          this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) );
+    Q_ASSERT( ok );
+    Q_UNUSED( ok );
     if( args["Result"] == NULL ) {
         kDebug() << "Error:" << m_lastErrorString;
         emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
@@ -530,10 +532,10 @@ void ControlPointThread::attemptResolution( const HActionArguments &args )
     }
 
     DIDL::Parser parser;
-    Q_ASSERT( connect( &parser, SIGNAL(itemParsed(DIDL::Item *)),
-                       this, SLOT(slotResolveId(DIDL::Item *)) ) );
-    Q_ASSERT( connect( &parser, SIGNAL(containerParsed(DIDL::Container *)),
-             this, SLOT(slotResolveId(DIDL::Container *)) ) );
+    connect( &parser, SIGNAL(itemParsed(DIDL::Item *)),
+                       this, SLOT(slotResolveId(DIDL::Item *)) );
+    connect( &parser, SIGNAL(containerParsed(DIDL::Container *)),
+             this, SLOT(slotResolveId(DIDL::Container *)) );
 
     parser.parse( args["Result"]->value().toString() );
 

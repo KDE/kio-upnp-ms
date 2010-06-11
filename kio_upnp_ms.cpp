@@ -87,8 +87,10 @@ UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
   , m_statBusy( false )
   , m_listBusy( false )
 {
-    Q_ASSERT( connect( &m_cpthread, SIGNAL( error( int, const QString & ) ),
-                       this, SLOT( slotError( int, const QString & ) ) ) );
+    bool ok = connect( &m_cpthread, SIGNAL( error( int, const QString & ) ),
+                       this, SLOT( slotError( int, const QString & ) ) );
+    Q_ASSERT( ok );
+    Q_UNUSED( ok );
 }
 
 UPnPMS::~UPnPMS()
@@ -100,8 +102,8 @@ UPnPMS::~UPnPMS()
 void UPnPMS::stat( const KUrl &url )
 {
     m_statBusy = true;
-    Q_ASSERT( connect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
-                       this, SLOT( slotStatEntry( const KIO::UDSEntry & ) ) ) );
+    connect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
+                       this, SLOT( slotStatEntry( const KIO::UDSEntry & ) ) );
     m_cpthread.stat(url);
     while( m_statBusy )
         QCoreApplication::processEvents();
@@ -117,10 +119,10 @@ void UPnPMS::slotError( int type, const QString &message )
 void UPnPMS::listDir( const KUrl &url )
 {
     m_listBusy = true;
-    Q_ASSERT( connect( &m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
-                       this, SLOT( slotListEntry( const KIO::UDSEntry & ) ) ) );
-    Q_ASSERT( connect( &m_cpthread, SIGNAL( listingDone() ),
-                       this, SLOT( slotListingDone() ) ) );
+    connect( &m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
+                       this, SLOT( slotListEntry( const KIO::UDSEntry & ) ) );
+    connect( &m_cpthread, SIGNAL( listingDone() ),
+                       this, SLOT( slotListingDone() ) );
     m_cpthread.listDir(url);
     while( m_listBusy )
         QCoreApplication::processEvents();
@@ -128,8 +130,10 @@ void UPnPMS::listDir( const KUrl &url )
 
 void UPnPMS::slotStatEntry( const KIO::UDSEntry &entry )
 {
-    Q_ASSERT( disconnect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
-              this, SLOT( slotStatEntry( const KIO::UDSEntry & ) ) ) );
+    bool ok = disconnect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
+              this, SLOT( slotStatEntry( const KIO::UDSEntry & ) ) );
+    Q_ASSERT( ok );
+    Q_UNUSED( ok );
     statEntry( entry );
     finished();
     m_statBusy = false;
@@ -142,10 +146,10 @@ void UPnPMS::slotListEntry( const KIO::UDSEntry &entry )
 
 void UPnPMS::slotListingDone()
 {
-    Q_ASSERT( disconnect( &m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
-              this, SLOT( slotListEntry( const KIO::UDSEntry & ) ) ) );
-    Q_ASSERT( disconnect( &m_cpthread, SIGNAL( listingDone() ),
-                       this, SLOT( slotListingDone() ) ) );
+    disconnect( &m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
+              this, SLOT( slotListEntry( const KIO::UDSEntry & ) ) );
+    disconnect( &m_cpthread, SIGNAL( listingDone() ),
+                       this, SLOT( slotListingDone() ) );
     KIO::UDSEntry entry;
     listEntry( entry, true );
     finished();
