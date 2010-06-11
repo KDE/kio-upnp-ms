@@ -179,10 +179,16 @@ void ControlPointThread::updateDeviceInfo( const KUrl& url )
                       SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) ));
  
     HStateVariable *containerUpdates = contentDirectory()->stateVariableByName( "ContainerUpdateIDs" );
-    Q_ASSERT( connect( containerUpdates,
-             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
-             this,
-                       SLOT( slotContainerUpdates(const Herqq::Upnp::HStateVariableEvent&) ) ) );
+    if( containerUpdates ) {
+        bool ok = connect( containerUpdates,
+                 SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
+                 this,
+                 SLOT( slotContainerUpdates(const Herqq::Upnp::HStateVariableEvent&) ) );
+        Q_ASSERT( ok );
+    }
+    else {
+        kDebug() << m_deviceInfo.friendlyName() << "does not support updates";
+    }
 }
 
 /*
