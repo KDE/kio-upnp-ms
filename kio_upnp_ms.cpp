@@ -93,6 +93,8 @@ UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
 
 UPnPMS::~UPnPMS()
 {
+    m_cpthread.quit();
+    m_cpthread.wait( 500 );
 }
 
 void UPnPMS::stat( const KUrl &url )

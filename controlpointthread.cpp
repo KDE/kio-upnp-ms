@@ -116,6 +116,8 @@ void ControlPointThread::run()
 
     exec();
 
+    m_browseAct = NULL;
+    m_device = NULL;
     delete m_controlPoint;
 }
 
