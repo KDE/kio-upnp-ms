@@ -71,6 +71,12 @@ Q_DECLARE_METATYPE( KIO::UDSEntry );
 class ControlPointThread : public QThread
 {
   Q_OBJECT
+  private:
+    struct BrowseCallInfo {
+      const DIDL::Object *on;
+      uint start;
+    };
+
   public:
     ControlPointThread( QObject *parent=0 );
     virtual ~ControlPointThread();
@@ -94,9 +100,9 @@ class ControlPointThread : public QThread
     void slotCDSUpdated( const Herqq::Upnp::HStateVariableEvent &event );
     void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
     void browseInvokeDone( Herqq::Upnp::HAsyncOp );
-    void createDirectoryListing( const Herqq::Upnp::HActionArguments &, uint start );
     void browseResolvedPath( const DIDL::Object *, uint start = 0, uint count = 30 );
     void statResolvedPath( const DIDL::Object * );
+    void createDirectoryListing( const Herqq::Upnp::HActionArguments &, BrowseCallInfo *info );
     void resolvePathToObjectInternal();
     void attemptResolution( const Herqq::Upnp::HActionArguments & );
 
@@ -105,7 +111,7 @@ class ControlPointThread : public QThread
     void listEntry( const KIO::UDSEntry & );
     void listingDone();
     void error( int type, const QString & );
-    void browseResult( const Herqq::Upnp::HActionArguments &args, uint );
+    void browseResult( const Herqq::Upnp::HActionArguments &args, BrowseCallInfo *info );
     void pathResolved( const DIDL::Object * );
 
   private:
@@ -118,7 +124,7 @@ class ControlPointThread : public QThread
      * to receive the HActionArguments received
      * from the result.
      */
-    void browseDevice( const QString &id,
+    void browseDevice( const DIDL::Object *obj,
                        const QString &browseFlag,
                        const QString &filter,
                        const uint startIndex,
@@ -185,13 +191,6 @@ class ControlPointThread : public QThread
     // TODO remove later
     bool m_resolveOn;
 
-    // TODO this is only while
-    // I figure out or modify HUpnp's HAsyncOp's setUserData
-    // mechanism. The use of a global variable is not preferred
-    struct {
-      DIDL::Object *on;
-      uint start;
-    } m_listCallInfo;
 };
 
 #endif

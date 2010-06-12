@@ -283,26 +283,24 @@ void ControlPointThread::listDir( const KUrl &url )
 
     QString path = url.path(KUrl::RemoveTrailingSlash);
 
-    connect( this, SIGNAL( pathResolved( DIDL::Object * ) ),
-             this, SLOT( browseResolvedPath( DIDL::Object *) ) );
+    connect( this, SIGNAL( pathResolved( const DIDL::Object * ) ),
+             this, SLOT( browseResolvedPath( const DIDL::Object *) ) );
     resolvePathToObject(path);
 }
 
-void ControlPointThread::browseResolvedPath( DIDL::Object *object, uint start, uint count )
+void ControlPointThread::browseResolvedPath( const DIDL::Object *object, uint start, uint count )
 {
-    disconnect( this, SIGNAL( pathResolved( DIDL::Object * ) ),
-                this, SLOT( browseResolvedPath( DIDL::Object *) ) );
+    disconnect( this, SIGNAL( pathResolved( const DIDL::Object * ) ),
+                this, SLOT( browseResolvedPath( const DIDL::Object *) ) );
     if( object == NULL ) {
         kDebug() << "ERROR: idString null";
         emit error( KIO::ERR_DOES_NOT_EXIST, QString() );
         return;
     }
 
-    connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, uint ) ),
-             this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments &, uint ) ) );
-    m_listCallInfo.on = object;
-    m_listCallInfo.start = start;
-    browseDevice( object->id(),
+    Q_ASSERT(connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, BrowseCallInfo * ) ),
+                      this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments &, BrowseCallInfo * ) ) ));
+    browseDevice( object,
                   BROWSE_DIRECT_CHILDREN,
                   "*",
                   start,
@@ -324,7 +322,8 @@ void ControlPointThread::browseDevice( const DIDL::Object *obj,
     m_browseAct = contentDirectory()->actionByName( "Browse" );
     HActionArguments args = m_browseAct->inputArguments();
   
-    args["ObjectID"]->setValue( id );
+    Q_ASSERT( obj );
+    args["ObjectID"]->setValue( obj->id() );
     args["BrowseFlag"]->setValue( browseFlag );
     args["Filter"]->setValue( filter );
     args["StartingIndex"]->setValue( startIndex );
@@ -334,6 +333,10 @@ void ControlPointThread::browseDevice( const DIDL::Object *obj,
     connect( m_browseAct, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
              this, SLOT( browseInvokeDone( Herqq::Upnp::HAsyncOp ) ) );
     HAsyncOp invocationOp = m_browseAct->beginInvoke( args );
+    BrowseCallInfo *info = new BrowseCallInfo;
+    info->on = obj;
+    info->start = startIndex;
+    invocationOp.setUserData( info );
     // TODO invocationOp.setUserData()-ish call
 }
 
@@ -352,23 +355,23 @@ void ControlPointThread::browseInvokeDone( HAsyncOp invocationOp )
         m_lastErrorString = m_browseAct->errorCodeToString( invocationOp.returnValue() );
     }
     else {
-        kDebug() << "NO ERROR BUT" << output.toString();
         Q_ASSERT( output["Result"] );
         m_lastErrorString = QString();
     }
 
+    BrowseCallInfo *info = ( BrowseCallInfo *)invocationOp.userData();
+    Q_ASSERT( info );
     // TODO check for success
-    emit browseResult( output, 0 );
+    emit browseResult( output, info );
 }
 
-void ControlPointThread::createDirectoryListing( const HActionArguments &args, uint start )
+void ControlPointThread::createDirectoryListing( const HActionArguments &args, BrowseCallInfo *info )
 {
-    bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, uint ) ),
-                          this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments &, uint ) ) );
+    bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, BrowseCallInfo * ) ),
+                          this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments &, BrowseCallInfo * ) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
     if( args["Result"] == NULL ) {
-        kDebug() << "SPAZZING OUT";
         emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
         return;
     }
@@ -388,19 +391,15 @@ void ControlPointThread::createDirectoryListing( const HActionArguments &args, u
     // the parsing begins, but perhaps this delay is good for
     // adding some 'break' to the network connections, so that
     // disconnection by the remote device can be avoided.
+    Q_ASSERT( info );
     uint num = args["NumberReturned"]->value().toUInt();
     uint total = args["TotalMatches"]->value().toUInt();
-    if( num > 0 && ( m_listCallInfo.start + num < total ) ) {
-        kDebug() << "Got " << num << "this time";
-        kDebug() << "Next call start" << m_listCallInfo.start + num;
-        Q_ASSERT( m_listCallInfo.on );
-        msleep( 2000 );
-        browseResolvedPath( m_listCallInfo.on, m_listCallInfo.start + num );
+    if( num > 0 && ( info->start + num < total ) ) {
+        Q_ASSERT( info->on );
+        msleep( 1000 );
+        browseResolvedPath( info->on, info->start + num );
     }
     else {
-        kDebug() << "Listing done";
-        m_listCallInfo.on = NULL;
-        m_listCallInfo.start = 0;
         emit listingDone();
     }
 }
@@ -552,9 +551,9 @@ void ControlPointThread::resolvePathToObjectInternal()
     m_resolve.pathIndex++;
     m_resolve.lookingFor = m_resolve.fullPath.mid( m_resolve.pathIndex, SEP_POS( m_resolve.fullPath, m_resolve.pathIndex ) - m_resolve.pathIndex );
     m_resolve.object = NULL;
-    connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, uint ) ),
+    connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, BrowseCallInfo *) ),
              this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) );
-    browseDevice( idForName(m_resolve.segment),
+    browseDevice( m_reverseCache[m_resolve.segment],
                   BROWSE_DIRECT_CHILDREN,
                   "*",
                   0,
@@ -565,7 +564,7 @@ void ControlPointThread::resolvePathToObjectInternal()
 void ControlPointThread::attemptResolution( const HActionArguments &args )
 {
     // NOTE disconnection is important
-    bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, uint ) ),
+    bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, BrowseCallInfo * ) ),
                           this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
