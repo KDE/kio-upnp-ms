@@ -94,9 +94,9 @@ class ControlPointThread : public QThread
     void slotCDSUpdated( const Herqq::Upnp::HStateVariableEvent &event );
     void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
     void browseInvokeDone( Herqq::Upnp::HAsyncOp );
-    void browseResolvedPath( DIDL::Object * );
+    void browseResolvedPath( DIDL::Object *, uint start = 0, uint count = 30 );
     void statResolvedPath( DIDL::Object * );
-    void createDirectoryListing( const Herqq::Upnp::HActionArguments & );
+    void createDirectoryListing( const Herqq::Upnp::HActionArguments &, uint start );
     void resolvePathToObjectInternal();
     void attemptResolution( const Herqq::Upnp::HActionArguments & );
 
@@ -105,7 +105,7 @@ class ControlPointThread : public QThread
     void listEntry( const KIO::UDSEntry & );
     void listingDone();
     void error( int type, const QString & );
-    void browseResult( const Herqq::Upnp::HActionArguments &args );
+    void browseResult( const Herqq::Upnp::HActionArguments &args, uint );
     void pathResolved( DIDL::Object * );
 
   private:
@@ -121,8 +121,8 @@ class ControlPointThread : public QThread
     void browseDevice( const QString &id,
                        const QString &browseFlag,
                        const QString &filter,
-                       const int startIndex,
-                       const int requestedCount,
+                       const uint startIndex,
+                       const uint requestedCount,
                        const QString &sortCriteria );
 
     QString idForName( const QString &name );
@@ -181,6 +181,17 @@ class ControlPointThread : public QThread
    QString m_lastErrorString;
 
     Herqq::Upnp::HAction *m_browseAct;
+
+    // TODO remove later
+    bool m_resolveOn;
+
+    // TODO this is only while
+    // I figure out or modify HUpnp's HAsyncOp's setUserData
+    // mechanism. The use of a global variable is not preferred
+    struct {
+      DIDL::Object *on;
+      uint start;
+    } m_listCallInfo;
 };
 
 #endif
