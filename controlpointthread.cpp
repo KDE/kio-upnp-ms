@@ -74,14 +74,13 @@ ControlPointThread::ControlPointThread( QObject *parent )
     , m_controlPoint( NULL )
     , m_device( NULL )
 {
+    Herqq::Upnp::SetLoggingLevel( Herqq::Upnp::Warning );
     qRegisterMetaType<KIO::UDSEntry>();
     qDBusRegisterMetaType<DeviceInfo>();
 
     m_resolve.pathIndex = -1;
     m_resolve.object = NULL;
 
-    m_listCallInfo.on = NULL;
-    m_listCallInfo.start = 0;
     start();
 
     // necessary due to Qt's concept of thread affinity
@@ -234,16 +233,16 @@ void ControlPointThread::stat( const KUrl &url )
     }
 
     QString path = url.path(KUrl::RemoveTrailingSlash);
-    connect( this, SIGNAL( pathResolved( DIDL::Object * ) ),
-             this, SLOT( statResolvedPath( DIDL::Object * ) ) );
+    connect( this, SIGNAL( pathResolved( const DIDL::Object * ) ),
+             this, SLOT( statResolvedPath( const DIDL::Object * ) ) );
 
     resolvePathToObject( path );
 }
 
-void ControlPointThread::statResolvedPath( DIDL::Object *object )
+void ControlPointThread::statResolvedPath( const DIDL::Object *object )
 {
-    disconnect( this, SIGNAL( pathResolved( DIDL::Object * ) ),
-             this, SLOT( statResolvedPath( DIDL::Object * ) ) );
+    disconnect( this, SIGNAL( pathResolved( const DIDL::Object * ) ),
+             this, SLOT( statResolvedPath( const DIDL::Object * ) ) );
     KIO::UDSEntry entry;
 
     if( object == NULL ) {
@@ -258,7 +257,7 @@ void ControlPointThread::statResolvedPath( DIDL::Object *object )
         entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
     else {
         entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
-        DIDL::Item *item = static_cast<DIDL::Item *>( object );
+        const DIDL::Item *item = static_cast<const DIDL::Item *>( object );
         if( item && item->hasResource() ) {
             DIDL::Resource res = item->resource();
             entry.insert( KIO::UDSEntry::UDS_TARGET_URL, res["uri"] );
@@ -311,7 +310,7 @@ void ControlPointThread::browseResolvedPath( DIDL::Object *object, uint start, u
                   "" );
 }
 
-void ControlPointThread::browseDevice( const QString &id,
+void ControlPointThread::browseDevice( const DIDL::Object *obj,
                                        const QString &browseFlag,
                                        const QString &filter,
                                        const uint startIndex,

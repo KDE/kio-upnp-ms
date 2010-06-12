@@ -94,9 +94,9 @@ class ControlPointThread : public QThread
     void slotCDSUpdated( const Herqq::Upnp::HStateVariableEvent &event );
     void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
     void browseInvokeDone( Herqq::Upnp::HAsyncOp );
-    void browseResolvedPath( DIDL::Object *, uint start = 0, uint count = 30 );
-    void statResolvedPath( DIDL::Object * );
     void createDirectoryListing( const Herqq::Upnp::HActionArguments &, uint start );
+    void browseResolvedPath( const DIDL::Object *, uint start = 0, uint count = 30 );
+    void statResolvedPath( const DIDL::Object * );
     void resolvePathToObjectInternal();
     void attemptResolution( const Herqq::Upnp::HActionArguments & );
 
@@ -106,7 +106,7 @@ class ControlPointThread : public QThread
     void listingDone();
     void error( int type, const QString & );
     void browseResult( const Herqq::Upnp::HActionArguments &args, uint );
-    void pathResolved( DIDL::Object * );
+    void pathResolved( const DIDL::Object * );
 
   private:
     void updateDeviceInfo( const KUrl &url );

@@ -128,8 +128,8 @@ class Item : public Object
   public:
     Item( const QString &id, const QString &parentId, bool restricted );
 
-    bool hasResource();
-    Resource resource();
+    bool hasResource() const;
+    Resource resource() const;
     void addResource( const Resource &res );
 
   private:

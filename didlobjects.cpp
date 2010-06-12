@@ -44,14 +44,14 @@ Item::Item( const QString &id, const QString &parentId, bool restricted )
 {
 }
 
-bool Item::hasResource()
+bool Item::hasResource() const
 {
     // if we decide to go the QList<Resource> way, all of these can
     // be changed without affecting the API too much
     return !m_resource.empty();
 }
 
-Resource Item::resource()
+Resource Item::resource() const
 {
     return m_resource;
 }
