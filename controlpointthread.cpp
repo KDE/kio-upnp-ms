@@ -219,6 +219,10 @@ bool ControlPointThread::ensureDevice( const KUrl &url )
     return true;
 }
 
+/////////////////////////
+////       Stat      ////
+/////////////////////////
+
 void ControlPointThread::stat( const KUrl &url )
 {
     ensureDevice( url );
@@ -262,6 +266,9 @@ void ControlPointThread::statResolvedPath( DIDL::Object *object )
     emit statEntry( entry );
 }
 
+/////////////////////////////////////////////
+////          Directory listing          ////
+/////////////////////////////////////////////
 void ControlPointThread::listDir( const KUrl &url )
 {
     kDebug() << url;
@@ -347,6 +354,33 @@ void ControlPointThread::browseInvokeDone( HAsyncOp invocationOp )
     emit browseResult( output );
 }
 
+void ControlPointThread::createDirectoryListing( const HActionArguments &args )
+{
+    bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
+                          this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments & ) ) );
+    Q_ASSERT( ok );
+    Q_UNUSED( ok );
+    if( args["Result"] == NULL ) {
+        emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
+        return;
+    }
+
+    QString didlString = args["Result"]->value().toString();
+    QDomDocument d;
+    d.setContent(didlString);
+    kDebug() << d.toString(2);
+    DIDL::Parser parser;
+    connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
+    connect( &parser, SIGNAL(done()), this, SIGNAL(listingDone()) );
+
+    connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) );
+    connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListItem(DIDL::Item *)) );
+    parser.parse(didlString);
+}
+
+///////////////////////////////
+//// DIDL parsing handlers ////
+///////////////////////////////
 void ControlPointThread::slotParseError( const QString &errorString )
 {
     emit error(KIO::ERR_SLAVE_DEFINED, errorString);
@@ -419,26 +453,9 @@ void ControlPointThread::slotListItem( DIDL::Item *item )
     emit listEntry(entry);
 }
 
-void ControlPointThread::createDirectoryListing( const HActionArguments &args )
-{
-    bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments & ) ),
-                          this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments & ) ) );
-    Q_ASSERT( ok );
-    Q_UNUSED( ok );
-    if( args["Result"] == NULL ) {
-        emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
-        return;
-    }
-
-    QString didlString = args["Result"]->value().toString();
-    DIDL::Parser parser;
-    connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
-    connect( &parser, SIGNAL(done()), this, SIGNAL(listingDone()) );
-
-    connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) );
-    connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListItem(DIDL::Item *)) );
-    parser.parse(didlString);
-}
+////////////////////////////////////////////
+//// ID/title/object mapping/resolution ////
+////////////////////////////////////////////
 
 QString ControlPointThread::idForName( const QString &name )
 {
@@ -597,6 +614,9 @@ void ControlPointThread::slotResolveId( DIDL::Container *object )
     slotResolveId( static_cast<DIDL::Object*>( object ) );
 }
 
+///////////////////
+////  Updates  //// 
+///////////////////
 void ControlPointThread::slotCDSUpdated( const HStateVariableEvent &event )
 {
     kDebug() << "UPDATE" << event.newValue();
