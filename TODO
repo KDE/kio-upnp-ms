@@ -7,6 +7,13 @@ There has to be a way to map any ID to a path.
  -- and walk backwards just like we walk forwards
  -- when resolving paths to objects.
 
+Handle returnValue() errors.
+Have some kind of retry when a invocation fails.
+Just like TCP does. If the call fails, try after a
+delay,
+then double delay and so on until a certain limit
+then give up. This might fix CDSs like MediaTomb.
+
 TODO
 ====
 
