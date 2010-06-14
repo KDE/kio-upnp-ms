@@ -51,15 +51,7 @@ namespace DIDL
   class Description;
 }
 
-// we map to DIDL object since <desc> have no cache value
-// why not cache just the ID? QCache wants a pointer. So might
-// as well store the Item/Container we receive from the parser
-typedef QCache<QString, DIDL::Object> NameToObjectCache;
-
-typedef QPair<QString, QString> UpdateValueAndPath;
-
-// maps ID -> (update value, path) where path is a valid
-typedef QHash<QString, UpdateValueAndPath> ContainerUpdatesHash;
+class ObjectCache;
 
 #define BROWSE_DIRECT_CHILDREN "BrowseDirectChildren"
 #define BROWSE_METADATA "BrowseMetadata"
@@ -93,18 +85,12 @@ class ControlPointThread : public QThread
     void slotListContainer( DIDL::Container *c );
     void slotListItem( DIDL::Item *c );
 
-    void slotResolveId( DIDL::Object *object );
-    void slotResolveId( DIDL::Item *object );
-    void slotResolveId( DIDL::Container *object );
-
     void slotCDSUpdated( const Herqq::Upnp::HStateVariableEvent &event );
     void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
     void browseInvokeDone( Herqq::Upnp::HAsyncOp );
     void browseResolvedPath( const DIDL::Object *, uint start = 0, uint count = 30 );
     void statResolvedPath( const DIDL::Object * );
     void createDirectoryListing( const Herqq::Upnp::HActionArguments &, BrowseCallInfo *info );
-    void resolvePathToObjectInternal();
-    void attemptResolution( const Herqq::Upnp::HActionArguments & );
 
   signals:
     void statEntry( const KIO::UDSEntry & );
@@ -112,7 +98,6 @@ class ControlPointThread : public QThread
     void listingDone();
     void error( int type, const QString & );
     void browseResult( const Herqq::Upnp::HActionArguments &args, BrowseCallInfo *info );
-    void pathResolved( const DIDL::Object * );
 
   private:
     void updateDeviceInfo( const KUrl &url );
@@ -133,17 +118,6 @@ class ControlPointThread : public QThread
 
     QString idForName( const QString &name );
 
-    /**
-     * Tries to resolve a complete path to the right
-     * Object for the path. Tries to use the cache.
-     * If there is cache miss, backtracks along the path
-     * or queries the UPnP device.
-     * Connect to the pathResolved() signal to receive
-     * a pointer to the DIDL::Object or NULL if path
-     * does not exist.
-     */
-    void resolvePathToObject( const QString &path );
-
     Herqq::Upnp::HServiceProxy* contentDirectory() const;
     Herqq::Upnp::HAction* browseAction() const;
 
@@ -152,41 +126,11 @@ class ControlPointThread : public QThread
     Herqq::Upnp::HDeviceProxy *m_device;
     DeviceInfo m_deviceInfo;
 
-    NameToObjectCache m_reverseCache;
-    // entry in NameToObjectCache, that is inserted when
-    // the cache itself is filled.
-    // notice there is NO way to go from a ID to a path
-    // apart from this and linear searching the NameToObjectCache.
-    // so here is how this thing works.
-    // 1. What the user hasn't browsed a folder/Item
-    // we simply don't care about its update state :)
-    // 2. On first browse, we insert into cache as well
-    // as in m_updatesHash.
-    // 3. cache may expire, but m_updatesHash never does
-    // so we can always recover the Container/Item
-    // by a call to resolvePathToObject() since we have
-    // the path in m_updatesHash.
-    ContainerUpdatesHash m_updatesHash;
-
-    /**
-     * Make sure you don't have two
-     * resolutions taking place at the same time.
-     * KIO calls won't let that happen since the slave
-     * is considered blocked until it says its finished
-     * But don't do nesting inside code you might
-     * write to extend this kioslave
-     */
-    struct {
-        int pathIndex;
-        QString segment;
-        QString id;
-        QString lookingFor;
-        QString fullPath;
-        DIDL::Object *object;
-    } m_resolve;
+    ObjectCache *m_cache;
 
     QString m_lastErrorString;
 
+    friend class ObjectCache;
 };
 
 #endif
