@@ -105,6 +105,10 @@ void ControlPointThread::run()
             SIGNAL(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)),
             this,
             SLOT(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)));
+    connect(m_controlPoint,
+            SIGNAL(rootDeviceOffline(Herqq::Upnp::HDeviceProxy *)),
+            this,
+            SLOT(rootDeviceOffline(Herqq::Upnp::HDeviceProxy *)));
 
     if( !m_controlPoint->init() )
     {
@@ -121,6 +125,13 @@ void ControlPointThread::run()
 void ControlPointThread::rootDeviceOnline(HDeviceProxy *device)
 {
     m_device = device;
+}
+
+void ControlPointThread::rootDeviceOffline(HDeviceProxy *device)
+{
+    if( m_device->deviceInfo().udn() == device->deviceInfo().udn() ) {
+        m_device = NULL;
+    }
 }
 
 /**
@@ -141,8 +152,7 @@ void ControlPointThread::updateDeviceInfo( const KUrl& url )
     }
     m_deviceInfo = res.value();
     if( m_deviceInfo.udn().isEmpty() ) {
-        kDebug() << "Error UNKNOWN HOST";
-        emit error( KIO::ERR_UNKNOWN_HOST, m_deviceInfo.udn() );
+        emit error( KIO::ERR_COULD_NOT_MOUNT, i18n( "Device %1 is offline", url.host() ) );
         return;
     }
 
@@ -151,9 +161,9 @@ void ControlPointThread::updateDeviceInfo( const KUrl& url )
     // all devices don't support it
     // Thanks to Tuomo Penttinen for pointing that out
     if( !m_controlPoint->scan(specific) ) {
-      kDebug() << m_controlPoint->errorDescription();
-      emit error( KIO::ERR_UNKNOWN_HOST, m_deviceInfo.udn() );
-      return;
+        kDebug() << m_controlPoint->errorDescription();
+        emit error( KIO::ERR_COULD_NOT_MOUNT, i18n( "Device %1 is offline", url.host() ) );
+        return;
     }
 
     // local blocking event loop.
@@ -210,8 +220,9 @@ HAction* ControlPointThread::browseAction() const
   
 bool ControlPointThread::ensureDevice( const KUrl &url )
 {
-    if(  !m_deviceInfo.isValid()
-      || ("uuid:" + url.host()) != m_deviceInfo.udn() ) {
+    if(     !m_device
+         || !m_deviceInfo.isValid()
+         || ("uuid:" + url.host()) != m_deviceInfo.udn() ) {
         updateDeviceInfo(url);
         // invalidate the cache when the device changes
         m_cache->reset();

@@ -80,6 +80,7 @@ class ControlPointThread : public QThread
 
   private slots:
     void rootDeviceOnline(Herqq::Upnp::HDeviceProxy *device);
+    void rootDeviceOffline(Herqq::Upnp::HDeviceProxy *device);
     void slotParseError( const QString &errorString );
     void slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object *obj );
     void slotListContainer( DIDL::Container *c );
