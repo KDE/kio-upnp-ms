@@ -145,6 +145,7 @@ class ControlPointThread : public QThread
     void resolvePathToObject( const QString &path );
 
     Herqq::Upnp::HServiceProxy* contentDirectory() const;
+    Herqq::Upnp::HAction* browseAction() const;
 
     Herqq::Upnp::HControlPoint *m_controlPoint;
 
@@ -185,8 +186,6 @@ class ControlPointThread : public QThread
     } m_resolve;
 
    QString m_lastErrorString;
-
-    Herqq::Upnp::HAction *m_browseAct;
 
     // TODO remove later
     bool m_resolveOn;

@@ -115,7 +115,6 @@ void ControlPointThread::run()
 
     exec();
 
-    m_browseAct = NULL;
     m_device = NULL;
     delete m_controlPoint;
 }
@@ -201,6 +200,13 @@ HServiceProxy* ControlPointThread::contentDirectory() const
         contentDir = m_device->serviceProxyById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
     }
     return contentDir;
+}
+
+HAction* ControlPointThread::browseAction() const
+{
+    Q_ASSERT( m_device );
+    Q_ASSERT( contentDirectory() );
+    return contentDirectory()->actionByName( "Browse" );
 }
   
 bool ControlPointThread::ensureDevice( const KUrl &url )
@@ -319,8 +325,7 @@ void ControlPointThread::browseDevice( const DIDL::Object *obj,
         emit error( KIO::ERR_UNSUPPORTED_ACTION, "ControlPointThread device " + m_device->deviceInfo().friendlyName() + " does not support browsing" );
     }
    
-    m_browseAct = contentDirectory()->actionByName( "Browse" );
-    HActionArguments args = m_browseAct->inputArguments();
+    HActionArguments args = browseAction()->inputArguments();
   
     Q_ASSERT( obj );
     args["ObjectID"]->setValue( obj->id() );
@@ -330,9 +335,9 @@ void ControlPointThread::browseDevice( const DIDL::Object *obj,
     args["RequestedCount"]->setValue( requestedCount );
     args["SortCriteria"]->setValue( sortCriteria );
    
-    connect( m_browseAct, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
+    connect( browseAction(), SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
              this, SLOT( browseInvokeDone( Herqq::Upnp::HAsyncOp ) ) );
-    HAsyncOp invocationOp = m_browseAct->beginInvoke( args );
+    HAsyncOp invocationOp = browseAction()->beginInvoke( args );
     BrowseCallInfo *info = new BrowseCallInfo;
     info->on = obj;
     info->start = startIndex;
@@ -342,17 +347,17 @@ void ControlPointThread::browseDevice( const DIDL::Object *obj,
 
 void ControlPointThread::browseInvokeDone( HAsyncOp invocationOp )
 {
-    bool ok = disconnect( m_browseAct, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
+    bool ok = disconnect( browseAction(), SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
                 this, SLOT( browseInvokeDone( Herqq::Upnp::HAsyncOp ) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
     HActionArguments output;
-    bool ret = m_browseAct->waitForInvoke( &invocationOp, &output );
+    bool ret = browseAction()->waitForInvoke( &invocationOp, &output );
 
     if( !ret || invocationOp.waitCode() != HAsyncOp::WaitSuccess ) {
-        kDebug() << m_browseAct->errorCodeToString( invocationOp.returnValue() ) << "Return vslue" << invocationOp.returnValue();
+        kDebug() << browseAction()->errorCodeToString( invocationOp.returnValue() ) << "Return vslue" << invocationOp.returnValue();
         Q_ASSERT( false );
-        m_lastErrorString = m_browseAct->errorCodeToString( invocationOp.returnValue() );
+        m_lastErrorString = browseAction()->errorCodeToString( invocationOp.returnValue() );
     }
     else {
         Q_ASSERT( output["Result"] );
@@ -377,9 +382,6 @@ void ControlPointThread::createDirectoryListing( const HActionArguments &args, B
     }
 
     QString didlString = args["Result"]->value().toString();
-    QDomDocument d;
-    d.setContent(didlString);
-    kDebug() << d.toString(2);
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
 
