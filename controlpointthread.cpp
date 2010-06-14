@@ -179,9 +179,9 @@ void ControlPointThread::updateDeviceInfo( const KUrl& url )
     HStateVariable *containerUpdates = contentDirectory()->stateVariableByName( "ContainerUpdateIDs" );
     if( containerUpdates ) {
         bool ok = connect( containerUpdates,
-                 SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
-                 this,
-                 SLOT( slotContainerUpdates(const Herqq::Upnp::HStateVariableEvent&) ) );
+                           SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
+                           this,
+                           SLOT( slotContainerUpdates(const Herqq::Upnp::HStateVariableEvent&) ) );
         Q_ASSERT( ok );
     }
     else {
