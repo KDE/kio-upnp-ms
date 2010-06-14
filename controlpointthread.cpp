@@ -365,7 +365,6 @@ void ControlPointThread::browseInvokeDone( HAsyncOp invocationOp )
 
     if( !ret || invocationOp.waitCode() != HAsyncOp::WaitSuccess ) {
         kDebug() << browseAction()->errorCodeToString( invocationOp.returnValue() ) << "Return vslue" << invocationOp.returnValue();
-        Q_ASSERT( false );
         m_lastErrorString = browseAction()->errorCodeToString( invocationOp.returnValue() );
     }
     else {
