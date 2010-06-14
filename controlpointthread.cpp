@@ -129,6 +129,12 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device)
 
 void ControlPointThread::rootDeviceOffline(HDeviceProxy *device)
 {
+    // if we aren't valid, we don't really care about
+    // devices going offline
+    // This slot can get called twice by HUpnp
+    if( !m_device )
+        return;
+
     if( m_device->deviceInfo().udn() == device->deviceInfo().udn() ) {
         m_device = NULL;
     }
@@ -138,8 +144,7 @@ void ControlPointThread::rootDeviceOffline(HDeviceProxy *device)
  * Updates device information from Cagibi and gets
  * HUPnP to find the device.
  */
-// TODO update to return boolean
-void ControlPointThread::updateDeviceInfo( const KUrl& url )
+bool ControlPointThread::updateDeviceInfo( const KUrl& url )
 {
     QDBusConnection bus = QDBusConnection::sessionBus();
     QDBusInterface iface( "org.kde.Cagibi", "/org/kde/Cagibi", "org.kde.Cagibi", bus );
@@ -148,12 +153,12 @@ void ControlPointThread::updateDeviceInfo( const KUrl& url )
     if( !res.isValid() ) {
         kDebug() << "Invalid request" << res.error().message();
         emit error(KIO::ERR_COULD_NOT_CONNECT, udn);
-      return;
+        return false;
     }
     m_deviceInfo = res.value();
     if( m_deviceInfo.udn().isEmpty() ) {
         emit error( KIO::ERR_COULD_NOT_MOUNT, i18n( "Device %1 is offline", url.host() ) );
-        return;
+        return false;
     }
 
     HDiscoveryType specific(m_deviceInfo.udn());
@@ -163,7 +168,7 @@ void ControlPointThread::updateDeviceInfo( const KUrl& url )
     if( !m_controlPoint->scan(specific) ) {
         kDebug() << m_controlPoint->errorDescription();
         emit error( KIO::ERR_COULD_NOT_MOUNT, i18n( "Device %1 is offline", url.host() ) );
-        return;
+        return false;
     }
 
     // local blocking event loop.
@@ -196,6 +201,8 @@ void ControlPointThread::updateDeviceInfo( const KUrl& url )
     else {
         kDebug() << m_deviceInfo.friendlyName() << "does not support updates";
     }
+
+    return true;
 }
 
 /*
@@ -223,7 +230,7 @@ bool ControlPointThread::ensureDevice( const KUrl &url )
     if(     !m_device
          || !m_deviceInfo.isValid()
          || ("uuid:" + url.host()) != m_deviceInfo.udn() ) {
-        updateDeviceInfo(url);
+        return updateDeviceInfo(url);
         // invalidate the cache when the device changes
         m_cache->reset();
     }
@@ -237,8 +244,7 @@ bool ControlPointThread::ensureDevice( const KUrl &url )
 
 void ControlPointThread::stat( const KUrl &url )
 {
-    ensureDevice( url );
-    if( !m_device ) {
+    if( !ensureDevice( url ) ) {
       emit error( KIO::ERR_DOES_NOT_EXIST, url.prettyUrl() );
       return;
     }
@@ -285,9 +291,7 @@ void ControlPointThread::listDir( const KUrl &url )
 {
     kDebug() << url;
 
-    ensureDevice( url );
-    if( !m_device ) {
-// TODO once ensureDevice() returns proper status, use that for check
+    if( !ensureDevice( url ) ) {
       emit error( KIO::ERR_DOES_NOT_EXIST, url.prettyUrl() );
       return;
     }

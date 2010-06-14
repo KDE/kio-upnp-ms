@@ -101,7 +101,7 @@ class ControlPointThread : public QThread
     void browseResult( const Herqq::Upnp::HActionArguments &args, BrowseCallInfo *info );
 
   private:
-    void updateDeviceInfo( const KUrl &url );
+    bool updateDeviceInfo( const KUrl &url );
     bool ensureDevice( const KUrl &url );
     inline bool deviceFound();
     /**
