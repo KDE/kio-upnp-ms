@@ -121,7 +121,7 @@ void ControlPointThread::run()
 
 void ControlPointThread::rootDeviceOnline(HDeviceProxy *device)
 {
-  m_device = device;
+    m_device = device;
 }
 
 /**

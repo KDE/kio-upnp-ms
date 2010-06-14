@@ -185,10 +185,7 @@ class ControlPointThread : public QThread
         DIDL::Object *object;
     } m_resolve;
 
-   QString m_lastErrorString;
-
-    // TODO remove later
-    bool m_resolveOn;
+    QString m_lastErrorString;
 
 };
 
