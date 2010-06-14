@@ -505,23 +505,19 @@ void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariable
 // NOTE what about CDS's with tracking changes option?
 // TODO implement later
 
-// The assert is to remind us to fix this
-            Q_ASSERT( false );
-//            if( m_updatesHash[id].first == updateValue )
-//                continue;
-// 
-//            m_updatesHash[id].first = updateValue;
-//            QString updatedPath = m_updatesHash[id].second;
-//            kDebug() << "ID" << id << "Path" << updatedPath;
-// 
-//            KUrl fullPath;
-//            QString host = m_deviceInfo.udn();
-//            host.replace("uuid:", "");
-// 
-//            fullPath.setProtocol( "upnp-ms" );
-//            fullPath.setHost( host );
-//            fullPath.setPath( updatedPath );
-//            filesAdded << fullPath.prettyUrl();
+            if( m_cache->update( id, updateValue ) ) {
+                QString updatedPath = m_cache->pathForId( id );
+                kDebug() << "ID" << id << "Path" << updatedPath;
+ 
+                KUrl fullPath;
+                QString host = m_deviceInfo.udn();
+                host.replace("uuid:", "");
+
+                fullPath.setProtocol( "upnp-ms" );
+                fullPath.setHost( host );
+                fullPath.setPath( updatedPath );
+                filesAdded << fullPath.prettyUrl();
+            }
         }
     }
     kDebug() << "Files Changed" << filesAdded;

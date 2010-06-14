@@ -212,3 +212,18 @@ bool ObjectCache::hasUpdateId( const QString &id )
 {
     return m_updatesHash.contains( id );
 }
+
+bool ObjectCache::update( const QString &id, const QString &containerUpdateId )
+{
+    if( hasUpdateId( id ) ) {
+        if( m_updatesHash[id].first != containerUpdateId ) {
+            m_updatesHash[id].first = containerUpdateId;
+            return true;
+        }
+    }
+}
+
+QString ObjectCache::pathForId( const QString &id )
+{
+    return m_updatesHash[id].second;
+}

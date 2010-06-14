@@ -58,6 +58,17 @@ public:
     ObjectCache( ControlPointThread *cpt );
     void reset();
     bool hasUpdateId( const QString &id );
+    /**
+     * Updates the containerUpdateId for the container @c id.
+     * If the value has changed, returns true, otherwise returns
+     * false.
+     */
+    bool update( const QString &id, const QString &containerUpdateId );
+
+    /**
+     * Should be called only after verifying with @c hasUpdateId.
+     */
+    QString pathForId( const QString &id );
 
 signals:
     void pathResolved( const DIDL::Object * );
