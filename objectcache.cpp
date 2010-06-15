@@ -124,10 +124,10 @@ void ObjectCache::resolvePathToObjectInternal()
              this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) );
     m_cpt->browseDevice( m_reverseCache[m_resolve.segment],
                          BROWSE_DIRECT_CHILDREN,
-                         "*",
+                         "dc:title",
                          0,
                          0,
-                         "dc:title" );
+                         "" );
 }
 
 void ObjectCache::attemptResolution( const HActionArguments &args )
