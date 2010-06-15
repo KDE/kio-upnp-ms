@@ -10,6 +10,7 @@ set(kio_upnp_ms_PART_SRCS
    didlobjects.cpp
    controlpointthread.cpp
    objectcache.cpp
+   persistentaction.cpp
    )
 
 find_path( HUpnp_INCLUDE_DIRS HUpnp )
