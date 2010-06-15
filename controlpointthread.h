@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <HUpnp>
 #include <HAsyncOp>
+#include <HActionArguments>
 
 namespace Herqq
 {
@@ -37,9 +38,7 @@ namespace Herqq
   {
     class HControlPoint;
     class HDeviceProxy;
-    class HActionArguments;
     class HAction;
-    class HAsyncOp;
   }
 }
 
@@ -57,6 +56,7 @@ class ObjectCache;
 #define BROWSE_METADATA "BrowseMetadata"
 
 Q_DECLARE_METATYPE( KIO::UDSEntry );
+Q_DECLARE_METATYPE( Herqq::Upnp::HActionArguments );
 /**
   This class implements a upnp kioslave
  */
@@ -88,7 +88,7 @@ class ControlPointThread : public QThread
 
     void slotCDSUpdated( const Herqq::Upnp::HStateVariableEvent &event );
     void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
-    void browseInvokeDone( Herqq::Upnp::HAsyncOp );
+    void browseInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp invocationOp, bool ok, QString error );
     void browseResolvedPath( const DIDL::Object *, uint start = 0, uint count = 30 );
     void statResolvedPath( const DIDL::Object * );
     void createDirectoryListing( const Herqq::Upnp::HActionArguments &, BrowseCallInfo *info );

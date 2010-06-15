@@ -50,6 +50,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "didlobjects.h"
 #include "upnptypes.h"
 #include "objectcache.h"
+#include "persistentaction.h"
 
 using namespace Herqq::Upnp;
 
@@ -76,8 +77,9 @@ ControlPointThread::ControlPointThread( QObject *parent )
     , m_device( NULL )
     , m_cache( new ObjectCache( this ) )
 {
-    //Herqq::Upnp::SetLoggingLevel( Herqq::Upnp::Warning );
+    //Herqq::Upnp::SetLoggingLevel( Herqq::Upnp::Debug );
     qRegisterMetaType<KIO::UDSEntry>();
+    qRegisterMetaType<Herqq::Upnp::HActionArguments>();
     qDBusRegisterMetaType<DeviceInfo>();
 
     start();
@@ -343,34 +345,33 @@ void ControlPointThread::browseDevice( const DIDL::Object *obj,
     args["StartingIndex"]->setValue( startIndex );
     args["RequestedCount"]->setValue( requestedCount );
     args["SortCriteria"]->setValue( sortCriteria );
-   
-    connect( browseAction(), SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
-             this, SLOT( browseInvokeDone( Herqq::Upnp::HAsyncOp ) ) );
-    HAsyncOp invocationOp = browseAction()->beginInvoke( args );
+
     BrowseCallInfo *info = new BrowseCallInfo;
     info->on = obj;
     info->start = startIndex;
-    invocationOp.setUserData( info );
-    // TODO invocationOp.setUserData()-ish call
+
+    PersistentAction *action = new PersistentAction;
+    connect( action, SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
+             this, SLOT( browseInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
+
+    action->invoke( browseAction(), args, info );
 }
 
-void ControlPointThread::browseInvokeDone( HAsyncOp invocationOp )
+void ControlPointThread::browseInvokeDone( HActionArguments output, HAsyncOp invocationOp, bool ok, QString error )
 {
-    bool ok = disconnect( browseAction(), SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
-                this, SLOT( browseInvokeDone( Herqq::Upnp::HAsyncOp ) ) );
-    Q_ASSERT( ok );
-    Q_UNUSED( ok );
-    HActionArguments output;
-    bool ret = browseAction()->waitForInvoke( &invocationOp, &output );
-
-    if( !ret || invocationOp.waitCode() != HAsyncOp::WaitSuccess ) {
-        kDebug() << browseAction()->errorCodeToString( invocationOp.returnValue() ) << "Return vslue" << invocationOp.returnValue();
-        m_lastErrorString = browseAction()->errorCodeToString( invocationOp.returnValue() );
+    if( !ok ) {
+        kDebug() << "browse failed" << error;
+        m_lastErrorString = error;
     }
     else {
         Q_ASSERT( output["Result"] );
         m_lastErrorString = QString();
     }
+
+    // delete the PersistentAction
+    PersistentAction *action = static_cast<PersistentAction *>( QObject::sender() );
+    delete action;
+    action = NULL;
 
     BrowseCallInfo *info = ( BrowseCallInfo *)invocationOp.userData();
     Q_ASSERT( info );
