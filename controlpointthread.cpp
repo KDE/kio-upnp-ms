@@ -127,6 +127,27 @@ void ControlPointThread::run()
 void ControlPointThread::rootDeviceOnline(HDeviceProxy *device)
 {
     m_device = device;
+    // TODO: below code can be much cleaner
+    // connect to any state variables here
+    HStateVariable *systemUpdateID = contentDirectory()->stateVariableByName( "SystemUpdateID" );
+    connect( systemUpdateID,
+             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
+             this,
+             SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) );
+ 
+    HStateVariable *containerUpdates = contentDirectory()->stateVariableByName( "ContainerUpdateIDs" );
+    if( containerUpdates ) {
+        bool ok = connect( containerUpdates,
+                           SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
+                           this,
+                           SLOT( slotContainerUpdates(const Herqq::Upnp::HStateVariableEvent&) ) );
+        Q_ASSERT( ok );
+    }
+    else {
+        kDebug() << m_deviceInfo.friendlyName() << "does not support updates";
+    }
+
+    emit deviceReady();
 }
 
 void ControlPointThread::rootDeviceOffline(HDeviceProxy *device)
@@ -178,31 +199,11 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
     // ever blocks. Until we have a device, there is no point
     // in continuing processing.
     QEventLoop local;
-    connect(m_controlPoint,
-            SIGNAL(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)),
+    connect(this,
+            SIGNAL(deviceReady()),
             &local,
             SLOT(quit()));
     local.exec();
-
-    // TODO: below code can be much cleaner
-    // connect to any state variables here
-    HStateVariable *systemUpdateID = contentDirectory()->stateVariableByName( "SystemUpdateID" );
-    connect( systemUpdateID,
-             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
-             this,
-             SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) );
- 
-    HStateVariable *containerUpdates = contentDirectory()->stateVariableByName( "ContainerUpdateIDs" );
-    if( containerUpdates ) {
-        bool ok = connect( containerUpdates,
-                           SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
-                           this,
-                           SLOT( slotContainerUpdates(const Herqq::Upnp::HStateVariableEvent&) ) );
-        Q_ASSERT( ok );
-    }
-    else {
-        kDebug() << m_deviceInfo.friendlyName() << "does not support updates";
-    }
 
     return true;
 }

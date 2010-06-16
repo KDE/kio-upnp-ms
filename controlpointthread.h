@@ -94,6 +94,13 @@ class ControlPointThread : public QThread
     void createDirectoryListing( const Herqq::Upnp::HActionArguments &, BrowseCallInfo *info );
 
   signals:
+    /**
+     * Should be emitted after first time
+     * device setup is done so that the slave
+     * can begin functioning.
+     * For internal use only.
+     */
+    void deviceReady();
     void statEntry( const KIO::UDSEntry & );
     void listEntry( const KIO::UDSEntry & );
     void listingDone();
