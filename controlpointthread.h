@@ -95,6 +95,13 @@ class ControlPointThread : public QThread
     void searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString );
 
   signals:
+    /**
+     * Should be emitted after first time
+     * device setup is done so that the slave
+     * can begin functioning.
+     * For internal use only.
+     */
+    void deviceReady();
     void statEntry( const KIO::UDSEntry & );
     void listEntry( const KIO::UDSEntry & );
     void listingDone();
@@ -119,7 +126,6 @@ class ControlPointThread : public QThread
                        const QString &sortCriteria );
 
     QString idForName( const QString &name );
-    void listSearchCapabilities();
 
     Herqq::Upnp::HServiceProxy* contentDirectory() const;
     Herqq::Upnp::HAction* browseAction() const;
@@ -130,6 +136,8 @@ class ControlPointThread : public QThread
     DeviceInfo m_deviceInfo;
 
     ObjectCache *m_cache;
+
+    QStringList m_searchCapabilities;
 
     QString m_lastErrorString;
 

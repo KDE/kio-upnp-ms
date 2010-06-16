@@ -127,6 +127,51 @@ void ControlPointThread::run()
 void ControlPointThread::rootDeviceOnline(HDeviceProxy *device)
 {
     m_device = device;
+    // TODO: below code can be much cleaner
+    // connect to any state variables here
+    HStateVariable *systemUpdateID = contentDirectory()->stateVariableByName( "SystemUpdateID" );
+    connect( systemUpdateID,
+             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
+             this,
+             SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) );
+ 
+    HStateVariable *containerUpdates = contentDirectory()->stateVariableByName( "ContainerUpdateIDs" );
+    if( containerUpdates ) {
+        bool ok = connect( containerUpdates,
+                           SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
+                           this,
+                           SLOT( slotContainerUpdates(const Herqq::Upnp::HStateVariableEvent&) ) );
+        Q_ASSERT( ok );
+    }
+    else {
+        kDebug() << m_deviceInfo.friendlyName() << "does not support updates";
+    }
+
+    PersistentAction *action = new PersistentAction;
+
+    HAction *searchCapAction = contentDirectory()->actionByName( "GetSearchCapabilities" );
+    Q_ASSERT( searchCapAction );
+
+    connect( action, SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
+             this, SLOT( searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
+
+    HActionArguments input = searchCapAction->inputArguments();
+
+    action->invoke( searchCapAction, input, NULL );
+}
+
+void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString )
+{
+    Q_UNUSED( op );
+    if( !ok ) {
+        emit error( KIO::ERR_SLAVE_DEFINED, "Could not invoke GetSearchCapabilities(): " + errorString );
+        return;
+    }
+
+    QString reply = output["SearchCaps"]->value().toString();
+    m_searchCapabilities = reply.split(",", QString::SkipEmptyParts);
+
+    emit deviceReady();
 }
 
 void ControlPointThread::rootDeviceOffline(HDeviceProxy *device)
@@ -178,31 +223,11 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
     // ever blocks. Until we have a device, there is no point
     // in continuing processing.
     QEventLoop local;
-    connect(m_controlPoint,
-            SIGNAL(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)),
+    connect(this,
+            SIGNAL(deviceReady()),
             &local,
             SLOT(quit()));
     local.exec();
-
-    // TODO: below code can be much cleaner
-    // connect to any state variables here
-    HStateVariable *systemUpdateID = contentDirectory()->stateVariableByName( "SystemUpdateID" );
-    connect( systemUpdateID,
-             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
-             this,
-             SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) );
- 
-    HStateVariable *containerUpdates = contentDirectory()->stateVariableByName( "ContainerUpdateIDs" );
-    if( containerUpdates ) {
-        bool ok = connect( containerUpdates,
-                           SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
-                           this,
-                           SLOT( slotContainerUpdates(const Herqq::Upnp::HStateVariableEvent&) ) );
-        Q_ASSERT( ok );
-    }
-    else {
-        kDebug() << m_deviceInfo.friendlyName() << "does not support updates";
-    }
 
     return true;
 }
@@ -302,7 +327,14 @@ void ControlPointThread::listDir( const KUrl &url )
 
     if( path.isEmpty() ) {
         if( !url.queryItem( "searchcapabilities" ).isNull() ) {
-            listSearchCapabilities();
+            kDebug() << m_searchCapabilities;
+            foreach( QString capability, m_searchCapabilities ) {
+                KIO::UDSEntry entry;
+                entry.insert( KIO::UDSEntry::UDS_NAME, capability );
+                entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
+                emit listEntry( entry );
+            }
+            emit listingDone();
             return;
         }
     }
@@ -310,46 +342,6 @@ void ControlPointThread::listDir( const KUrl &url )
     connect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
              this, SLOT( browseResolvedPath( const DIDL::Object *) ) );
     m_cache->resolvePathToObject(path);
-}
-
-void ControlPointThread::listSearchCapabilities()
-{
-    PersistentAction *action = new PersistentAction;
-
-    HAction *searchCapAction = contentDirectory()->actionByName( "GetSearchCapabilities" );
-    Q_ASSERT( searchCapAction );
-
-    connect( action, SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
-             this, SLOT( searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
-
-    HActionArguments input = searchCapAction->inputArguments();
-    kDebug() << "SearchCap inputs" << input.toString();
-
-    action->invoke( searchCapAction, input, NULL );
-}
-
-void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString )
-{
-    if( !ok ) {
-        emit error( KIO::ERR_SLAVE_DEFINED, "Could not invoke GetSearchCapabilities(): " + errorString );
-        return;
-    }
-
-// TODO also store capabilities so we can validate
-    QString reply = output["SearchCaps"]->value().toString();
-    if( reply.isEmpty() ) {
-        emit listingDone();
-        return;
-    }
-
-    QStringList capabilities = reply.split(",");
-    foreach( QString capability, capabilities ) {
-        KIO::UDSEntry entry;
-        entry.insert( KIO::UDSEntry::UDS_NAME, capability );
-        entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
-        emit listEntry( entry );
-    }
-    emit listingDone();
 }
 
 void ControlPointThread::browseResolvedPath( const DIDL::Object *object, uint start, uint count )
