@@ -92,6 +92,7 @@ class ControlPointThread : public QThread
     void browseResolvedPath( const DIDL::Object *, uint start = 0, uint count = 30 );
     void statResolvedPath( const DIDL::Object * );
     void createDirectoryListing( const Herqq::Upnp::HActionArguments &, BrowseCallInfo *info );
+    void searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString );
 
   signals:
     void statEntry( const KIO::UDSEntry & );
@@ -118,6 +119,7 @@ class ControlPointThread : public QThread
                        const QString &sortCriteria );
 
     QString idForName( const QString &name );
+    void listSearchCapabilities();
 
     Herqq::Upnp::HServiceProxy* contentDirectory() const;
     Herqq::Upnp::HAction* browseAction() const;

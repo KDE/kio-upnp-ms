@@ -300,9 +300,56 @@ void ControlPointThread::listDir( const KUrl &url )
 
     QString path = url.path(KUrl::RemoveTrailingSlash);
 
+    if( path.isEmpty() ) {
+        if( !url.queryItem( "searchcapabilities" ).isNull() ) {
+            listSearchCapabilities();
+            return;
+        }
+    }
+
     connect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
              this, SLOT( browseResolvedPath( const DIDL::Object *) ) );
     m_cache->resolvePathToObject(path);
+}
+
+void ControlPointThread::listSearchCapabilities()
+{
+    PersistentAction *action = new PersistentAction;
+
+    HAction *searchCapAction = contentDirectory()->actionByName( "GetSearchCapabilities" );
+    Q_ASSERT( searchCapAction );
+
+    connect( action, SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
+             this, SLOT( searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
+
+    HActionArguments input = searchCapAction->inputArguments();
+    kDebug() << "SearchCap inputs" << input.toString();
+
+    action->invoke( searchCapAction, input, NULL );
+}
+
+void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString )
+{
+    if( !ok ) {
+        emit error( KIO::ERR_SLAVE_DEFINED, "Could not invoke GetSearchCapabilities(): " + errorString );
+        return;
+    }
+
+// TODO also store capabilities so we can validate
+    QString reply = output["SearchCaps"]->value().toString();
+    if( reply.isEmpty() ) {
+        emit listingDone();
+        return;
+    }
+
+    QStringList capabilities = reply.split(",");
+    foreach( QString capability, capabilities ) {
+        KIO::UDSEntry entry;
+        entry.insert( KIO::UDSEntry::UDS_NAME, capability );
+        entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
+        emit listEntry( entry );
+    }
+    emit listingDone();
 }
 
 void ControlPointThread::browseResolvedPath( const DIDL::Object *object, uint start, uint count )
