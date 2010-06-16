@@ -76,7 +76,7 @@ Resource Parser::parseResource()
 bool Parser::parseObjectCommon( Object *o )
 {
     if( m_reader->name() == "title" ) {
-        o->setTitle( m_reader->readElementText() );
+        o->setTitle( QString( QUrl::toPercentEncoding( m_reader->readElementText() ) ) );
         return true;
     }
     else if( m_reader->name() == "class" ) {
