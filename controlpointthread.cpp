@@ -296,6 +296,7 @@ void ControlPointThread::statResolvedPath( const DIDL::Object *object )
     }
 
     entry.insert( KIO::UDSEntry::UDS_NAME, object->title() );
+    entry.insert( KIO::UDSEntry::UDS_DISPLAY_NAME, QUrl::fromPercentEncoding( object->title().toAscii() ) );
     entry.insert( KIO::UPNP_CLASS, object->upnpClass() );
     if( object->type() == DIDL::SuperObject::Container )
         entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
@@ -465,6 +466,7 @@ void ControlPointThread::slotParseError( const QString &errorString )
 void ControlPointThread::slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object *obj )
 {
     entry.insert( KIO::UDSEntry::UDS_NAME, obj->title() );
+    entry.insert( KIO::UDSEntry::UDS_DISPLAY_NAME, QUrl::fromPercentEncoding( obj->title().toAscii() ) );
     long long access = 0;
     // perform all permissions checks here
 
