@@ -257,7 +257,14 @@ HAction* ControlPointThread::browseAction() const
     Q_ASSERT( contentDirectory() );
     return contentDirectory()->actionByName( "Browse" );
 }
-  
+
+HAction* ControlPointThread::searchAction() const
+{
+    Q_ASSERT( m_device );
+    Q_ASSERT( contentDirectory() );
+    return contentDirectory()->actionByName( "Search" );
+}
+
 bool ControlPointThread::ensureDevice( const KUrl &url )
 {
     if(     !m_device
@@ -266,6 +273,8 @@ bool ControlPointThread::ensureDevice( const KUrl &url )
         return updateDeviceInfo(url);
         // invalidate the cache when the device changes
         m_cache->reset();
+        // not strictly required, but good to have
+        m_searchQueries.clear();
     }
 
     return true;
@@ -283,6 +292,7 @@ void ControlPointThread::stat( const KUrl &url )
     }
 
     QString path = url.path(KUrl::RemoveTrailingSlash);
+    kDebug() << url << path;
     connect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
              this, SLOT( statResolvedPath( const DIDL::Object * ) ) );
 
@@ -321,6 +331,41 @@ void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
 /////////////////////////////////////////////
 ////          Directory listing          ////
 /////////////////////////////////////////////
+
+/**
+ * Search capabilities
+ *
+ * Users of the kio-slave can check if searching is supported
+ * by the remote MediaServer/CDS by passing the query option
+ * 'searchcapabilities' to the slave. This will work ONLY
+ * at the top-level path of the slave!
+ * Each capability is returned as a file entry with the name
+ * being the exact proprety supported in the search.
+ * It is recommended that a synchronous job be used to test this.
+ * 
+ * Errors are always reported by error(), so if you do not
+ * receive any entries, that means 0 items matched the search.
+ * 
+ * A search can be run instead of a browse by passing the following
+ * query parameters:
+ *  - search : Required. activate search rather than browse.
+ *  - query : Required. a valid UPnP Search query string.
+ *  - query2 : Optional. A query logically ANDed with query1.
+ *  - ......
+ *  - queryN : Similar to query 2
+ *
+ * NOTE: The path component of the URL is treated as the top-level
+ * container against which the search is run.
+ * Usually you will want to use '/', but try to be more
+ * specific if possible since that will give faster results.
+ * It is recommended that values be percent encoded.
+ * Since CDS implementations can be quite flaky or rigid, Stick
+ * to the SearchCriteria specified in the UPNP specification.
+ * In addition the slave will check that only properties
+ * supported by the server are used, all others will be DROPPED.
+ * This is so that rather than failing because the slave gave
+ * an error, a minimum search schema is satisfied.
+ */
 void ControlPointThread::listDir( const KUrl &url )
 {
     kDebug() << url;
@@ -332,6 +377,7 @@ void ControlPointThread::listDir( const KUrl &url )
 
     QString path = url.path(KUrl::RemoveTrailingSlash);
 
+    kDebug() << "QUERY" << url.queryItems();
     if( path.isEmpty() ) {
         if( !url.queryItem( "searchcapabilities" ).isNull() ) {
             kDebug() << m_searchCapabilities;
@@ -344,6 +390,15 @@ void ControlPointThread::listDir( const KUrl &url )
             emit listingDone();
             return;
         }
+    }
+
+    if( !url.queryItem( "search" ).isNull() ) {
+        kDebug() << "SEARCHING()";
+        m_searchQueries = url.queryItems();
+        connect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
+                 this, SLOT( searchResolvedPath( const DIDL::Object * ) ) );
+        m_cache->resolvePathToObject( path );
+        return;
     }
 
     connect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
@@ -361,8 +416,8 @@ void ControlPointThread::browseResolvedPath( const DIDL::Object *object, uint st
         return;
     }
 
-    Q_ASSERT(connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, BrowseCallInfo * ) ),
-                      this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments &, BrowseCallInfo * ) ) ));
+    Q_ASSERT(connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
+                      this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) ));
     browseDevice( object,
                   BROWSE_DIRECT_CHILDREN,
                   "*",
@@ -392,7 +447,7 @@ void ControlPointThread::browseDevice( const DIDL::Object *obj,
     args["RequestedCount"]->setValue( requestedCount );
     args["SortCriteria"]->setValue( sortCriteria );
 
-    BrowseCallInfo *info = new BrowseCallInfo;
+    ActionStateInfo *info = new ActionStateInfo;
     info->on = obj;
     info->start = startIndex;
 
@@ -418,16 +473,16 @@ void ControlPointThread::browseInvokeDone( HActionArguments output, HAsyncOp inv
     PersistentAction *action = static_cast<PersistentAction *>( QObject::sender() );
     action->deleteLater();
 
-    BrowseCallInfo *info = ( BrowseCallInfo *)invocationOp.userData();
+    ActionStateInfo *info = ( ActionStateInfo *)invocationOp.userData();
     Q_ASSERT( info );
     // TODO check for success
     emit browseResult( output, info );
 }
 
-void ControlPointThread::createDirectoryListing( const HActionArguments &args, BrowseCallInfo *info ) // SLOT
+void ControlPointThread::createDirectoryListing( const HActionArguments &args, ActionStateInfo *info ) // SLOT
 {
-    bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, BrowseCallInfo * ) ),
-                          this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments &, BrowseCallInfo * ) ) );
+    bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
+                          this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
     if( !args["Result"] ) {
@@ -585,3 +640,139 @@ void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariable
     OrgKdeKDirNotifyInterface::emitFilesChanged( filesAdded );
 }
 
+///////////////////
+//// Searching ////
+///////////////////
+
+// TODO
+// - Relative mapping
+//   ie. if search turns up a/b/c then it should
+//   actually point to a/b/c ( we need id->path mappings )
+// - somehow use createDirectoryListing's slot-recursive action
+//   invocation in a generalised manner
+
+
+// Much of the same logic/methods used in browsing are or are going to be
+// duplicated here, but they overlap quite a bit and can be refactored
+// significantly
+
+void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint start, uint count )
+{
+    bool ok = disconnect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
+                this, SLOT( searchResolvedPath( const DIDL::Object *) ) );
+    if( !object ) {
+        kDebug() << "ERROR: idString null";
+        emit error( KIO::ERR_DOES_NOT_EXIST, QString() );
+        return;
+    }
+
+    kDebug() << "Search queries are" << m_searchQueries;
+
+    if( !m_searchQueries.contains( "query" ) ) {
+        emit error( KIO::ERR_SLAVE_DEFINED, i18n( "Expected query parameter as a minimum requirement for searching" ) );
+        return;
+    }
+
+    // TODO: validate and sanitize query strings here
+    // and join them
+    // check if search is supported
+
+    Q_ASSERT(connect( this, SIGNAL( searchResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
+                      this, SLOT( createSearchListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) ));
+    searchDevice( object,
+                  m_searchQueries["query"],
+                  "*",
+                  start,
+                  count,
+                  "" );
+}
+
+void ControlPointThread::searchDevice( const DIDL::Object *obj,
+                                       const QString &query,
+                                       const QString &filter,
+                                       const uint startIndex,
+                                       const uint requestedCount,
+                                       const QString &sortCriteria )
+{
+    if( !contentDirectory() ) {
+        emit error( KIO::ERR_UNSUPPORTED_ACTION, "ControlPointThread device " + m_device->deviceInfo().friendlyName() + " does not support browsing" );
+    }
+   
+    HActionArguments args = searchAction()->inputArguments();
+  
+    Q_ASSERT( obj );
+    args["ContainerID"]->setValue( obj->id() );
+    args["SearchCriteria"]->setValue( query );
+    args["Filter"]->setValue( filter );
+    args["StartingIndex"]->setValue( startIndex );
+    args["RequestedCount"]->setValue( requestedCount );
+    args["SortCriteria"]->setValue( sortCriteria );
+
+    ActionStateInfo *info = new ActionStateInfo;
+    info->on = obj;
+    info->start = startIndex;
+
+    PersistentAction *action = new PersistentAction;
+    connect( action, SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
+             this, SLOT( searchInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
+
+    action->invoke( searchAction(), args, info );
+}
+
+void ControlPointThread::searchInvokeDone( HActionArguments output, HAsyncOp invocationOp, bool ok, QString error ) // SLOT
+{
+    if( !ok ) {
+        kDebug() << "search failed" << error;
+        m_lastErrorString = error;
+    }
+    else {
+        Q_ASSERT( output["Result"] );
+        m_lastErrorString = QString();
+    }
+
+    // delete the PersistentAction
+    PersistentAction *action = static_cast<PersistentAction *>( QObject::sender() );
+    action->deleteLater();
+
+    ActionStateInfo *info = ( ActionStateInfo *)invocationOp.userData();
+    Q_ASSERT( info );
+    // TODO check for success
+    emit searchResult( output, info );
+}
+
+void ControlPointThread::createSearchListing( const HActionArguments &args, ActionStateInfo *info ) // SLOT
+{
+    kDebug() << "DONE";
+    bool ok = disconnect( this, SIGNAL( searchResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
+                          this, SLOT( createSearchListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) );
+    Q_ASSERT( ok );
+    Q_UNUSED( ok );
+    if( !args["Result"] ) {
+        emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
+        return;
+    }
+
+    QString didlString = args["Result"]->value().toString();
+    DIDL::Parser parser;
+    connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
+
+    connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) );
+    connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListItem(DIDL::Item *)) );
+    parser.parse(didlString);
+
+    // NOTE: it is possible to dispatch this call even before
+    // the parsing begins, but perhaps this delay is good for
+    // adding some 'break' to the network connections, so that
+    // disconnection by the remote device can be avoided.
+    Q_ASSERT( info );
+    uint num = args["NumberReturned"]->value().toUInt();
+    uint total = args["TotalMatches"]->value().toUInt();
+    if( num > 0 && ( info->start + num < total ) ) {
+        Q_ASSERT( info->on );
+        msleep( 1000 );
+        searchResolvedPath( info->on, info->start + num );
+    }
+    else {
+        emit listingDone();
+    }
+}

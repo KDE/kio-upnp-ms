@@ -64,7 +64,7 @@ class ControlPointThread : public QThread
 {
   Q_OBJECT
   private:
-    struct BrowseCallInfo {
+    struct ActionStateInfo {
       const DIDL::Object *on;
       uint start;
     };
@@ -88,10 +88,17 @@ class ControlPointThread : public QThread
 
     void slotCDSUpdated( const Herqq::Upnp::HStateVariableEvent &event );
     void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
+
     void browseInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp invocationOp, bool ok, QString error );
     void browseResolvedPath( const DIDL::Object *, uint start = 0, uint count = 30 );
+    void createDirectoryListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo *info );
+
+    void searchResolvedPath( const DIDL::Object *object, uint start = 0, uint count = 30 );
+    void searchInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp invocationOp, bool ok, QString error );
+    void createSearchListing( const Herqq::Upnp::HActionArguments &args, ActionStateInfo *info );
+
     void statResolvedPath( const DIDL::Object * );
-    void createDirectoryListing( const Herqq::Upnp::HActionArguments &, BrowseCallInfo *info );
+
     void searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString );
 
   signals:
@@ -106,7 +113,8 @@ class ControlPointThread : public QThread
     void listEntry( const KIO::UDSEntry & );
     void listingDone();
     void error( int type, const QString & );
-    void browseResult( const Herqq::Upnp::HActionArguments &args, BrowseCallInfo *info );
+    void browseResult( const Herqq::Upnp::HActionArguments &args, ActionStateInfo *info );
+    void searchResult( const Herqq::Upnp::HActionArguments &args, ActionStateInfo *info );
 
   private:
     bool updateDeviceInfo( const KUrl &url );
@@ -124,11 +132,18 @@ class ControlPointThread : public QThread
                        const uint startIndex,
                        const uint requestedCount,
                        const QString &sortCriteria );
+    void searchDevice( const DIDL::Object *obj,
+                       const QString &query,
+                       const QString &filter,
+                       const uint startIndex,
+                       const uint requestedCount,
+                       const QString &sortCriteria );
 
     QString idForName( const QString &name );
 
     Herqq::Upnp::HServiceProxy* contentDirectory() const;
     Herqq::Upnp::HAction* browseAction() const;
+    Herqq::Upnp::HAction* searchAction() const;
 
     Herqq::Upnp::HControlPoint *m_controlPoint;
 
@@ -138,6 +153,7 @@ class ControlPointThread : public QThread
     ObjectCache *m_cache;
 
     QStringList m_searchCapabilities;
+    QMap<QString, QString> m_searchQueries;
 
     QString m_lastErrorString;
 
