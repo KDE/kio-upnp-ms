@@ -120,20 +120,21 @@ void ObjectCache::resolvePathToObjectInternal()
     m_resolve.pathIndex++;
     m_resolve.lookingFor = m_resolve.fullPath.mid( m_resolve.pathIndex, SEP_POS( m_resolve.fullPath, m_resolve.pathIndex ) - m_resolve.pathIndex );
     m_resolve.object = 0;
-    connect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, BrowseCallInfo *) ),
+    connect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo *) ),
              this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) );
-    m_cpt->browseDevice( m_reverseCache[m_resolve.segment],
-                         BROWSE_DIRECT_CHILDREN,
-                         "dc:title",
-                         0,
-                         0,
-                         "" );
+    m_cpt->browseOrSearchObject( m_reverseCache[m_resolve.segment],
+                                 m_cpt->browseAction(),
+                                 BROWSE_DIRECT_CHILDREN,
+                                 "dc:title",
+                                 0,
+                                 0,
+                                 "" );
 }
 
 void ObjectCache::attemptResolution( const HActionArguments &args )
 {
     // NOTE disconnection is important
-    bool ok = disconnect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, BrowseCallInfo * ) ),
+    bool ok = disconnect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
                           this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );

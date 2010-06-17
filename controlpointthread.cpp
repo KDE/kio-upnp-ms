@@ -333,6 +333,56 @@ void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
 /////////////////////////////////////////////
 
 /**
+ * secondArgument should be one of BROWSE_DIRECT_CHILDREN,
+ * BROWSE_METADATA or a valid search string.
+ */
+void ControlPointThread::browseOrSearchObject( const DIDL::Object *obj,
+                                               HAction *action,
+                                               const QString &secondArgument,
+                                               const QString &filter,
+                                               const uint startIndex,
+                                               const uint requestedCount,
+                                               const QString &sortCriteria )
+{
+    if( !contentDirectory() ) {
+        emit error( KIO::ERR_UNSUPPORTED_ACTION, "UPnP device " + m_device->deviceInfo().friendlyName() + " does not support browsing" );
+    }
+
+    PersistentAction *pAction = new PersistentAction;
+   
+    HActionArguments args = action->inputArguments();
+  
+    Q_ASSERT( obj );
+    if( action->name() == "Browse" ) {
+        args["ObjectID"]->setValue( obj->id() );
+        args["BrowseFlag"]->setValue( secondArgument );
+        connect( pAction,
+                 SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
+                 this,
+                 SLOT( browseInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
+    }
+    else if( action->name() == "Search" ) {
+        args["ContainerID"]->setValue( obj->id() );
+        args["SearchCriteria"]->setValue( secondArgument );
+        connect( pAction,
+                 SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
+                 this,
+                 SLOT( browseInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
+    }
+    args["Filter"]->setValue( filter );
+    args["StartingIndex"]->setValue( startIndex );
+    args["RequestedCount"]->setValue( requestedCount );
+    args["SortCriteria"]->setValue( sortCriteria );
+
+    ActionStateInfo *info = new ActionStateInfo;
+    info->on = obj;
+    info->start = startIndex;
+
+
+    pAction->invoke( action, args, info );
+}
+
+/**
  * Search capabilities
  *
  * Users of the kio-slave can check if searching is supported
@@ -418,44 +468,13 @@ void ControlPointThread::browseResolvedPath( const DIDL::Object *object, uint st
 
     Q_ASSERT(connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
                       this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) ));
-    browseDevice( object,
-                  BROWSE_DIRECT_CHILDREN,
-                  "*",
-                  start,
-                  count,
-                  "" );
-}
-
-void ControlPointThread::browseDevice( const DIDL::Object *obj,
-                                       const QString &browseFlag,
-                                       const QString &filter,
-                                       const uint startIndex,
-                                       const uint requestedCount,
-                                       const QString &sortCriteria )
-{
-    if( !contentDirectory() ) {
-        emit error( KIO::ERR_UNSUPPORTED_ACTION, "ControlPointThread device " + m_device->deviceInfo().friendlyName() + " does not support browsing" );
-    }
-   
-    HActionArguments args = browseAction()->inputArguments();
-  
-    Q_ASSERT( obj );
-    args["ObjectID"]->setValue( obj->id() );
-    args["BrowseFlag"]->setValue( browseFlag );
-    args["Filter"]->setValue( filter );
-    args["StartingIndex"]->setValue( startIndex );
-    args["RequestedCount"]->setValue( requestedCount );
-    args["SortCriteria"]->setValue( sortCriteria );
-
-    ActionStateInfo *info = new ActionStateInfo;
-    info->on = obj;
-    info->start = startIndex;
-
-    PersistentAction *action = new PersistentAction;
-    connect( action, SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
-             this, SLOT( browseInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
-
-    action->invoke( browseAction(), args, info );
+    browseOrSearchObject( object,
+                          browseAction(),
+                          BROWSE_DIRECT_CHILDREN,
+                          "*",
+                          start,
+                          count,
+                          "" );
 }
 
 void ControlPointThread::browseInvokeDone( HActionArguments output, HAsyncOp invocationOp, bool ok, QString error ) // SLOT
@@ -658,7 +677,7 @@ void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariable
 
 void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint start, uint count )
 {
-    bool ok = disconnect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
+    disconnect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
                 this, SLOT( searchResolvedPath( const DIDL::Object *) ) );
     if( !object ) {
         kDebug() << "ERROR: idString null";
@@ -677,73 +696,21 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint st
     // and join them
     // check if search is supported
 
-    Q_ASSERT(connect( this, SIGNAL( searchResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
+    Q_ASSERT(connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
                       this, SLOT( createSearchListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) ));
-    searchDevice( object,
-                  m_searchQueries["query"],
-                  "*",
-                  start,
-                  count,
-                  "" );
-}
-
-void ControlPointThread::searchDevice( const DIDL::Object *obj,
-                                       const QString &query,
-                                       const QString &filter,
-                                       const uint startIndex,
-                                       const uint requestedCount,
-                                       const QString &sortCriteria )
-{
-    if( !contentDirectory() ) {
-        emit error( KIO::ERR_UNSUPPORTED_ACTION, "ControlPointThread device " + m_device->deviceInfo().friendlyName() + " does not support browsing" );
-    }
-   
-    HActionArguments args = searchAction()->inputArguments();
-  
-    Q_ASSERT( obj );
-    args["ContainerID"]->setValue( obj->id() );
-    args["SearchCriteria"]->setValue( query );
-    args["Filter"]->setValue( filter );
-    args["StartingIndex"]->setValue( startIndex );
-    args["RequestedCount"]->setValue( requestedCount );
-    args["SortCriteria"]->setValue( sortCriteria );
-
-    ActionStateInfo *info = new ActionStateInfo;
-    info->on = obj;
-    info->start = startIndex;
-
-    PersistentAction *action = new PersistentAction;
-    connect( action, SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
-             this, SLOT( searchInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
-
-    action->invoke( searchAction(), args, info );
-}
-
-void ControlPointThread::searchInvokeDone( HActionArguments output, HAsyncOp invocationOp, bool ok, QString error ) // SLOT
-{
-    if( !ok ) {
-        kDebug() << "search failed" << error;
-        m_lastErrorString = error;
-    }
-    else {
-        Q_ASSERT( output["Result"] );
-        m_lastErrorString = QString();
-    }
-
-    // delete the PersistentAction
-    PersistentAction *action = static_cast<PersistentAction *>( QObject::sender() );
-    action->deleteLater();
-
-    ActionStateInfo *info = ( ActionStateInfo *)invocationOp.userData();
-    Q_ASSERT( info );
-    // TODO check for success
-    emit searchResult( output, info );
+    browseOrSearchObject( object,
+                          searchAction(),
+                          m_searchQueries["query"],
+                          "*",
+                          start,
+                          count,
+                          "" );
 }
 
 void ControlPointThread::createSearchListing( const HActionArguments &args, ActionStateInfo *info ) // SLOT
 {
     kDebug() << "DONE";
-    bool ok = disconnect( this, SIGNAL( searchResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
+    bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
                           this, SLOT( createSearchListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );

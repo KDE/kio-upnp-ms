@@ -94,7 +94,6 @@ class ControlPointThread : public QThread
     void createDirectoryListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo *info );
 
     void searchResolvedPath( const DIDL::Object *object, uint start = 0, uint count = 30 );
-    void searchInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp invocationOp, bool ok, QString error );
     void createSearchListing( const Herqq::Upnp::HActionArguments &args, ActionStateInfo *info );
 
     void statResolvedPath( const DIDL::Object * );
@@ -114,32 +113,24 @@ class ControlPointThread : public QThread
     void listingDone();
     void error( int type, const QString & );
     void browseResult( const Herqq::Upnp::HActionArguments &args, ActionStateInfo *info );
-    void searchResult( const Herqq::Upnp::HActionArguments &args, ActionStateInfo *info );
 
   private:
     bool updateDeviceInfo( const KUrl &url );
     bool ensureDevice( const KUrl &url );
     inline bool deviceFound();
     /**
-     * Begins a UPnP Browse() action
+     * Begins a UPnP Browse() or Search() action
      * Connect to the browseResult() signal
      * to receive the HActionArguments received
      * from the result.
      */
-    void browseDevice( const DIDL::Object *obj,
-                       const QString &browseFlag,
-                       const QString &filter,
-                       const uint startIndex,
-                       const uint requestedCount,
-                       const QString &sortCriteria );
-    void searchDevice( const DIDL::Object *obj,
-                       const QString &query,
-                       const QString &filter,
-                       const uint startIndex,
-                       const uint requestedCount,
-                       const QString &sortCriteria );
-
-    QString idForName( const QString &name );
+    void browseOrSearchObject( const DIDL::Object *obj,
+                               Herqq::Upnp::HAction *action,
+                               const QString &secondArgument,
+                               const QString &filter,
+                               const uint startIndex,
+                               const uint requestedCount,
+                               const QString &sortCriteria );
 
     Herqq::Upnp::HServiceProxy* contentDirectory() const;
     Herqq::Upnp::HAction* browseAction() const;
