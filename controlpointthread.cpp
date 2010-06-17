@@ -410,8 +410,7 @@ void ControlPointThread::browseInvokeDone( HActionArguments output, HAsyncOp inv
 
     // delete the PersistentAction
     PersistentAction *action = static_cast<PersistentAction *>( QObject::sender() );
-    delete action;
-    action = 0;
+    action->deleteLater();
 
     BrowseCallInfo *info = ( BrowseCallInfo *)invocationOp.userData();
     Q_ASSERT( info );
