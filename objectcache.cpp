@@ -221,6 +221,7 @@ bool ObjectCache::update( const QString &id, const QString &containerUpdateId )
             return true;
         }
     }
+    return false;
 }
 
 QString ObjectCache::pathForId( const QString &id )
