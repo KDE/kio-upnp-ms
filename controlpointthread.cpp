@@ -60,16 +60,22 @@ using namespace Herqq::Upnp;
  * the value from the item/container @c object's meta-data
  * where the key is @c name.
  */
-#define FILL_METADATA(entry, property, object, name)\
-    if( object->data().contains(name) )\
-        entry.insert( property, object->data()[name] )
+static inline void fillMetadata( KIO::UDSEntry &entry, uint property,
+                          const DIDL::Object *object, const QString &name )
+{
+    if( object->data().contains(name) )
+        entry.insert( property, object->data()[name] );
+}
 
 /**
  * Fill from resource attributes
  */
-#define FILL_RESOURCE_METADATA(entry, property, object, name)\
-    if( object->resource().contains(name) )\
-        entry.insert( property, object->resource()[name] )
+static inline void fillResourceMetadata( KIO::UDSEntry &entry, uint property,
+                                         const DIDL::Item *object, const QString &name )
+{
+    if( object->resource().contains(name) )
+        entry.insert( property, object->resource()[name] );
+}
 
 ControlPointThread::ControlPointThread( QObject *parent )
     : QThread( parent )
@@ -488,7 +494,7 @@ void ControlPointThread::slotListContainer( DIDL::Container *c )
 
     // TODO insert attributes into meta-data in parser
     // or childCount won't be available
-    FILL_METADATA(entry, KIO::UPNP_ALBUM_CHILDCOUNT, c, "childCount");
+    fillMetadata(entry, KIO::UPNP_ALBUM_CHILDCOUNT, c, "childCount");
     emit listEntry(entry);
 }
 
@@ -512,21 +518,21 @@ void ControlPointThread::slotListItem( DIDL::Item *item )
         entry.insert( KIO::UDSEntry::UDS_ACCESS, access );
     }
 
-    FILL_METADATA(entry, KIO::UPNP_CREATOR, item, "creator");
+    fillMetadata(entry, KIO::UPNP_CREATOR, item, "creator");
 // if the artist exists, choose the artist
-    FILL_METADATA(entry, KIO::UPNP_CREATOR, item, "artist");
-    FILL_METADATA(entry, KIO::UPNP_ALBUM, item, "album");
-    FILL_METADATA(entry, KIO::UPNP_GENRE, item, "genre");
-    FILL_METADATA(entry, KIO::UPNP_TRACK_NUMBER, item, "originalTrackNumber");
+    fillMetadata(entry, KIO::UPNP_CREATOR, item, "artist");
+    fillMetadata(entry, KIO::UPNP_ALBUM, item, "album");
+    fillMetadata(entry, KIO::UPNP_GENRE, item, "genre");
+    fillMetadata(entry, KIO::UPNP_TRACK_NUMBER, item, "originalTrackNumber");
 // TODO processing
-    FILL_METADATA(entry, KIO::UPNP_DATE, item, "date");
+    fillMetadata(entry, KIO::UPNP_DATE, item, "date");
 
-    FILL_RESOURCE_METADATA(entry, KIO::UPNP_DURATION, item, "duration");
-    FILL_RESOURCE_METADATA(entry, KIO::UPNP_BITRATE, item, "bitrate");
-    FILL_RESOURCE_METADATA(entry, KIO::UPNP_IMAGE_RESOLUTION, item, "resolution");
-    FILL_METADATA(entry, KIO::UPNP_CHANNEL_NAME, item, "channelName");
-    FILL_METADATA(entry, KIO::UPNP_CHANNEL_NUMBER, item, "channelNr");
-    FILL_METADATA(entry, KIO::UPNP_ALBUMART_URI, item, "albumArtURI");
+    fillResourceMetadata(entry, KIO::UPNP_DURATION, item, "duration");
+    fillResourceMetadata(entry, KIO::UPNP_BITRATE, item, "bitrate");
+    fillResourceMetadata(entry, KIO::UPNP_IMAGE_RESOLUTION, item, "resolution");
+    fillMetadata(entry, KIO::UPNP_CHANNEL_NAME, item, "channelName");
+    fillMetadata(entry, KIO::UPNP_CHANNEL_NUMBER, item, "channelNr");
+    fillMetadata(entry, KIO::UPNP_ALBUMART_URI, item, "albumArtURI");
     emit listEntry(entry);
 }
 
