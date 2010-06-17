@@ -356,18 +356,10 @@ void ControlPointThread::browseOrSearchObject( const DIDL::Object *obj,
     if( action->name() == "Browse" ) {
         args["ObjectID"]->setValue( obj->id() );
         args["BrowseFlag"]->setValue( secondArgument );
-        connect( pAction,
-                 SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
-                 this,
-                 SLOT( browseInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
     }
     else if( action->name() == "Search" ) {
         args["ContainerID"]->setValue( obj->id() );
         args["SearchCriteria"]->setValue( secondArgument );
-        connect( pAction,
-                 SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
-                 this,
-                 SLOT( browseInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
     }
     args["Filter"]->setValue( filter );
     args["StartingIndex"]->setValue( startIndex );
@@ -378,6 +370,10 @@ void ControlPointThread::browseOrSearchObject( const DIDL::Object *obj,
     info->on = obj;
     info->start = startIndex;
 
+    connect( pAction,
+             SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
+             this,
+             SLOT( browseInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
 
     pAction->invoke( action, args, info );
 }
