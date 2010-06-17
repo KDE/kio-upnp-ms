@@ -29,8 +29,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace DIDL {
 Parser::Parser()
-    : QObject(NULL)
-    , m_reader(NULL)
+    : QObject( 0 )
+    , m_reader( 0 )
 {
 }
 

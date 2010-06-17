@@ -12,7 +12,7 @@
 #include <kio/upnptypes.h>
  
 upnptest::upnptest(const KUrl &url)
-    : QObject(NULL)
+    : QObject()
 {
     KIO::ListJob *job = KIO::listDir(url);
     connect( job, SIGNAL(entries(KIO::Job *, const KIO::UDSEntryList&)),

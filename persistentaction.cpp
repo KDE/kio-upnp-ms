@@ -39,7 +39,7 @@ public:
 PersistentAction::PersistentAction( QObject *parent, uint maximumTries )
     : QObject( parent )
     , m_maximumTries( maximumTries )
-    , m_action( NULL )
+    , m_action( 0 )
 {
 }
 

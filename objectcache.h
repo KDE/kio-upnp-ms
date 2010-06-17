@@ -80,7 +80,7 @@ public slots:
      * If there is cache miss, backtracks along the path
      * or queries the UPnP device.
      * Connect to the pathResolved() signal to receive
-     * a pointer to the DIDL::Object or NULL if path
+     * a pointer to the DIDL::Object or 0 if path
      * does not exist.
      */
     void resolvePathToObject( const QString &path );

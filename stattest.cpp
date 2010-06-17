@@ -12,7 +12,7 @@
 #include <kio/upnptypes.h>
  
 stattest::stattest(const KUrl &url)
-    : QObject(NULL)
+    : QObject(0)
     , m_url(url)
 {
     QTimer *t = new QTimer(this);

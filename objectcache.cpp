@@ -42,7 +42,7 @@ ObjectCache::ObjectCache( ControlPointThread *cpt )
 void ObjectCache::reset()
 {
     m_resolve.pathIndex = -1;
-    m_resolve.object = NULL;
+    m_resolve.object = 0;
     m_updatesHash.clear();
     m_reverseCache.clear();
     m_updatesHash.insert( "", UpdateValueAndPath( "0", "" ) );
@@ -119,7 +119,7 @@ void ObjectCache::resolvePathToObjectInternal()
     // skip the '/'
     m_resolve.pathIndex++;
     m_resolve.lookingFor = m_resolve.fullPath.mid( m_resolve.pathIndex, SEP_POS( m_resolve.fullPath, m_resolve.pathIndex ) - m_resolve.pathIndex );
-    m_resolve.object = NULL;
+    m_resolve.object = 0;
     connect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, BrowseCallInfo *) ),
              this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) );
     m_cpt->browseDevice( m_reverseCache[m_resolve.segment],
@@ -137,7 +137,7 @@ void ObjectCache::attemptResolution( const HActionArguments &args )
                           this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
-    if( args["Result"] == NULL ) {
+    if( !args["Result"] ) {
         emit m_cpt->error( KIO::ERR_SLAVE_DEFINED, "Resolution error" );
         return;
     }
@@ -160,9 +160,9 @@ void ObjectCache::attemptResolution( const HActionArguments &args )
     // document isn't parsed.
 
     // if we didn't find the ID, no point in continuing
-    if( m_resolve.object == NULL ) {
+    if( !m_resolve.object ) {
         kDebug() << "NULL RESOLUTION";
-        emit pathResolved( NULL );
+        emit pathResolved( 0 );
         return;
     }
     else {

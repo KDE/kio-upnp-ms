@@ -73,8 +73,8 @@ using namespace Herqq::Upnp;
 
 ControlPointThread::ControlPointThread( QObject *parent )
     : QThread( parent )
-    , m_controlPoint( NULL )
-    , m_device( NULL )
+    , m_controlPoint( 0 )
+    , m_device( 0 )
     , m_cache( new ObjectCache( this ) )
 {
     //Herqq::Upnp::SetLoggingLevel( Herqq::Upnp::Debug );
@@ -120,7 +120,7 @@ void ControlPointThread::run()
 
     exec();
 
-    m_device = NULL;
+    m_device = 0;
     delete m_controlPoint;
 }
 
@@ -157,7 +157,7 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
 
     HActionArguments input = searchCapAction->inputArguments();
 
-    action->invoke( searchCapAction, input, NULL );
+    action->invoke( searchCapAction, input, 0 );
 }
 
 void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString ) // SLOT
@@ -183,7 +183,7 @@ void ControlPointThread::rootDeviceOffline(HDeviceProxy *device) // SLOT
         return;
 
     if( m_device->deviceInfo().udn() == device->deviceInfo().udn() ) {
-        m_device = NULL;
+        m_device = 0;
     }
 }
 
@@ -233,13 +233,13 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
 }
 
 /*
- * Returns a ContentDirectory service or NULL
+ * Returns a ContentDirectory service or 0
  */
 HServiceProxy* ControlPointThread::contentDirectory() const
 {
     Q_ASSERT( m_device );
     HServiceProxy *contentDir = m_device->serviceProxyById( HServiceId("urn:schemas-upnp-org:serviceId:ContentDirectory") );
-    if( contentDir == NULL ) {
+    if( !contentDir ) {
         contentDir = m_device->serviceProxyById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
     }
     return contentDir;
@@ -289,7 +289,7 @@ void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
              this, SLOT( statResolvedPath( const DIDL::Object * ) ) );
     KIO::UDSEntry entry;
 
-    if( object == NULL ) {
+    if( !object ) {
         kDebug() << "ERROR: idString null";
         emit error( KIO::ERR_DOES_NOT_EXIST, QString() );
         return;
@@ -349,7 +349,7 @@ void ControlPointThread::browseResolvedPath( const DIDL::Object *object, uint st
 {
     disconnect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
                 this, SLOT( browseResolvedPath( const DIDL::Object *) ) );
-    if( object == NULL ) {
+    if( !object ) {
         kDebug() << "ERROR: idString null";
         emit error( KIO::ERR_DOES_NOT_EXIST, QString() );
         return;
@@ -372,7 +372,7 @@ void ControlPointThread::browseDevice( const DIDL::Object *obj,
                                        const uint requestedCount,
                                        const QString &sortCriteria )
 {
-    if( contentDirectory() == NULL ) {
+    if( !contentDirectory() ) {
         emit error( KIO::ERR_UNSUPPORTED_ACTION, "ControlPointThread device " + m_device->deviceInfo().friendlyName() + " does not support browsing" );
     }
    
@@ -411,7 +411,7 @@ void ControlPointThread::browseInvokeDone( HActionArguments output, HAsyncOp inv
     // delete the PersistentAction
     PersistentAction *action = static_cast<PersistentAction *>( QObject::sender() );
     delete action;
-    action = NULL;
+    action = 0;
 
     BrowseCallInfo *info = ( BrowseCallInfo *)invocationOp.userData();
     Q_ASSERT( info );
@@ -425,7 +425,7 @@ void ControlPointThread::createDirectoryListing( const HActionArguments &args, B
                           this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments &, BrowseCallInfo * ) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
-    if( args["Result"] == NULL ) {
+    if( !args["Result"] ) {
         emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
         return;
     }
