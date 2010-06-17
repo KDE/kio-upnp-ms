@@ -65,7 +65,7 @@ void PersistentAction::invoke( void *userData )
     op.setUserData( userData );
 }
 
-void PersistentAction::invokeComplete( Herqq::Upnp::HAsyncOp invocationOp )
+void PersistentAction::invokeComplete( Herqq::Upnp::HAsyncOp invocationOp ) // SLOT
 {
     HActionArguments output;
     bool ret = m_action->waitForInvoke( &invocationOp, &output );

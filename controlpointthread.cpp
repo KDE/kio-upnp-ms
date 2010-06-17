@@ -124,7 +124,7 @@ void ControlPointThread::run()
     delete m_controlPoint;
 }
 
-void ControlPointThread::rootDeviceOnline(HDeviceProxy *device)
+void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
 {
     m_device = device;
     // TODO: below code can be much cleaner
@@ -147,10 +147,34 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device)
         kDebug() << m_deviceInfo.friendlyName() << "does not support updates";
     }
 
+    PersistentAction *action = new PersistentAction;
+
+    HAction *searchCapAction = contentDirectory()->actionByName( "GetSearchCapabilities" );
+    Q_ASSERT( searchCapAction );
+
+    connect( action, SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
+             this, SLOT( searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
+
+    HActionArguments input = searchCapAction->inputArguments();
+
+    action->invoke( searchCapAction, input, NULL );
+}
+
+void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString ) // SLOT
+{
+    Q_UNUSED( op );
+    if( !ok ) {
+        emit error( KIO::ERR_SLAVE_DEFINED, "Could not invoke GetSearchCapabilities(): " + errorString );
+        return;
+    }
+
+    QString reply = output["SearchCaps"]->value().toString();
+    m_searchCapabilities = reply.split(",", QString::SkipEmptyParts);
+
     emit deviceReady();
 }
 
-void ControlPointThread::rootDeviceOffline(HDeviceProxy *device)
+void ControlPointThread::rootDeviceOffline(HDeviceProxy *device) // SLOT
 {
     // if we aren't valid, we don't really care about
     // devices going offline
@@ -259,7 +283,7 @@ void ControlPointThread::stat( const KUrl &url )
     m_cache->resolvePathToObject( path );
 }
 
-void ControlPointThread::statResolvedPath( const DIDL::Object *object )
+void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
 {
     disconnect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
              this, SLOT( statResolvedPath( const DIDL::Object * ) ) );
@@ -302,12 +326,26 @@ void ControlPointThread::listDir( const KUrl &url )
 
     QString path = url.path(KUrl::RemoveTrailingSlash);
 
+    if( path.isEmpty() ) {
+        if( !url.queryItem( "searchcapabilities" ).isNull() ) {
+            kDebug() << m_searchCapabilities;
+            foreach( QString capability, m_searchCapabilities ) {
+                KIO::UDSEntry entry;
+                entry.insert( KIO::UDSEntry::UDS_NAME, capability );
+                entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
+                emit listEntry( entry );
+            }
+            emit listingDone();
+            return;
+        }
+    }
+
     connect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
              this, SLOT( browseResolvedPath( const DIDL::Object *) ) );
     m_cache->resolvePathToObject(path);
 }
 
-void ControlPointThread::browseResolvedPath( const DIDL::Object *object, uint start, uint count )
+void ControlPointThread::browseResolvedPath( const DIDL::Object *object, uint start, uint count ) // SLOT
 {
     disconnect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
                 this, SLOT( browseResolvedPath( const DIDL::Object *) ) );
@@ -359,7 +397,7 @@ void ControlPointThread::browseDevice( const DIDL::Object *obj,
     action->invoke( browseAction(), args, info );
 }
 
-void ControlPointThread::browseInvokeDone( HActionArguments output, HAsyncOp invocationOp, bool ok, QString error )
+void ControlPointThread::browseInvokeDone( HActionArguments output, HAsyncOp invocationOp, bool ok, QString error ) // SLOT
 {
     if( !ok ) {
         kDebug() << "browse failed" << error;
@@ -381,7 +419,7 @@ void ControlPointThread::browseInvokeDone( HActionArguments output, HAsyncOp inv
     emit browseResult( output, info );
 }
 
-void ControlPointThread::createDirectoryListing( const HActionArguments &args, BrowseCallInfo *info )
+void ControlPointThread::createDirectoryListing( const HActionArguments &args, BrowseCallInfo *info ) // SLOT
 {
     bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, BrowseCallInfo * ) ),
                           this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments &, BrowseCallInfo * ) ) );
