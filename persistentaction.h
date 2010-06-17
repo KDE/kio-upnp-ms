@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <QObject>
 
 #include <HActionArguments>
+#include <HAsyncOp>
 
 namespace Herqq
 {
@@ -30,7 +31,6 @@ namespace Herqq
     {
         class HAction;
         class HActionArguments;
-        class HAsyncOp;
     }
 }
 
@@ -67,7 +67,7 @@ signals:
     void invokeComplete( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp, bool ok, QString error );
 
 private slots:
-    void invokeComplete( Herqq::Upnp::HAsyncOp );
+    void invokeComplete( Herqq::Upnp::HAsyncOp ); // SLOT
 
 private:
     void invoke( void *userData );

@@ -124,7 +124,7 @@ void ControlPointThread::run()
     delete m_controlPoint;
 }
 
-void ControlPointThread::rootDeviceOnline(HDeviceProxy *device)
+void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
 {
     m_device = device;
     // TODO: below code can be much cleaner
@@ -160,7 +160,7 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device)
     action->invoke( searchCapAction, input, NULL );
 }
 
-void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString )
+void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString ) // SLOT
 {
     Q_UNUSED( op );
     if( !ok ) {
@@ -174,7 +174,7 @@ void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArgum
     emit deviceReady();
 }
 
-void ControlPointThread::rootDeviceOffline(HDeviceProxy *device)
+void ControlPointThread::rootDeviceOffline(HDeviceProxy *device) // SLOT
 {
     // if we aren't valid, we don't really care about
     // devices going offline
@@ -283,7 +283,7 @@ void ControlPointThread::stat( const KUrl &url )
     m_cache->resolvePathToObject( path );
 }
 
-void ControlPointThread::statResolvedPath( const DIDL::Object *object )
+void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
 {
     disconnect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
              this, SLOT( statResolvedPath( const DIDL::Object * ) ) );
@@ -345,7 +345,7 @@ void ControlPointThread::listDir( const KUrl &url )
     m_cache->resolvePathToObject(path);
 }
 
-void ControlPointThread::browseResolvedPath( const DIDL::Object *object, uint start, uint count )
+void ControlPointThread::browseResolvedPath( const DIDL::Object *object, uint start, uint count ) // SLOT
 {
     disconnect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
                 this, SLOT( browseResolvedPath( const DIDL::Object *) ) );
@@ -397,7 +397,7 @@ void ControlPointThread::browseDevice( const DIDL::Object *obj,
     action->invoke( browseAction(), args, info );
 }
 
-void ControlPointThread::browseInvokeDone( HActionArguments output, HAsyncOp invocationOp, bool ok, QString error )
+void ControlPointThread::browseInvokeDone( HActionArguments output, HAsyncOp invocationOp, bool ok, QString error ) // SLOT
 {
     if( !ok ) {
         kDebug() << "browse failed" << error;
@@ -419,7 +419,7 @@ void ControlPointThread::browseInvokeDone( HActionArguments output, HAsyncOp inv
     emit browseResult( output, info );
 }
 
-void ControlPointThread::createDirectoryListing( const HActionArguments &args, BrowseCallInfo *info )
+void ControlPointThread::createDirectoryListing( const HActionArguments &args, BrowseCallInfo *info ) // SLOT
 {
     bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, BrowseCallInfo * ) ),
                           this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments &, BrowseCallInfo * ) ) );
