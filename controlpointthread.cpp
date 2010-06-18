@@ -77,6 +77,35 @@ static inline void fillResourceMetadata( KIO::UDSEntry &entry, uint property,
         entry.insert( property, object->resource()[name] );
 }
 
+namespace SearchRegExp
+{
+// create and keep
+
+// this isn't perfect, we skip certain things
+QString wchar("[\t\v\n\r\f ]");
+QString relOp("=|!=|<|<=|>|>=");
+
+QString quotedVal( "\"[^\"]*\"" ); // for example, no escape double quote checks
+QString stringOp("contains|doesNotContain|derivedfrom");
+QString existsOp("exists");
+QString boolVal("\"(?:true|false)\"");
+
+QString binOp( "(?:(?:" + relOp + ")|(?:" + stringOp + "))" );
+
+QString property( "\\S*" );
+
+QString relExp1( "(" + property + ")" + wchar + "+" + binOp + wchar + "+" + quotedVal );
+QString relExp2( "(" + property + ")" + wchar + "+" + existsOp + wchar + "+" + boolVal );
+
+QString relExp( "(?:" + relExp1 + ")" + "|" + "(?:" + relExp2 + ")" );
+
+QRegExp searchCriteria(
+wchar + "*"
++ "(" + relExp + ")"
++ wchar + "*"
+    );
+}
+
 ControlPointThread::ControlPointThread( QObject *parent )
     : QThread( parent )
     , m_controlPoint( 0 )
@@ -408,9 +437,7 @@ void ControlPointThread::browseOrSearchObject( const DIDL::Object *obj,
  * Since CDS implementations can be quite flaky or rigid, Stick
  * to the SearchCriteria specified in the UPNP specification.
  * In addition the slave will check that only properties
- * supported by the server are used, all others will be DROPPED.
- * This is so that rather than failing because the slave gave
- * an error, a minimum search schema is satisfied.
+ * supported by the server are used.
  */
 void ControlPointThread::listDir( const KUrl &url )
 {
@@ -691,6 +718,61 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint st
     // TODO: validate and sanitize query strings here
     // and join them
     // check if search is supported
+
+    QString queryString = m_searchQueries["query"];
+    QRegExp queryParam("query\\d+");
+    foreach( QString key, m_searchQueries.keys() ) {
+        if( queryParam.exactMatch(key) ) {
+            kDebug() << "Appending" << m_searchQueries[key];
+            queryString += " and " + m_searchQueries[key];
+        }
+    }
+
+    kDebug() << queryString;
+
+    if( queryString == "*" && !m_searchCapabilities.contains("*") ) {
+        emit error(KIO::ERR_SLAVE_DEFINED, "Bad search: parameter '*' unsupported by server" );
+        return;
+    }
+
+    if( queryString != "*" ) {
+        int offset = 0;
+        while( SearchRegExp::searchCriteria.indexIn( queryString, offset ) != -1 ) {
+            offset += SearchRegExp::searchCriteria.matchedLength();
+            QString property = SearchRegExp::searchCriteria.cap(2);
+            // caused due to relExp, the issue
+            // is odd, because interchanging regExp1 and regExp2
+            // will cause patterns matching regExp1
+            // to have the wrong capture group
+            // so this workaround
+            if( property.isEmpty() )
+                property = SearchRegExp::searchCriteria.cap(3);
+
+            QRegExp logicalOp("(and|or)");
+            if( logicalOp.indexIn( queryString, offset ) != -1 ) {
+                offset += logicalOp.matchedLength();
+            }
+            else {
+                if( offset < queryString.length() ) {
+                    emit error( KIO::ERR_SLAVE_DEFINED, "Bad search: Expected logical op at " + queryString.mid(offset, 10) );
+                    return;
+                }
+            }
+            if( !m_searchCapabilities.contains( property ) ) {
+                emit error( KIO::ERR_SLAVE_DEFINED, "Bad search: unsupported property " + property );
+                return;
+            }
+        }
+        if( offset < queryString.length() ) {
+            emit error( KIO::ERR_SLAVE_DEFINED, "Bad search: Invalid query '" + queryString.mid(offset) + "'" );
+            return;
+        }
+    }
+
+    kDebug() << "Good to go";
+
+    emit listingDone();
+    return;
 
     Q_ASSERT(connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
                       this, SLOT( createSearchListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) ));
