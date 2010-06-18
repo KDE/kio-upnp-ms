@@ -412,8 +412,7 @@ void ControlPointThread::browseOrSearchObject( const DIDL::Object *obj,
  *
  * Users of the kio-slave can check if searching is supported
  * by the remote MediaServer/CDS by passing the query option
- * 'searchcapabilities' to the slave. This will work ONLY
- * at the top-level path of the slave!
+ * 'searchcapabilities' to the slave.
  * Each capability is returned as a file entry with the name
  * being the exact proprety supported in the search.
  * It is recommended that a synchronous job be used to test this.
@@ -450,19 +449,16 @@ void ControlPointThread::listDir( const KUrl &url )
 
     QString path = url.path(KUrl::RemoveTrailingSlash);
 
-    kDebug() << "QUERY" << url.queryItems();
-    if( path.isEmpty() ) {
-        if( !url.queryItem( "searchcapabilities" ).isNull() ) {
-            kDebug() << m_searchCapabilities;
-            foreach( QString capability, m_searchCapabilities ) {
-                KIO::UDSEntry entry;
-                entry.insert( KIO::UDSEntry::UDS_NAME, capability );
-                entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
-                emit listEntry( entry );
-            }
-            emit listingDone();
-            return;
+    if( !url.queryItem( "searchcapabilities" ).isNull() ) {
+        kDebug() << m_searchCapabilities;
+        foreach( QString capability, m_searchCapabilities ) {
+            KIO::UDSEntry entry;
+            entry.insert( KIO::UDSEntry::UDS_NAME, capability );
+            entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
+            emit listEntry( entry );
         }
+        emit listingDone();
+        return;
     }
 
     if( !url.queryItem( "search" ).isNull() ) {
