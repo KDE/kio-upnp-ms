@@ -100,9 +100,11 @@ QString relExp2( "(" + property + ")" + wchar + "+" + existsOp + wchar + "+" + b
 QString relExp( "(?:" + relExp1 + ")" + "|" + "(?:" + relExp2 + ")" );
 
 QRegExp searchCriteria(
-wchar + "*"
+"\\("
++ wchar + "*"
 + "(" + relExp + ")"
 + wchar + "*"
++ "\\)"
     );
 }
 
@@ -744,8 +746,6 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint st
         return;
     }
 
-    kDebug() << "Search queries are" << m_searchQueries;
-
     if( !m_searchQueries.contains( "query" ) ) {
         emit error( KIO::ERR_SLAVE_DEFINED, i18n( "Expected query parameter as a minimum requirement for searching" ) );
         return;
@@ -784,7 +784,7 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint st
             if( property.isEmpty() )
                 property = SearchRegExp::searchCriteria.cap(3);
 
-            QRegExp logicalOp("(and|or)");
+            QRegExp logicalOp("\\s*(and|or)\\s*");
             if( logicalOp.indexIn( queryString, offset ) != -1 ) {
                 offset += logicalOp.matchedLength();
             }
