@@ -69,6 +69,12 @@ class ControlPointThread : public QThread
       uint start;
     };
 
+    struct MediaServerDevice {
+        Herqq::Upnp::HDeviceProxy *device;
+        DeviceInfo deviceInfo;
+        ObjectCache *cache;
+        QStringList searchCapabilities;
+    };
   public:
     ControlPointThread( QObject *parent=0 );
     virtual ~ControlPointThread();
@@ -132,20 +138,18 @@ class ControlPointThread : public QThread
                                const uint requestedCount,
                                const QString &sortCriteria );
 
-    Herqq::Upnp::HServiceProxy* contentDirectory() const;
+    // uses m_currentDevice if not specified
+    Herqq::Upnp::HServiceProxy* contentDirectory(Herqq::Upnp::HDeviceProxy *forDevice = NULL) const;
     Herqq::Upnp::HAction* browseAction() const;
     Herqq::Upnp::HAction* searchAction() const;
 
     Herqq::Upnp::HControlPoint *m_controlPoint;
 
-    Herqq::Upnp::HDeviceProxy *m_device;
-    DeviceInfo m_deviceInfo;
+    MediaServerDevice m_currentDevice;
 
-    ObjectCache *m_cache;
-
-    QStringList m_searchCapabilities;
     QMap<QString, QString> m_searchQueries;
 
+    QHash<QString, MediaServerDevice> m_devices;
     QString m_lastErrorString;
 
     friend class ObjectCache;

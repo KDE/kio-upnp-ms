@@ -109,8 +109,6 @@ wchar + "*"
 ControlPointThread::ControlPointThread( QObject *parent )
     : QThread( parent )
     , m_controlPoint( 0 )
-    , m_device( 0 )
-    , m_cache( new ObjectCache( this ) )
 {
     //Herqq::Upnp::SetLoggingLevel( Herqq::Upnp::Debug );
     qRegisterMetaType<KIO::UDSEntry>();
@@ -155,22 +153,28 @@ void ControlPointThread::run()
 
     exec();
 
-    m_device = 0;
+    // TODO delete all object caches in our device hash
     delete m_controlPoint;
 }
 
 void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
 {
-    m_device = device;
+    kDebug() << "Received device " << device->deviceInfo().udn().toString();
+
+    // NOTE as a reference!
+    MediaServerDevice &dev = m_devices[device->deviceInfo().udn().toSimpleUuid()];
+    dev.device = device;
+    dev.cache = new ObjectCache( this );
+
     // TODO: below code can be much cleaner
     // connect to any state variables here
-    HStateVariable *systemUpdateID = contentDirectory()->stateVariableByName( "SystemUpdateID" );
+    HStateVariable *systemUpdateID = contentDirectory(dev.device)->stateVariableByName( "SystemUpdateID" );
     connect( systemUpdateID,
              SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
              this,
              SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) );
  
-    HStateVariable *containerUpdates = contentDirectory()->stateVariableByName( "ContainerUpdateIDs" );
+    HStateVariable *containerUpdates = contentDirectory(dev.device)->stateVariableByName( "ContainerUpdateIDs" );
     if( containerUpdates ) {
         bool ok = connect( containerUpdates,
                            SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
@@ -179,12 +183,12 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
         Q_ASSERT( ok );
     }
     else {
-        kDebug() << m_deviceInfo.friendlyName() << "does not support updates";
+        kDebug() << dev.deviceInfo.friendlyName() << "does not support updates";
     }
 
     PersistentAction *action = new PersistentAction;
 
-    HAction *searchCapAction = contentDirectory()->actionByName( "GetSearchCapabilities" );
+    HAction *searchCapAction = contentDirectory(dev.device)->actionByName( "GetSearchCapabilities" );
     Q_ASSERT( searchCapAction );
 
     connect( action, SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
@@ -192,7 +196,7 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
 
     HActionArguments input = searchCapAction->inputArguments();
 
-    action->invoke( searchCapAction, input, 0 );
+    action->invoke( searchCapAction, input, dev.device );
 }
 
 void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString ) // SLOT
@@ -204,7 +208,12 @@ void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArgum
     }
 
     QString reply = output["SearchCaps"]->value().toString();
-    m_searchCapabilities = reply.split(",", QString::SkipEmptyParts);
+
+    // NOTE as a reference!
+    HDeviceProxy *device = (HDeviceProxy *) op.userData();
+    Q_ASSERT( device );
+    MediaServerDevice &dev = m_devices[device->deviceInfo().udn().toSimpleUuid()];
+    dev.searchCapabilities = reply.split(",", QString::SkipEmptyParts);
 
     emit deviceReady();
 }
@@ -214,11 +223,16 @@ void ControlPointThread::rootDeviceOffline(HDeviceProxy *device) // SLOT
     // if we aren't valid, we don't really care about
     // devices going offline
     // This slot can get called twice by HUpnp
-    if( !m_device )
-        return;
+    QString uuid = device->deviceInfo().udn().toSimpleUuid();
+    if( m_devices.contains( uuid ) ) {
+        kDebug() << "Removing" << uuid;
+        if( m_currentDevice.device->deviceInfo().udn() == device->deviceInfo().udn() ) {
+            kDebug() << "Was current device - invalidating";
+            m_currentDevice.device = NULL;
+            m_currentDevice.deviceInfo = DeviceInfo();
+        }
 
-    if( m_device->deviceInfo().udn() == device->deviceInfo().udn() ) {
-        m_device = 0;
+        m_devices.remove( uuid );
     }
 }
 
@@ -228,6 +242,8 @@ void ControlPointThread::rootDeviceOffline(HDeviceProxy *device) // SLOT
  */
 bool ControlPointThread::updateDeviceInfo( const KUrl& url )
 {
+    kDebug() << "Updating device info for " << url;
+
     QDBusConnection bus = QDBusConnection::sessionBus();
     QDBusInterface iface( "org.kde.Cagibi", "/org/kde/Cagibi", "org.kde.Cagibi", bus );
     QString udn = "uuid:" + url.host();
@@ -237,13 +253,23 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
         emit error(KIO::ERR_COULD_NOT_CONNECT, udn);
         return false;
     }
-    m_deviceInfo = res.value();
-    if( m_deviceInfo.udn().isEmpty() ) {
+
+    DeviceInfo deviceInfo = res.value();
+    if( deviceInfo.udn().isEmpty() ) {
         emit error( KIO::ERR_COULD_NOT_MOUNT, i18n( "Device %1 is offline", url.host() ) );
         return false;
     }
 
-    HDiscoveryType specific(m_deviceInfo.udn());
+    // the device is definitely present, so we let the scan fill in
+    // remaining details
+    MediaServerDevice dev;
+    dev.device = NULL;
+    dev.deviceInfo = deviceInfo;
+    dev.cache = NULL;
+    dev.searchCapabilities = QStringList();
+    m_devices[url.host()] = dev;
+
+    HDiscoveryType specific(deviceInfo.udn());
     // Stick to multicast, unicast is a UDA 1.1 feature
     // all devices don't support it
     // Thanks to Tuomo Penttinen for pointing that out
@@ -264,49 +290,59 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
             SLOT(quit()));
     local.exec();
 
+    kDebug() << "+++ REeturning from loop";
     return true;
 }
 
 /*
  * Returns a ContentDirectory service or 0
  */
-HServiceProxy* ControlPointThread::contentDirectory() const
+HServiceProxy* ControlPointThread::contentDirectory(HDeviceProxy *forDevice) const
 {
-    Q_ASSERT( m_device );
-    HServiceProxy *contentDir = m_device->serviceProxyById( HServiceId("urn:schemas-upnp-org:serviceId:ContentDirectory") );
+    HDeviceProxy *device = forDevice;
+    if( !device )
+        device = m_currentDevice.device;
+    Q_ASSERT( device );
+    HServiceProxy *contentDir = device->serviceProxyById( HServiceId("urn:schemas-upnp-org:serviceId:ContentDirectory") );
     if( !contentDir ) {
-        contentDir = m_device->serviceProxyById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
+        contentDir = device->serviceProxyById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
     }
     return contentDir;
 }
 
 HAction* ControlPointThread::browseAction() const
 {
-    Q_ASSERT( m_device );
     Q_ASSERT( contentDirectory() );
     return contentDirectory()->actionByName( "Browse" );
 }
 
 HAction* ControlPointThread::searchAction() const
 {
-    Q_ASSERT( m_device );
     Q_ASSERT( contentDirectory() );
     return contentDirectory()->actionByName( "Search" );
 }
 
 bool ControlPointThread::ensureDevice( const KUrl &url )
 {
-    if(     !m_device
-         || !m_deviceInfo.isValid()
-         || ("uuid:" + url.host()) != m_deviceInfo.udn() ) {
-        return updateDeviceInfo(url);
-        // invalidate the cache when the device changes
-        m_cache->reset();
-        // not strictly required, but good to have
-        m_searchQueries.clear();
+    // not strictly required, but good to have
+    m_searchQueries.clear();
+
+    if( ("uuid:" + url.host()) == m_currentDevice.deviceInfo.udn() )
+        return true;
+
+    if( m_devices.contains( url.host() ) ) {
+        kDebug() << "We already know of device" << url.host();
+        m_currentDevice = m_devices[url.host()];
+        return true;
     }
 
-    return true;
+    if( updateDeviceInfo(url) ) {
+        // make this the current device
+        m_currentDevice = m_devices[url.host()];
+        return true;
+    }
+
+    return false;
 }
 
 /////////////////////////
@@ -322,15 +358,15 @@ void ControlPointThread::stat( const KUrl &url )
 
     QString path = url.path(KUrl::RemoveTrailingSlash);
     kDebug() << url << path;
-    connect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
+    connect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
              this, SLOT( statResolvedPath( const DIDL::Object * ) ) );
 
-    m_cache->resolvePathToObject( path );
+    m_currentDevice.cache->resolvePathToObject( path );
 }
 
 void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
 {
-    disconnect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
+    disconnect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
              this, SLOT( statResolvedPath( const DIDL::Object * ) ) );
     KIO::UDSEntry entry;
 
@@ -374,7 +410,7 @@ void ControlPointThread::browseOrSearchObject( const DIDL::Object *obj,
                                                const QString &sortCriteria )
 {
     if( !contentDirectory() ) {
-        emit error( KIO::ERR_UNSUPPORTED_ACTION, "UPnP device " + m_device->deviceInfo().friendlyName() + " does not support browsing" );
+        emit error( KIO::ERR_UNSUPPORTED_ACTION, "UPnP device " + m_currentDevice.deviceInfo.friendlyName() + " does not support browsing" );
     }
 
     PersistentAction *pAction = new PersistentAction;
@@ -450,8 +486,8 @@ void ControlPointThread::listDir( const KUrl &url )
     QString path = url.path(KUrl::RemoveTrailingSlash);
 
     if( !url.queryItem( "searchcapabilities" ).isNull() ) {
-        kDebug() << m_searchCapabilities;
-        foreach( QString capability, m_searchCapabilities ) {
+        kDebug() << m_currentDevice.searchCapabilities;
+        foreach( QString capability, m_currentDevice.searchCapabilities ) {
             KIO::UDSEntry entry;
             entry.insert( KIO::UDSEntry::UDS_NAME, capability );
             entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
@@ -464,20 +500,21 @@ void ControlPointThread::listDir( const KUrl &url )
     if( !url.queryItem( "search" ).isNull() ) {
         kDebug() << "SEARCHING()";
         m_searchQueries = url.queryItems();
-        connect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
+// TODO why not verify validity of query before resolving
+        connect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
                  this, SLOT( searchResolvedPath( const DIDL::Object * ) ) );
-        m_cache->resolvePathToObject( path );
+        m_currentDevice.cache->resolvePathToObject( path );
         return;
     }
 
-    connect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
+    connect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
              this, SLOT( browseResolvedPath( const DIDL::Object *) ) );
-    m_cache->resolvePathToObject(path);
+    m_currentDevice.cache->resolvePathToObject(path);
 }
 
 void ControlPointThread::browseResolvedPath( const DIDL::Object *object, uint start, uint count ) // SLOT
 {
-    disconnect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
+    disconnect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
                 this, SLOT( browseResolvedPath( const DIDL::Object *) ) );
     if( !object ) {
         kDebug() << "ERROR: idString null";
@@ -643,6 +680,7 @@ void ControlPointThread::slotCDSUpdated( const HStateVariableEvent &event )
 
 void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event )
 {
+// TODO handle multiple device resolution
 // TODO back resolution from ID to *uncached* paths
     kDebug() << "UPDATED containers" << event.newValue();
     QStringList filesAdded;
@@ -655,24 +693,24 @@ void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariable
         QString updateValue = *it;
         it++;
 
-        if( m_cache->hasUpdateId( id ) ) {
-// NOTE what about CDS's with tracking changes option?
-// TODO implement later
-
-            if( m_cache->update( id, updateValue ) ) {
-                QString updatedPath = m_cache->pathForId( id );
-                kDebug() << "ID" << id << "Path" << updatedPath;
- 
-                KUrl fullPath;
-                QString host = m_deviceInfo.udn();
-                host.replace("uuid:", "");
-
-                fullPath.setProtocol( "upnp-ms" );
-                fullPath.setHost( host );
-                fullPath.setPath( updatedPath );
-                filesAdded << fullPath.prettyUrl();
-            }
-        }
+//        if( m_cache->hasUpdateId( id ) ) {
+//// NOTE what about CDS's with tracking changes option?
+//// TODO implement later
+// 
+//            if( m_cache->update( id, updateValue ) ) {
+//                QString updatedPath = m_cache->pathForId( id );
+//                kDebug() << "ID" << id << "Path" << updatedPath;
+// 
+//                KUrl fullPath;
+//                QString host = m_deviceInfo.udn();
+//                host.replace("uuid:", "");
+// 
+//                fullPath.setProtocol( "upnp-ms" );
+//                fullPath.setHost( host );
+//                fullPath.setPath( updatedPath );
+//                filesAdded << fullPath.prettyUrl();
+//            }
+//        }
     }
     kDebug() << "Files Changed" << filesAdded;
     OrgKdeKDirNotifyInterface::emitFilesChanged( filesAdded );
@@ -696,7 +734,7 @@ void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariable
 
 void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint start, uint count )
 {
-    disconnect( m_cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
+    disconnect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
                 this, SLOT( searchResolvedPath( const DIDL::Object *) ) );
     if( !object ) {
         kDebug() << "ERROR: idString null";
@@ -726,7 +764,7 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint st
 
     kDebug() << queryString;
 
-    if( queryString == "*" && !m_searchCapabilities.contains("*") ) {
+    if( queryString == "*" && !m_currentDevice.searchCapabilities.contains("*") ) {
         emit error(KIO::ERR_SLAVE_DEFINED, "Bad search: parameter '*' unsupported by server" );
         return;
     }
@@ -754,7 +792,7 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint st
                     return;
                 }
             }
-            if( !m_searchCapabilities.contains( property ) ) {
+            if( !m_currentDevice.searchCapabilities.contains( property ) ) {
                 emit error( KIO::ERR_SLAVE_DEFINED, "Bad search: unsupported property " + property );
                 return;
             }
@@ -767,14 +805,11 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint st
 
     kDebug() << "Good to go";
 
-    emit listingDone();
-    return;
-
     Q_ASSERT(connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
                       this, SLOT( createSearchListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) ));
     browseOrSearchObject( object,
                           searchAction(),
-                          m_searchQueries["query"],
+                          queryString,
                           "*",
                           start,
                           count,
