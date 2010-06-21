@@ -68,6 +68,7 @@ void PersistentAction::invoke( void *userData )
 void PersistentAction::invokeComplete( Herqq::Upnp::HAsyncOp invocationOp ) // SLOT
 {
     HActionArguments output;
+    invocationOp.setWaitTimeout( 2000 );
     bool ret = m_action->waitForInvoke( &invocationOp, &output );
 
     if( !ret || invocationOp.waitCode() != HAsyncOp::WaitSuccess ) {
