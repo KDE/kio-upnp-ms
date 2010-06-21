@@ -128,6 +128,9 @@ ControlPointThread::ControlPointThread( QObject *parent )
 
 ControlPointThread::~ControlPointThread()
 {
+    foreach( MediaServerDevice msd, m_devices ) {
+        delete msd.cache;
+    }
 }
 
 void ControlPointThread::run()
