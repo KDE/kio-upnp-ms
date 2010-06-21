@@ -654,8 +654,7 @@ void ControlPointThread::slotListItem( DIDL::Item *item )
     }
 
     fillMetadata(entry, KIO::UPNP_CREATOR, item, "creator");
-// if the artist exists, choose the artist
-    fillMetadata(entry, KIO::UPNP_CREATOR, item, "artist");
+    fillMetadata(entry, KIO::UPNP_ARTIST, item, "artist");
     fillMetadata(entry, KIO::UPNP_ALBUM, item, "album");
     fillMetadata(entry, KIO::UPNP_GENRE, item, "genre");
     fillMetadata(entry, KIO::UPNP_TRACK_NUMBER, item, "originalTrackNumber");

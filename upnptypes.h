@@ -59,7 +59,6 @@ enum UPnPFieldTypes {
 
     // object.item.audioItem
 
-    /// The creator is usually the Artist
     UPNP_CREATOR = ( UDSEntry::UDS_EXTRA + 2 ) | UDSEntry::UDS_STRING,
     /// The Album to which the item belongs
     UPNP_ALBUM = ( UDSEntry::UDS_EXTRA + 3 ) | UDSEntry::UDS_STRING,
@@ -106,7 +105,9 @@ enum UPnPFieldTypes {
     UPNP_ID = ( UDSEntry::UDS_EXTRA + 13 ) | UDSEntry::UDS_STRING,
     UPNP_PARENT_ID = ( UDSEntry::UDS_EXTRA + 14 ) | UDSEntry::UDS_STRING,
 
-    UPNP_ALBUMART_URI = ( UDSEntry::UDS_EXTRA + 15 ) | UDSEntry::UDS_STRING
+    UPNP_ALBUMART_URI = ( UDSEntry::UDS_EXTRA + 15 ) | UDSEntry::UDS_STRING,
+
+    UPNP_ARTIST = ( UDSEntry::UDS_EXTRA + 16 ) | UDSEntry::UDS_STRING
 };
 }
 

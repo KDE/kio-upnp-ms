@@ -35,7 +35,7 @@ void stattest::done(KJob *job)
     }
     KIO::StatJob *statJob = static_cast<KIO::StatJob*>( job );
     KIO::UDSEntry entry = statJob->statResult();
-    kDebug() << "++++++++++" <<  entry.stringValue(KIO::UDSEntry::UDS_NAME) << entry.numberValue(KIO::UDSEntry::UDS_FILE_TYPE);
+    //kDebug() << entry.stringValue( KIO::UPNP_ARTIST );
     // we don't really care about this
     // check debug output or monitor dbus to see if modification
     // signals were sent
