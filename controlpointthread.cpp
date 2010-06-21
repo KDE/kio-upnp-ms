@@ -680,10 +680,14 @@ void ControlPointThread::slotCDSUpdated( const HStateVariableEvent &event )
 
 void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event )
 {
-// TODO handle multiple device resolution
 // TODO back resolution from ID to *uncached* paths
     kDebug() << "UPDATED containers" << event.newValue();
-    QStringList filesAdded;
+
+    HDevice *deviceForEvent = event.eventSource()->parentService()->parentDevice();
+    Q_ASSERT( deviceForEvent );
+    QString uuid = deviceForEvent->deviceInfo().udn().toSimpleUuid();
+
+    QStringList filesChanged;
 
     QStringList updates = event.newValue().toString().split(",");
     QStringList::const_iterator it;
@@ -693,27 +697,25 @@ void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariable
         QString updateValue = *it;
         it++;
 
-//        if( m_cache->hasUpdateId( id ) ) {
-//// NOTE what about CDS's with tracking changes option?
-//// TODO implement later
-// 
-//            if( m_cache->update( id, updateValue ) ) {
-//                QString updatedPath = m_cache->pathForId( id );
-//                kDebug() << "ID" << id << "Path" << updatedPath;
-// 
-//                KUrl fullPath;
-//                QString host = m_deviceInfo.udn();
-//                host.replace("uuid:", "");
-// 
-//                fullPath.setProtocol( "upnp-ms" );
-//                fullPath.setHost( host );
-//                fullPath.setPath( updatedPath );
-//                filesAdded << fullPath.prettyUrl();
-//            }
-//        }
+        if( m_devices[uuid].cache->hasUpdateId( id ) ) {
+// NOTE what about CDS's with tracking changes option?
+// TODO implement later
+
+            if( m_devices[uuid].cache->update( id, updateValue ) ) {
+                QString updatedPath = m_devices[uuid].cache->pathForId( id );
+                kDebug() << "ID" << id << "Path" << updatedPath;
+
+                KUrl fullPath;
+
+                fullPath.setProtocol( "upnp-ms" );
+                fullPath.setHost( uuid );
+                fullPath.setPath( updatedPath );
+                filesChanged << fullPath.prettyUrl();
+            }
+        }
     }
-    kDebug() << "Files Changed" << filesAdded;
-    OrgKdeKDirNotifyInterface::emitFilesChanged( filesAdded );
+    kDebug() << "Files Changed" << filesChanged;
+    OrgKdeKDirNotifyInterface::emitFilesChanged( filesChanged );
 }
 
 ///////////////////
