@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define OBJECTCACHE_H
 
 #include <QCache>
+#include <QQueue>
 
 #include <HUpnp>
 
@@ -45,6 +46,7 @@ class ControlPointThread;
 // why not cache just the ID? QCache wants a pointer. So might
 // as well store the Item/Container we receive from the parser
 typedef QCache<QString, DIDL::Object> NameToObjectCache;
+typedef QCache<QString, QString> IdToPathCache;
 
 typedef QPair<QString, QString> UpdateValueAndPath;
 
@@ -72,6 +74,7 @@ public:
 
 signals:
     void pathResolved( const DIDL::Object * );
+    void idToPathResolved( const QString &id, const QString &path );
 
 public slots:
     /**
@@ -85,17 +88,35 @@ public slots:
      */
     void resolvePathToObject( const QString &path );
 
+    /**
+     * Resolves an ID to a absolute path with reference
+     * to the device root. Tries to use the cache.
+     * Connect to idToPathResolved() to receive the
+     * (id, path).
+     */
+    void resolveIdToPath( const QString &id );
+
 private slots:
     void attemptResolution( const Herqq::Upnp::HActionArguments &args );
+    void attemptIdToPathResolution( const Herqq::Upnp::HActionArguments &args );
     void slotResolveId( DIDL::Item *object );
     void slotResolveId( DIDL::Container *object );
+    void slotBuildPathForId( DIDL::Item * );
+    void slotBuildPathForId( DIDL::Container * );
 
 private:
     QString idForName( const QString &name );
     void resolvePathToObjectInternal();
+    void resolveNextIdToPath();
+    void resolveIdToPathInternal();
     void resolveId( DIDL::Object *object );
+    void buildPathForId( DIDL::Object *object );
 
     NameToObjectCache m_reverseCache;
+    // TODO: scrap updates hash as the tracker
+    // ensure m_pathForId and m_reverseCache are always in sync
+    IdToPathCache m_idToPathCache;
+
     // entry in NameToObjectCache, that is inserted when
     // the cache itself is filled.
     // notice there is NO way to go from a ID to a path
@@ -127,6 +148,17 @@ private:
         QString fullPath;
         DIDL::Object *object;
     } m_resolve;
+
+    struct {
+      QString id;
+      // what we are looking for in a particular iteration
+      QString currentId;
+      // build this up as we go
+      QString fullPath;
+    } m_idResolve;
+
+    QQueue<QString> m_idToPathRequests;
+    bool m_idToPathRequestsInProgress;
 
     ControlPointThread *m_cpt;
 };

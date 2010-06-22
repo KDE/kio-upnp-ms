@@ -35,6 +35,7 @@ using namespace Herqq::Upnp;
 ObjectCache::ObjectCache( ControlPointThread *cpt )
     : QObject( cpt )
     , m_cpt( cpt )
+    , m_idToPathRequestsInProgress( false )
 {
     reset();
 }
@@ -43,10 +44,15 @@ void ObjectCache::reset()
 {
     m_resolve.pathIndex = -1;
     m_resolve.object = 0;
+
     m_updatesHash.clear();
     m_reverseCache.clear();
+    m_idToPathCache.clear();
+
     m_updatesHash.insert( "", UpdateValueAndPath( "0", "" ) );
     m_reverseCache.insert( "", new DIDL::Container( "0", "-1", false ) );
+    m_idToPathCache.insert( QString("0"), new QString("") );
+
     m_updatesHash.insert( "/", UpdateValueAndPath( "0", "/" ) );
     m_reverseCache.insert( "/", new DIDL::Container( "0", "-1", false ) );
 }
@@ -169,8 +175,10 @@ void ObjectCache::attemptResolution( const HActionArguments &args )
     else {
         QString pathToInsert = ( m_resolve.segment + QDir::separator() + m_resolve.object->title() );
         m_reverseCache.insert( pathToInsert, m_resolve.object );
+        m_idToPathCache.insert( m_resolve.object->id(), new QString( pathToInsert ) );
         // TODO: if we already have the id, should we just update the
         // ContainerUpdateIDs
+// TODO no more QPairs
         m_updatesHash.insert( m_resolve.object->id(), UpdateValueAndPath( "0", pathToInsert ) );
         m_resolve.pathIndex = SEP_POS( m_resolve.fullPath, pathToInsert.length() );
         // ignore trailing slashes
@@ -225,7 +233,109 @@ bool ObjectCache::update( const QString &id, const QString &containerUpdateId )
     return false;
 }
 
+// TODO scrap this in favour of resolveIdToPath()
 QString ObjectCache::pathForId( const QString &id )
 {
     return m_updatesHash[id].second;
+}
+
+void ObjectCache::resolveIdToPath( const QString &id )
+{
+    if( m_idToPathCache.contains( id ) ) {
+        kDebug() << "I know the path for" << id << "it is" << *m_idToPathCache[id];
+        emit idToPathResolved( id, *m_idToPathCache[id] );
+        return;
+    }
+
+    m_idToPathRequests << id;
+
+    // only drive if we aren't already running
+    if( !m_idToPathRequestsInProgress )
+        resolveNextIdToPath();
+
+}
+
+void ObjectCache::resolveNextIdToPath()
+{
+    m_idToPathRequestsInProgress = true;
+    kDebug() << "resolveNextIdToPath WAS CALLED";
+    QString headId = m_idToPathRequests.dequeue();
+    m_idResolve.id = headId;
+    m_idResolve.currentId = headId;
+    m_idResolve.fullPath = "";
+    resolveIdToPathInternal();
+}
+
+void ObjectCache::resolveIdToPathInternal()
+{
+    connect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo *) ),
+             this, SLOT( attemptIdToPathResolution( const Herqq::Upnp::HActionArguments & ) ) );
+    kDebug() << "Now resolving path for ID" << m_idResolve.currentId << m_idResolve.fullPath;
+    m_cpt->browseOrSearchObject( new DIDL::Object( DIDL::SuperObject::Item, m_idResolve.currentId, "-1", true ),
+                                 m_cpt->browseAction(),
+                                 BROWSE_METADATA,
+                                 "dc:title",
+                                 0,
+                                 0,
+                                 "" );
+}
+
+void ObjectCache::attemptIdToPathResolution( const HActionArguments &args )
+{
+    // NOTE disconnection is important
+    bool ok = disconnect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
+                          this, SLOT( attemptIdToPathResolution( const Herqq::Upnp::HActionArguments & ) ) );
+    Q_ASSERT( ok );
+    Q_UNUSED( ok );
+    if( !args["Result"] ) {
+        emit m_cpt->error( KIO::ERR_SLAVE_DEFINED, "ID to Path Resolution error" );
+        return;
+    }
+    kDebug() << "In attempt for" << m_idResolve.currentId << "got"<< args["Result"]->value().toString();
+
+    DIDL::Parser parser;
+    connect( &parser, SIGNAL(itemParsed(DIDL::Item *)),
+                       this, SLOT(slotBuildPathForId(DIDL::Item *)) );
+    connect( &parser, SIGNAL(containerParsed(DIDL::Container *)),
+             this, SLOT(slotBuildPathForId(DIDL::Container *)) );
+
+    parser.parse( args["Result"]->value().toString() );
+
+    // we sleep because devices ( atleast MediaTomb )
+    // seem to block continous TCP connections after some time
+    // this interval might need modification
+    m_cpt->msleep(500);
+
+// TODO fill stuff here
+
+    // if we are done, emit the relevant Object
+    // otherwise recurse with a new (m_)resolve :)
+    if( m_idResolve.currentId == "0" ) {
+        emit idToPathResolved( m_idResolve.id, "/" + m_idResolve.fullPath );
+        m_idToPathRequestsInProgress = false;
+        kDebug() << "Done with one resolve, continuing";
+        if( !m_idToPathRequests.empty() )
+            resolveNextIdToPath();
+    }
+    else {
+        kDebug() << "Now calling recursive";
+        resolveIdToPathInternal();
+    }
+}
+
+void ObjectCache::buildPathForId( DIDL::Object *object )
+{
+    m_idResolve.fullPath = object->title() + "/" + m_idResolve.fullPath;
+    kDebug() << "NOW SET FULL PATH TO" << m_idResolve.fullPath << "AND PARENT ID IS" << object->parentId();
+    m_idResolve.currentId = object->parentId();
+}
+
+void ObjectCache::slotBuildPathForId( DIDL::Container *c )
+{
+    buildPathForId( c );
+}
+
+void ObjectCache::slotBuildPathForId( DIDL::Item *item )
+{
+    buildPathForId( item );
 }

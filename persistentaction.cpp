@@ -60,7 +60,7 @@ void PersistentAction::invoke( Herqq::Upnp::HAction *action, const Herqq::Upnp::
 
 void PersistentAction::invoke( void *userData )
 {
-    kDebug() << "Beginning invoke" << "Try number" << m_tries;
+    kDebug() << "Beginning invoke" << m_action->name() << "Try number" << m_tries;
     HAsyncOp op = m_action->beginInvoke( m_inputArgs );
     op.setUserData( userData );
 }
