@@ -93,6 +93,7 @@ class ControlPointThread : public QThread
     void slotListItem( DIDL::Item *c );
     void slotListSearchContainer( DIDL::Container *c );
     void slotListSearchItem( DIDL::Item *item );
+    void slotEmitSearchEntry( const QString &id, const QString &path );
 
     void slotCDSUpdated( const Herqq::Upnp::HStateVariableEvent &event );
     void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
@@ -154,6 +155,10 @@ class ControlPointThread : public QThread
     MediaServerDevice m_currentDevice;
 
     QMap<QString, QString> m_searchQueries;
+    // used to resolve relative paths
+    uint m_searchListingCounter;
+    QString m_baseSearchPath;
+    bool m_resolveSearchPaths;
 
     QHash<QString, MediaServerDevice> m_devices;
     QString m_lastErrorString;

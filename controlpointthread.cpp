@@ -111,6 +111,7 @@ QRegExp searchCriteria(
 ControlPointThread::ControlPointThread( QObject *parent )
     : QThread( parent )
     , m_controlPoint( 0 )
+    , m_searchListingCounter( 0 )
 {
     //Herqq::Upnp::SetLoggingLevel( Herqq::Upnp::Debug );
     qRegisterMetaType<KIO::UDSEntry>();
@@ -468,6 +469,10 @@ void ControlPointThread::browseOrSearchObject( const DIDL::Object *obj,
  *  - query2 : Optional. A query logically ANDed with query1.
  *  - ......
  *  - queryN : Similar to query 2
+ *  - resolvePath : Optional. Resolve paths to search results. ( Default: false ).
+ *        If resolvePath is set, the search result's UDS_NAME
+ *        is set to point to the relative path to the actual
+ *        item, from the search root.
  *
  * NOTE: The path component of the URL is treated as the top-level
  * container against which the search is run.
@@ -505,6 +510,8 @@ void ControlPointThread::listDir( const KUrl &url )
     if( !url.queryItem( "search" ).isNull() ) {
         kDebug() << "SEARCHING()";
         m_searchQueries = url.queryItems();
+        m_baseSearchPath = url.path( KUrl::AddTrailingSlash );
+        m_resolveSearchPaths = url.queryItems().contains("resolvePath");
 // TODO why not verify validity of query before resolving
         connect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
                  this, SLOT( searchResolvedPath( const DIDL::Object * ) ) );
@@ -846,8 +853,14 @@ void ControlPointThread::createSearchListing( const HActionArguments &args, Acti
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
 
-    connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListSearchContainer(DIDL::Container *)) );
-    connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListSearchItem(DIDL::Item *)) );
+    if( m_resolveSearchPaths ) {
+        connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListSearchContainer(DIDL::Container *)) );
+        connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListSearchItem(DIDL::Item *)) );
+    }
+    else {
+        connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) );
+        connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListItem(DIDL::Item *)) );
+    }
     parser.parse(didlString);
 
     // NOTE: it is possible to dispatch this call even before
@@ -856,14 +869,15 @@ void ControlPointThread::createSearchListing( const HActionArguments &args, Acti
     // disconnection by the remote device can be avoided.
     Q_ASSERT( info );
     uint num = args["NumberReturned"]->value().toUInt();
+
+    if( m_resolveSearchPaths )
+        m_searchListingCounter += num;
+
     uint total = args["TotalMatches"]->value().toUInt();
     if( num > 0 && ( info->start + num < total ) ) {
         Q_ASSERT( info->on );
         msleep( 1000 );
         searchResolvedPath( info->on, info->start + num );
-    }
-    else {
-        emit listingDone();
     }
 }
 
@@ -871,14 +885,36 @@ void ControlPointThread::slotListSearchContainer( DIDL::Container *c )
 {
     KIO::UDSEntry entry;
     fillContainer( entry, c );
-    // TODO resolve full path
-    emit listEntry( entry );
+
+    // ugly hack to get around lack of closures in C++
+    setProperty( ("upnp_id_" + c->id()).toAscii().constData(), QVariant::fromValue( entry ) );
+    connect( m_currentDevice.cache, SIGNAL( idToPathResolved( const QString &, const QString & ) ),
+             this, SLOT( slotEmitSearchEntry( const QString &, const QString & ) ), Qt::UniqueConnection );
+    m_currentDevice.cache->resolveIdToPath( c->id() );
 }
 
 void ControlPointThread::slotListSearchItem( DIDL::Item *item )
 {
     KIO::UDSEntry entry;
     fillItem( entry, item );
-// resolve path
+    setProperty( ("upnp_id_" + item->id()).toAscii().constData(), QVariant::fromValue( entry ) );
+    connect( m_currentDevice.cache, SIGNAL( idToPathResolved( const QString &, const QString & ) ),
+             this, SLOT( slotEmitSearchEntry( const QString &, const QString & ) ), Qt::UniqueConnection );
+    m_currentDevice.cache->resolveIdToPath( item->id() );
+}
+
+void ControlPointThread::slotEmitSearchEntry( const QString &id, const QString &path )
+{
+    KIO::UDSEntry entry = property( ("upnp_id_" + id).toAscii().constData() ).value<KIO::UDSEntry>();
+    // delete the property
+    setProperty( ("upnp_id_" + id).toAscii().constData(), QVariant() );
+
+    kDebug() << "RESOLVED PATH" << path;
+    kDebug() << "BASE SEARCH PATH " << m_baseSearchPath;
+    entry.insert( KIO::UDSEntry::UDS_NAME, QString(path).replace( m_baseSearchPath, "" ) );
     emit listEntry( entry );
+    m_searchListingCounter--;
+
+    if( m_searchListingCounter == 0 )
+        emit listingDone();
 }
