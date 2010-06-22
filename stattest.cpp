@@ -15,9 +15,7 @@ stattest::stattest(const KUrl &url)
     : QObject(0)
     , m_url(url)
 {
-    QTimer *t = new QTimer(this);
-    connect( t, SIGNAL(timeout()), this, SLOT(check()) );
-    t->start( 3000 );
+    QTimer::singleShot( 3000, this, SLOT(check()) );
 }
 
 void stattest::check()
