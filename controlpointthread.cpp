@@ -603,7 +603,7 @@ void ControlPointThread::slotParseError( const QString &errorString )
     emit error(KIO::ERR_SLAVE_DEFINED, errorString);
 }
 
-void ControlPointThread::slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object *obj )
+void ControlPointThread::fillCommon( KIO::UDSEntry &entry, DIDL::Object *obj )
 {
     entry.insert( KIO::UDSEntry::UDS_NAME, obj->title() );
     entry.insert( KIO::UDSEntry::UDS_DISPLAY_NAME, QUrl::fromPercentEncoding( obj->title().toAscii() ) );
@@ -621,22 +621,19 @@ void ControlPointThread::slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object 
     entry.insert( KIO::UPNP_PARENT_ID, obj->parentId() );
 }
 
-void ControlPointThread::slotListContainer( DIDL::Container *c )
+void ControlPointThread::fillContainer( KIO::UDSEntry &entry, DIDL::Container *c )
 {
-    KIO::UDSEntry entry;
-    slotListFillCommon( entry, c );
+    fillCommon( entry, c );
     entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
 
     // TODO insert attributes into meta-data in parser
     // or childCount won't be available
     fillMetadata(entry, KIO::UPNP_ALBUM_CHILDCOUNT, c, "childCount");
-    emit listEntry(entry);
 }
 
-void ControlPointThread::slotListItem( DIDL::Item *item )
+void ControlPointThread::fillItem( KIO::UDSEntry &entry, DIDL::Item *item )
 {
-    KIO::UDSEntry entry;
-    slotListFillCommon( entry, item );
+    fillCommon( entry, item );
     entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
     if( item->hasResource() ) {
         DIDL::Resource res = item->resource();
@@ -667,7 +664,20 @@ void ControlPointThread::slotListItem( DIDL::Item *item )
     fillMetadata(entry, KIO::UPNP_CHANNEL_NAME, item, "channelName");
     fillMetadata(entry, KIO::UPNP_CHANNEL_NUMBER, item, "channelNr");
     fillMetadata(entry, KIO::UPNP_ALBUMART_URI, item, "albumArtURI");
-    emit listEntry(entry);
+}
+
+void ControlPointThread::slotListContainer( DIDL::Container *c )
+{
+    KIO::UDSEntry entry;
+    fillContainer( entry, c );
+    emit listEntry( entry );
+}
+
+void ControlPointThread::slotListItem( DIDL::Item *item )
+{
+    KIO::UDSEntry entry;
+    fillItem( entry, item );
+    emit listEntry( entry );
 }
 
 ////////////////////////////////////////////
@@ -836,8 +846,8 @@ void ControlPointThread::createSearchListing( const HActionArguments &args, Acti
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
 
-    connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) );
-    connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListItem(DIDL::Item *)) );
+    connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListSearchContainer(DIDL::Container *)) );
+    connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListSearchItem(DIDL::Item *)) );
     parser.parse(didlString);
 
     // NOTE: it is possible to dispatch this call even before
@@ -855,4 +865,20 @@ void ControlPointThread::createSearchListing( const HActionArguments &args, Acti
     else {
         emit listingDone();
     }
+}
+
+void ControlPointThread::slotListSearchContainer( DIDL::Container *c )
+{
+    KIO::UDSEntry entry;
+    fillContainer( entry, c );
+    // TODO resolve full path
+    emit listEntry( entry );
+}
+
+void ControlPointThread::slotListSearchItem( DIDL::Item *item )
+{
+    KIO::UDSEntry entry;
+    fillItem( entry, item );
+// resolve path
+    emit listEntry( entry );
 }

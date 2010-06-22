@@ -88,9 +88,11 @@ class ControlPointThread : public QThread
     void rootDeviceOnline(Herqq::Upnp::HDeviceProxy *device);
     void rootDeviceOffline(Herqq::Upnp::HDeviceProxy *device);
     void slotParseError( const QString &errorString );
-    void slotListFillCommon( KIO::UDSEntry &entry, DIDL::Object *obj );
+
     void slotListContainer( DIDL::Container *c );
     void slotListItem( DIDL::Item *c );
+    void slotListSearchContainer( DIDL::Container *c );
+    void slotListSearchItem( DIDL::Item *item );
 
     void slotCDSUpdated( const Herqq::Upnp::HStateVariableEvent &event );
     void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
@@ -142,6 +144,10 @@ class ControlPointThread : public QThread
     Herqq::Upnp::HServiceProxy* contentDirectory(Herqq::Upnp::HDeviceProxy *forDevice = NULL) const;
     Herqq::Upnp::HAction* browseAction() const;
     Herqq::Upnp::HAction* searchAction() const;
+
+    void fillCommon( KIO::UDSEntry &entry, DIDL::Object *obj );
+    void fillContainer( KIO::UDSEntry &entry, DIDL::Container *c );
+    void fillItem( KIO::UDSEntry &entry, DIDL::Item *item );
 
     Herqq::Upnp::HControlPoint *m_controlPoint;
 
