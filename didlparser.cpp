@@ -93,6 +93,8 @@ void Parser::parseItem()
         attributes.value("id").toString(),
         attributes.value("parentID").toString(),
         interpretRestricted( attributes.value("restricted") ) );
+    if( attributes.hasAttribute("refID") )
+        item->setRefId( attributes.value("refID").toString() );
 
     while( m_reader->readNextStartElement() ) {
         if( parseObjectCommon( item ) ) {

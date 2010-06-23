@@ -107,7 +107,9 @@ enum UPnPFieldTypes {
 
     UPNP_ALBUMART_URI = ( UDSEntry::UDS_EXTRA + 15 ) | UDSEntry::UDS_STRING,
 
-    UPNP_ARTIST = ( UDSEntry::UDS_EXTRA + 16 ) | UDSEntry::UDS_STRING
+    UPNP_ARTIST = ( UDSEntry::UDS_EXTRA + 16 ) | UDSEntry::UDS_STRING,
+
+    UPNP_REF_ID = ( UDSEntry::UDS_EXTRA + 17 ) | UDSEntry::UDS_STRING
 };
 }
 

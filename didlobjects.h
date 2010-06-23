@@ -132,11 +132,15 @@ class Item : public Object
     Resource resource() const;
     void addResource( const Resource &res );
 
+    void setRefId( const QString &id ) { m_refId = id; }
+    QString refId() { return m_refId; }
+
   private:
     // Container can have a <res>, but is it done in
     // practice. Similarly we should hold a list
     // for multiple resources, but does it happen?
     Resource m_resource;
+    QString m_refId;
 
 };
 

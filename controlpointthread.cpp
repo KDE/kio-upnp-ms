@@ -657,6 +657,9 @@ void ControlPointThread::fillItem( KIO::UDSEntry &entry, DIDL::Item *item )
         entry.insert( KIO::UDSEntry::UDS_ACCESS, access );
     }
 
+    if( !item->refId().isNull() )
+        entry.insert( KIO::UPNP_REF_ID, item->refId() );
+
     fillMetadata(entry, KIO::UPNP_CREATOR, item, "creator");
     fillMetadata(entry, KIO::UPNP_ARTIST, item, "artist");
     fillMetadata(entry, KIO::UPNP_ALBUM, item, "album");
