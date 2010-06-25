@@ -773,10 +773,6 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint st
         return;
     }
 
-    // TODO: validate and sanitize query strings here
-    // and join them
-    // check if search is supported
-
     QString queryString = m_searchQueries["query"];
     QRegExp queryParam("query\\d+");
     foreach( QString key, m_searchQueries.keys() ) {
@@ -785,6 +781,8 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint st
             queryString += " and " + m_searchQueries[key];
         }
     }
+
+    queryString = queryString.trimmed();
 
     kDebug() << queryString;
 
