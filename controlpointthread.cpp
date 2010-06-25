@@ -330,9 +330,6 @@ HAction* ControlPointThread::searchAction() const
 
 bool ControlPointThread::ensureDevice( const KUrl &url )
 {
-    // not strictly required, but good to have
-    m_searchQueries.clear();
-
     if( ("uuid:" + url.host()) == m_currentDevice.deviceInfo.udn() )
         return true;
 
@@ -509,10 +506,69 @@ void ControlPointThread::listDir( const KUrl &url )
 
     if( !url.queryItem( "search" ).isNull() ) {
         kDebug() << "SEARCHING()";
-        m_searchQueries = url.queryItems();
+        QMap<QString, QString> searchQueries = url.queryItems();
         m_baseSearchPath = url.path( KUrl::AddTrailingSlash );
         m_resolveSearchPaths = url.queryItems().contains("resolvePath");
-// TODO why not verify validity of query before resolving
+
+        if( !searchQueries.contains( "query" ) ) {
+            emit error( KIO::ERR_SLAVE_DEFINED, i18n( "Expected query parameter as a minimum requirement for searching" ) );
+            return;
+        }
+
+        m_queryString = searchQueries["query"];
+        QRegExp queryParam("query\\d+");
+        foreach( QString key, searchQueries.keys() ) {
+            if( queryParam.exactMatch(key) ) {
+                kDebug() << "Appending" << searchQueries[key];
+                m_queryString += " and " + searchQueries[key];
+            }
+        }
+
+        m_queryString = m_queryString.trimmed();
+
+        kDebug() << m_queryString;
+
+        if( m_queryString == "*" && !m_currentDevice.searchCapabilities.contains("*") ) {
+            emit error(KIO::ERR_SLAVE_DEFINED, "Bad search: parameter '*' unsupported by server" );
+            return;
+        }
+
+        if( m_queryString != "*" ) {
+            int offset = 0;
+            while( SearchRegExp::searchCriteria.indexIn( m_queryString, offset ) != -1 ) {
+                offset += SearchRegExp::searchCriteria.matchedLength();
+                QString property = SearchRegExp::searchCriteria.cap(2);
+                // caused due to relExp, the issue
+                // is odd, because interchanging regExp1 and regExp2
+                // will cause patterns matching regExp1
+                // to have the wrong capture group
+                // so this workaround
+                if( property.isEmpty() )
+                    property = SearchRegExp::searchCriteria.cap(3);
+
+                QRegExp logicalOp("\\s*(and|or)\\s*");
+                if( logicalOp.indexIn( m_queryString, offset ) != -1 ) {
+                    offset += logicalOp.matchedLength();
+                }
+                else {
+                    if( offset < m_queryString.length() ) {
+                        emit error( KIO::ERR_SLAVE_DEFINED, "Bad search: Expected logical op at " + m_queryString.mid(offset, 10) );
+                        return;
+                    }
+                }
+                if( !m_currentDevice.searchCapabilities.contains( property ) ) {
+                    emit error( KIO::ERR_SLAVE_DEFINED, "Bad search: unsupported property " + property );
+                    return;
+                }
+            }
+            if( offset < m_queryString.length() ) {
+                emit error( KIO::ERR_SLAVE_DEFINED, "Bad search: Invalid query '" + m_queryString.mid(offset) + "'" );
+                return;
+            }
+        }
+
+        kDebug() << "Good to go";
+
         connect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
                  this, SLOT( searchResolvedPath( const DIDL::Object * ) ) );
         m_currentDevice.cache->resolvePathToObject( path );
@@ -768,70 +824,11 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint st
         return;
     }
 
-    if( !m_searchQueries.contains( "query" ) ) {
-        emit error( KIO::ERR_SLAVE_DEFINED, i18n( "Expected query parameter as a minimum requirement for searching" ) );
-        return;
-    }
-
-    QString queryString = m_searchQueries["query"];
-    QRegExp queryParam("query\\d+");
-    foreach( QString key, m_searchQueries.keys() ) {
-        if( queryParam.exactMatch(key) ) {
-            kDebug() << "Appending" << m_searchQueries[key];
-            queryString += " and " + m_searchQueries[key];
-        }
-    }
-
-    queryString = queryString.trimmed();
-
-    kDebug() << queryString;
-
-    if( queryString == "*" && !m_currentDevice.searchCapabilities.contains("*") ) {
-        emit error(KIO::ERR_SLAVE_DEFINED, "Bad search: parameter '*' unsupported by server" );
-        return;
-    }
-
-    if( queryString != "*" ) {
-        int offset = 0;
-        while( SearchRegExp::searchCriteria.indexIn( queryString, offset ) != -1 ) {
-            offset += SearchRegExp::searchCriteria.matchedLength();
-            QString property = SearchRegExp::searchCriteria.cap(2);
-            // caused due to relExp, the issue
-            // is odd, because interchanging regExp1 and regExp2
-            // will cause patterns matching regExp1
-            // to have the wrong capture group
-            // so this workaround
-            if( property.isEmpty() )
-                property = SearchRegExp::searchCriteria.cap(3);
-
-            QRegExp logicalOp("\\s*(and|or)\\s*");
-            if( logicalOp.indexIn( queryString, offset ) != -1 ) {
-                offset += logicalOp.matchedLength();
-            }
-            else {
-                if( offset < queryString.length() ) {
-                    emit error( KIO::ERR_SLAVE_DEFINED, "Bad search: Expected logical op at " + queryString.mid(offset, 10) );
-                    return;
-                }
-            }
-            if( !m_currentDevice.searchCapabilities.contains( property ) ) {
-                emit error( KIO::ERR_SLAVE_DEFINED, "Bad search: unsupported property " + property );
-                return;
-            }
-        }
-        if( offset < queryString.length() ) {
-            emit error( KIO::ERR_SLAVE_DEFINED, "Bad search: Invalid query '" + queryString.mid(offset) + "'" );
-            return;
-        }
-    }
-
-    kDebug() << "Good to go";
-
     Q_ASSERT(connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
                       this, SLOT( createSearchListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) ));
     browseOrSearchObject( object,
                           searchAction(),
-                          queryString,
+                          m_queryString,
                           "*",
                           start,
                           count,

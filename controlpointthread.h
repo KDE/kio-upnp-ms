@@ -154,7 +154,8 @@ class ControlPointThread : public QThread
 
     MediaServerDevice m_currentDevice;
 
-    QMap<QString, QString> m_searchQueries;
+    QString m_queryString;
+
     // used to resolve relative paths
     uint m_searchListingCounter;
     QString m_baseSearchPath;
