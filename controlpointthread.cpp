@@ -858,6 +858,7 @@ void ControlPointThread::createSearchListing( const HActionArguments &args, Acti
     else {
         connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) );
         connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListItem(DIDL::Item *)) );
+        connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
     }
     parser.parse(didlString);
 
@@ -876,6 +877,10 @@ void ControlPointThread::createSearchListing( const HActionArguments &args, Acti
         Q_ASSERT( info->on );
         msleep( 1000 );
         searchResolvedPath( info->on, info->start + num );
+    }
+    else {
+        if( !m_resolveSearchPaths )
+            emit listingDone();
     }
 }
 
