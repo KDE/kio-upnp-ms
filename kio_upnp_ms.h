@@ -76,6 +76,7 @@ class UPnPMS : public QObject, public KIO::SlaveBase
   private slots:
     void slotStatEntry( const KIO::UDSEntry & );
     void slotListEntry( const KIO::UDSEntry & );
+    void slotRedirect( const KIO::UDSEntry & );
     void slotListingDone();
     void slotError( int, const QString & );
 

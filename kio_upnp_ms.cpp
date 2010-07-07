@@ -76,11 +76,6 @@ extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
   return 0;
 }
 
-void UPnPMS::get( const KUrl &url )
-{
-    error( KIO::ERR_CANNOT_OPEN_FOR_READING, url.prettyUrl() );
-}
-
 UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
   : QObject(0)
   , SlaveBase( "upnp-ms", pool, app )
@@ -105,6 +100,15 @@ void UPnPMS::stat( const KUrl &url )
     connect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
                        this, SLOT( slotStatEntry( const KIO::UDSEntry & ) ) );
     m_cpthread.stat(url);
+    while( m_statBusy )
+        QCoreApplication::processEvents();
+}
+
+void UPnPMS::get( const KUrl &url )
+{
+    m_statBusy = true;
+    Q_ASSERT( connect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry & ) ), this, SLOT( slotRedirect( const KIO::UDSEntry & ) ) ) );
+    m_cpthread.stat( url );
     while( m_statBusy )
         QCoreApplication::processEvents();
 }
@@ -135,6 +139,22 @@ void UPnPMS::slotStatEntry( const KIO::UDSEntry &entry )
     Q_ASSERT( ok );
     Q_UNUSED( ok );
     statEntry( entry );
+    finished();
+    m_statBusy = false;
+}
+
+void UPnPMS::slotRedirect( const KIO::UDSEntry &entry )
+{
+    bool ok = disconnect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
+              this, SLOT( slotRedirect( const KIO::UDSEntry & ) ) );
+    Q_ASSERT( ok );
+    Q_UNUSED( ok );
+    if( entry.isDir() ) {
+        error( KIO::ERR_CANNOT_OPEN_FOR_READING, QString() );
+        return;
+    }
+    kDebug() << "REDIRECTING TO " << entry.stringValue( KIO::UDSEntry::UDS_TARGET_URL );
+    redirection( entry.stringValue( KIO::UDSEntry::UDS_TARGET_URL ) );
     finished();
     m_statBusy = false;
 }
