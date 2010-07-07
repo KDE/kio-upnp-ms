@@ -390,7 +390,7 @@ void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
         if( item && item->hasResource() ) {
             DIDL::Resource res = item->resource();
             entry.insert( KIO::UDSEntry::UDS_TARGET_URL, res["uri"] );
-            entry.insert( KIO::UDSEntry::UDS_TARGET_URL, res["size"].toULongLong() );
+            entry.insert( KIO::UDSEntry::UDS_SIZE, res["size"].toULongLong() );
         }
     }
     emit statEntry( entry );
