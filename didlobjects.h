@@ -28,9 +28,8 @@ namespace DIDL {
 typedef QHash<QString, QString> Resource;
 typedef QHash<QString, QString> ExtraData;
 
-class SuperObject : public QObject
+class SuperObject
 {
-  Q_OBJECT
   public:
     enum Type {
         Description,
@@ -56,7 +55,6 @@ class SuperObject : public QObject
  */
 class Description : public SuperObject
 {
-  Q_OBJECT
   public:
     /**
      * Create a new Description with the id and the namespace
@@ -74,7 +72,6 @@ class Description : public SuperObject
 
 class Object : public SuperObject
 {
-  Q_OBJECT
   public:
     Object( Type type, const QString &id, const QString &parentId, bool restricted );
 
@@ -116,7 +113,6 @@ class Object : public SuperObject
 
 class Container : public Object
 {
-  Q_OBJECT
   public:
     Container( const QString &id, const QString &parentId, bool restricted );
 
@@ -124,7 +120,6 @@ class Container : public Object
 
 class Item : public Object
 {
-  Q_OBJECT
   public:
     Item( const QString &id, const QString &parentId, bool restricted );
 
