@@ -25,6 +25,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <HActionArguments>
 #include <HAsyncOp>
 
+class QTimer;
+
 namespace Herqq
 {
     namespace Upnp
@@ -68,6 +70,7 @@ signals:
 
 private slots:
     void invokeComplete( Herqq::Upnp::HAsyncOp ); // SLOT
+    void timeout();
 
 private:
     void invoke( void *userData );
@@ -75,6 +78,7 @@ private:
     uint m_tries;
     QString m_errorString;
     ulong m_delay;
+    QTimer *m_timer;
 
     Herqq::Upnp::HAction *m_action;
     Herqq::Upnp::HActionArguments m_inputArgs;

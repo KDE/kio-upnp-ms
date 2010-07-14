@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "persistentaction.h"
 
 #include <QThread>
+#include <QTimer>
 
 #include <kdebug.h>
 
@@ -40,7 +41,20 @@ PersistentAction::PersistentAction( QObject *parent, uint maximumTries )
     : QObject( parent )
     , m_maximumTries( maximumTries )
     , m_action( 0 )
+    , m_timer( new QTimer( this ) )
 {
+    connect( m_timer, SIGNAL( timeout() ), this, SLOT( timeout() ) );
+}
+
+void PersistentAction::timeout()
+{
+    m_timer->stop();
+    // disconnect so that we don't get multiple invokeComplete calls in case it just finishes
+    bool ok = disconnect( m_action, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
+                       this, SLOT( invokeComplete( Herqq::Upnp::HAsyncOp ) ) );
+    HAsyncOp op;
+    op.setWaitCode( Herqq::Upnp::HAsyncOp::WaitTimeout );
+    invokeComplete( op );
 }
 
 void PersistentAction::invoke( Herqq::Upnp::HAction *action, const Herqq::Upnp::HActionArguments &args, void *userData )
@@ -50,25 +64,22 @@ void PersistentAction::invoke( Herqq::Upnp::HAction *action, const Herqq::Upnp::
     m_tries = 0;
     m_delay = 1000;
 
-    bool ok = connect( action, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
-                       this, SLOT( invokeComplete( Herqq::Upnp::HAsyncOp ) ) );
-    Q_ASSERT( ok );
-    Q_UNUSED( ok );
-
     invoke( userData );
 }
 
 void PersistentAction::invoke( void *userData )
 {
     kDebug() << "Beginning invoke" << m_action->name() << "Try number" << m_tries;
+    connect( m_action, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
+                       this, SLOT( invokeComplete( Herqq::Upnp::HAsyncOp ) ), Qt::UniqueConnection );
     HAsyncOp op = m_action->beginInvoke( m_inputArgs );
+    m_timer->start( 5000 );
     op.setUserData( userData );
 }
 
 void PersistentAction::invokeComplete( Herqq::Upnp::HAsyncOp invocationOp ) // SLOT
 {
     HActionArguments output;
-    invocationOp.setWaitTimeout( 2000 );
     bool ret = m_action->waitForInvoke( &invocationOp, &output );
 
     if( !ret || invocationOp.waitCode() != HAsyncOp::WaitSuccess ) {
