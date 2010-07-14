@@ -210,6 +210,9 @@ void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArgum
         return;
     }
 
+    PersistentAction *action = static_cast<PersistentAction *>( QObject::sender() );
+    action->deleteLater();
+
     QString reply = output["SearchCaps"]->value().toString();
 
     // NOTE as a reference!
