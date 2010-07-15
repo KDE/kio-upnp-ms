@@ -470,6 +470,8 @@ void ControlPointThread::browseOrSearchObject( const DIDL::Object *obj,
  *        If resolvePath is set, the search result's UDS_NAME
  *        is set to point to the relative path to the actual
  *        item, from the search root.
+ *  - filter : Optional. A CSV string specifying which DIDL-Lite fields should
+ *        be returned. The required fields are always returned.
  *
  * NOTE: The path component of the URL is treated as the top-level
  * container against which the search is run.
@@ -514,6 +516,11 @@ void ControlPointThread::listDir( const KUrl &url )
             emit error( KIO::ERR_SLAVE_DEFINED, i18n( "Expected query parameter as a minimum requirement for searching" ) );
             return;
         }
+
+        if( searchQueries.contains( "filter" ) )
+            m_filter = searchQueries["filter"];
+        else
+            m_filter = "*";
 
         m_queryString = searchQueries["query"];
         QRegExp queryParam("query\\d+");
@@ -829,7 +836,7 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint st
     browseOrSearchObject( object,
                           searchAction(),
                           m_queryString,
-                          "*",
+                          m_filter,
                           start,
                           count,
                           "" );
