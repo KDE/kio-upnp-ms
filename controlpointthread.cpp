@@ -495,7 +495,6 @@ void ControlPointThread::listDir( const KUrl &url )
     QString path = url.path(KUrl::RemoveTrailingSlash);
 
     if( !url.queryItem( "searchcapabilities" ).isNull() ) {
-        kDebug() << m_currentDevice.searchCapabilities;
         foreach( QString capability, m_currentDevice.searchCapabilities ) {
             KIO::UDSEntry entry;
             entry.insert( KIO::UDSEntry::UDS_NAME, capability );
@@ -507,7 +506,6 @@ void ControlPointThread::listDir( const KUrl &url )
     }
 
     if( !url.queryItem( "search" ).isNull() ) {
-        kDebug() << "SEARCHING()";
         QMap<QString, QString> searchQueries = url.queryItems();
         m_baseSearchPath = url.path( KUrl::AddTrailingSlash );
         m_resolveSearchPaths = url.queryItems().contains("resolvePath");
@@ -526,7 +524,6 @@ void ControlPointThread::listDir( const KUrl &url )
         QRegExp queryParam("query\\d+");
         foreach( QString key, searchQueries.keys() ) {
             if( queryParam.exactMatch(key) ) {
-                kDebug() << "Appending" << searchQueries[key];
                 m_queryString += " and " + searchQueries[key];
             }
         }
@@ -573,8 +570,6 @@ void ControlPointThread::listDir( const KUrl &url )
                 return;
             }
         }
-
-        kDebug() << "Good to go";
 
         connect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
                  this, SLOT( searchResolvedPath( const DIDL::Object * ) ) );
