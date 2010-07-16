@@ -85,20 +85,27 @@ class Parser : public QObject
     // NOTE should we emit pointers?
     /**
      * Emitted when a top-level <item> is completely parsed
+     * The caller should delete the item.
      */
     void itemParsed(DIDL::Item *);
 
     /**
      * Emitted when a top-level <container> is completely parsed.
+     * The caller should delete the container.
      */
     void containerParsed(DIDL::Container *);
 
     /**
      * Emitted for a top-level <desc> element is parsed.
+     * The caller should delete the description.
      */
     void descriptionParsed(DIDL::Description *);
 
  private:
+    /**
+     * The restricted attribute of a DIDL object is a "1"
+     * or "0", convert to a boolean
+     */
     bool interpretRestricted(const QStringRef &res);
     void parseItem();
     void parseContainer();
