@@ -636,6 +636,7 @@ void ControlPointThread::createDirectoryListing( const HActionArguments &args, A
     }
 
     QString didlString = args["Result"]->value().toString();
+    kDebug() << didlString;
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
 
