@@ -25,19 +25,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <HUpnp>
 
+#include "didlobjects.h"
+
 namespace Herqq
 {
     namespace Upnp
     {
         class HActionArguments;
     }
-}
-
-namespace DIDL
-{
-    class Object;
-    class Container;
-    class Item;
 }
 
 class ControlPointThread;

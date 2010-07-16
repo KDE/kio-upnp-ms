@@ -27,15 +27,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "controlpointthread.h"
 #include "didlparser.h"
-#include "didlobjects.h"
 
 using namespace Herqq;
 using namespace Herqq::Upnp;
 
 ObjectCache::ObjectCache( ControlPointThread *cpt )
     : QObject( cpt )
-    , m_cpt( cpt )
     , m_idToPathRequestsInProgress( false )
+    , m_cpt( cpt )
 {
     reset();
 }

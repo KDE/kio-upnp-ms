@@ -40,8 +40,8 @@ public:
 PersistentAction::PersistentAction( QObject *parent, uint maximumTries )
     : QObject( parent )
     , m_maximumTries( maximumTries )
-    , m_action( 0 )
     , m_timer( new QTimer( this ) )
+    , m_action( 0 )
 {
     connect( m_timer, SIGNAL( timeout() ), this, SLOT( timeout() ) );
 }
