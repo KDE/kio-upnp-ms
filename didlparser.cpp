@@ -141,9 +141,7 @@ void Parser::parseDescription()
 
 void Parser::parse(const QString &input)
 {
-    // minimal parsing just to test the resolver
     if( m_reader ) {
-        // TODO should probably just create this on the stack
         delete m_reader;
     }
     m_reader = new QXmlStreamReader(input);
