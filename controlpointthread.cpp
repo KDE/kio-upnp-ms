@@ -156,7 +156,6 @@ void ControlPointThread::run()
 
     exec();
 
-    // TODO delete all object caches in our device hash
     foreach( MediaServerDevice dev, m_devices ) {
         delete dev.cache;
         dev.cache = NULL;
@@ -173,8 +172,6 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
     dev.device = device;
     dev.cache = new ObjectCache( this );
 
-    // TODO: below code can be much cleaner
-    // connect to any state variables here
     HStateVariable *systemUpdateID = contentDirectory(dev.device)->stateVariableByName( "SystemUpdateID" );
     connect( systemUpdateID,
              SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
@@ -198,8 +195,10 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
     HAction *searchCapAction = contentDirectory(dev.device)->actionByName( "GetSearchCapabilities" );
     Q_ASSERT( searchCapAction );
 
-    connect( action, SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
-             this, SLOT( searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
+    connect( action,
+             SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
+             this,
+             SLOT( searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
 
     HActionArguments input = searchCapAction->inputArguments();
 
