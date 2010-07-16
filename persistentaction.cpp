@@ -80,6 +80,7 @@ void PersistentAction::invoke( void *userData )
 void PersistentAction::invokeComplete( Herqq::Upnp::HAsyncOp invocationOp ) // SLOT
 {
     HActionArguments output;
+    m_timer->stop();
     bool ret = m_action->waitForInvoke( &invocationOp, &output );
 
     if( !ret || invocationOp.waitCode() != HAsyncOp::WaitSuccess ) {
