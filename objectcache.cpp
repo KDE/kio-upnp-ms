@@ -233,6 +233,7 @@ bool ObjectCache::update( const QString &id, const QString &containerUpdateId )
 }
 
 // TODO scrap this in favour of resolveIdToPath()
+// remember to fix ControlPointThread before
 QString ObjectCache::pathForId( const QString &id )
 {
     return m_updatesHash[id].second;

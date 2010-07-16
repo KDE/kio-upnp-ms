@@ -623,7 +623,6 @@ void ControlPointThread::browseInvokeDone( HActionArguments output, HAsyncOp inv
 
     ActionStateInfo *info = ( ActionStateInfo *)invocationOp.userData();
     Q_ASSERT( info );
-    // TODO check for success
     emit browseResult( output, info );
 }
 
@@ -695,8 +694,6 @@ void ControlPointThread::fillContainer( KIO::UDSEntry &entry, DIDL::Container *c
     fillCommon( entry, c );
     entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
 
-    // TODO insert attributes into meta-data in parser
-    // or childCount won't be available
     fillMetadata(entry, KIO::UPNP_ALBUM_CHILDCOUNT, c, "childCount");
 }
 
@@ -709,8 +706,6 @@ void ControlPointThread::fillItem( KIO::UDSEntry &entry, DIDL::Item *item )
         entry.insert( KIO::UDSEntry::UDS_MIME_TYPE, res["mimetype"] );
         entry.insert( KIO::UDSEntry::UDS_SIZE, res["size"].toULongLong() );
         entry.insert( KIO::UDSEntry::UDS_TARGET_URL, res["uri"] );
-
-        // TODO extra meta-data
     }
     else {
         long long access = entry.numberValue( KIO::UDSEntry::UDS_ACCESS );
@@ -766,7 +761,6 @@ void ControlPointThread::slotCDSUpdated( const HStateVariableEvent &event )
 
 void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event )
 {
-// TODO back resolution from ID to *uncached* paths
     kDebug() << "UPDATED containers" << event.newValue();
 
     HDevice *deviceForEvent = event.eventSource()->parentService()->parentDevice();
@@ -814,11 +808,6 @@ void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariable
 //   actually point to a/b/c ( we need id->path mappings )
 // - somehow use createDirectoryListing's slot-recursive action
 //   invocation in a generalised manner
-
-
-// Much of the same logic/methods used in browsing are or are going to be
-// duplicated here, but they overlap quite a bit and can be refactored
-// significantly
 
 void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint start, uint count )
 {
