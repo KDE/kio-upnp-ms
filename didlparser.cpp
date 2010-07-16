@@ -36,6 +36,7 @@ Parser::Parser()
 
 Parser::~Parser()
 {
+    delete m_reader;
 }
 
 bool Parser::interpretRestricted(const QStringRef &res)
