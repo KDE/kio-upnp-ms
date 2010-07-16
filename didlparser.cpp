@@ -119,6 +119,9 @@ void Parser::parseContainer()
         attributes.value("parentID").toString(),
         interpretRestricted( attributes.value("restricted") ) );
 
+    if( attributes.hasAttribute("childCount") )
+        container->setDataItem( "childCount", attributes.value("childCount").toString() );
+
     while( m_reader->readNextStartElement() ) {
         if( parseObjectCommon( container ) ) {
         }
