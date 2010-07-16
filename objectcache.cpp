@@ -48,11 +48,9 @@ void ObjectCache::reset()
     m_reverseCache.clear();
     m_idToPathCache.clear();
 
-    m_updatesHash.insert( "", UpdateValueAndPath( "0", "" ) );
     m_reverseCache.insert( "", new DIDL::Container( "0", "-1", false ) );
     m_idToPathCache.insert( QString("0"), new QString("") );
 
-    m_updatesHash.insert( "/", UpdateValueAndPath( "0", "/" ) );
     m_reverseCache.insert( "/", new DIDL::Container( "0", "-1", false ) );
 }
 
@@ -178,7 +176,6 @@ void ObjectCache::attemptResolution( const HActionArguments &args )
         // TODO: if we already have the id, should we just update the
         // ContainerUpdateIDs
 // TODO no more QPairs
-        m_updatesHash.insert( m_resolve.object->id(), UpdateValueAndPath( "0", pathToInsert ) );
         m_resolve.pathIndex = SEP_POS( m_resolve.fullPath, pathToInsert.length() );
         // ignore trailing slashes
         if( m_resolve.pathIndex == m_resolve.fullPath.length()-1 ) {
@@ -223,11 +220,16 @@ bool ObjectCache::hasUpdateId( const QString &id )
 
 bool ObjectCache::update( const QString &id, const QString &containerUpdateId )
 {
-    if( hasUpdateId( id ) ) {
-        if( m_updatesHash[id].first != containerUpdateId ) {
-            m_updatesHash[id].first = containerUpdateId;
-            return true;
-        }
+    if( !hasUpdateId( id ) ) {
+        if( m_idToPathCache.contains( id ) )
+            m_updatesHash[id] = UpdateValueAndPath( "", *m_idToPathCache[id] );
+        else
+            return false;
+    }
+
+    if( m_updatesHash[id].first != containerUpdateId ) {
+        m_updatesHash[id].first = containerUpdateId;
+        return true;
     }
     return false;
 }

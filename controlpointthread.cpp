@@ -777,21 +777,19 @@ void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariable
         QString updateValue = *it;
         it++;
 
-        if( m_devices[uuid].cache->hasUpdateId( id ) ) {
 // NOTE what about CDS's with tracking changes option?
 // TODO implement later
 
-            if( m_devices[uuid].cache->update( id, updateValue ) ) {
-                QString updatedPath = m_devices[uuid].cache->pathForId( id );
-                kDebug() << "ID" << id << "Path" << updatedPath;
+        if( m_devices[uuid].cache->update( id, updateValue ) ) {
+            QString updatedPath = m_devices[uuid].cache->pathForId( id );
+            kDebug() << "ID" << id << "Path" << updatedPath;
 
-                KUrl fullPath;
+            KUrl fullPath;
 
-                fullPath.setProtocol( "upnp-ms" );
-                fullPath.setHost( uuid );
-                fullPath.setPath( updatedPath );
-                filesChanged << fullPath.prettyUrl();
-            }
+            fullPath.setProtocol( "upnp-ms" );
+            fullPath.setHost( uuid );
+            fullPath.setPath( updatedPath );
+            filesChanged << fullPath.prettyUrl();
         }
     }
     kDebug() << "Files Changed" << filesChanged;
