@@ -157,6 +157,10 @@ void ControlPointThread::run()
     exec();
 
     // TODO delete all object caches in our device hash
+    foreach( MediaServerDevice dev, m_devices ) {
+        delete dev.cache;
+        dev.cache = NULL;
+    }
     delete m_controlPoint;
 }
 
