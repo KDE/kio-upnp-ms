@@ -156,6 +156,7 @@ class ControlPointThread : public QThread
 
     QString m_queryString;
     QString m_filter;
+    bool m_getCount;
 
     // used to resolve relative paths
     uint m_searchListingCounter;

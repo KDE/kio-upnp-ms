@@ -475,6 +475,8 @@ void ControlPointThread::browseOrSearchObject( const DIDL::Object *obj,
  *        item, from the search root.
  *  - filter : Optional. A CSV string specifying which DIDL-Lite fields should
  *        be returned. The required fields are always returned.
+ *  - getCount : Optional. Return only a count (TotalMatches) instead of actual entries.
+ *        One item will be emitted with UDS_NAME being the count.
  *
  * NOTE: The path component of the URL is treated as the top-level
  * container against which the search is run.
@@ -522,6 +524,11 @@ void ControlPointThread::listDir( const KUrl &url )
             m_filter = searchQueries["filter"];
         else
             m_filter = "*";
+
+        if( searchQueries.contains( "getCount" ) )
+            m_getCount = true;
+        else
+            m_getCount = false;
 
         m_queryString = searchQueries["query"];
         QRegExp queryParam("query\\d+");
@@ -840,7 +847,17 @@ void ControlPointThread::createSearchListing( const HActionArguments &args, Acti
         return;
     }
 
+    if( m_getCount ) {
+        QString matches = args["TotalMatches"]->value().toString();
+        KIO::UDSEntry entry;
+        entry.insert( KIO::UDSEntry::UDS_NAME, matches );
+        emit listEntry( entry );
+        emit listingDone();
+        return;
+    }
+
     QString didlString = args["Result"]->value().toString();
+    kDebug() << didlString;
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
 
