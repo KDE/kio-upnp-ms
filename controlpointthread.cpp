@@ -208,20 +208,24 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
 void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString ) // SLOT
 {
     Q_UNUSED( op );
-    if( !ok ) {
-        emit error( KIO::ERR_SLAVE_DEFINED, "Could not invoke GetSearchCapabilities(): " + errorString );
-        return;
-    }
-
     PersistentAction *action = static_cast<PersistentAction *>( QObject::sender() );
     action->deleteLater();
-
-    QString reply = output["SearchCaps"]->value().toString();
 
     // NOTE as a reference!
     HDeviceProxy *device = (HDeviceProxy *) op.userData();
     Q_ASSERT( device );
     MediaServerDevice &dev = m_devices[device->deviceInfo().udn().toSimpleUuid()];
+
+    if( !ok ) {
+        emit error( KIO::ERR_SLAVE_DEFINED, "Could not invoke GetSearchCapabilities(): " + errorString );
+        // we are still 'ready' because browse is always possible
+        dev.searchCapabilities = QStringList();
+        emit deviceReady();
+        return;
+    }
+
+    QString reply = output["SearchCaps"]->value().toString();
+
     dev.searchCapabilities = reply.split(",", QString::SkipEmptyParts);
 
     emit deviceReady();
