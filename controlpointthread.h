@@ -75,9 +75,12 @@ class ControlPointThread : public QThread
         ObjectCache *cache;
         QStringList searchCapabilities;
     };
+
   public:
     ControlPointThread( QObject *parent=0 );
     virtual ~ControlPointThread();
+
+  public slots:
     void listDir( const KUrl &url );
     void stat( const KUrl &url );
 

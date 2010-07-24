@@ -73,6 +73,10 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     void stat( const KUrl &url );
     void listDir( const KUrl &url );
 
+ signals:
+    void startStat( const KUrl &url );
+    void startListDir( const KUrl &url );
+
   private slots:
     void slotStatEntry( const KIO::UDSEntry & );
     void slotListEntry( const KIO::UDSEntry & );

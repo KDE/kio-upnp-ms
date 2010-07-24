@@ -70,6 +70,8 @@ extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
     fprintf( stderr, "Usage: kio_upnp_ms protocol domain-socket1 domain-socket2\n");
     exit( -1 );
   }
+
+  qRegisterMetaType<KUrl>();
   
   UPnPMS slave( argv[2], argv[3] );
   slave.dispatchLoop();
@@ -97,9 +99,11 @@ UPnPMS::~UPnPMS()
 void UPnPMS::stat( const KUrl &url )
 {
     m_statBusy = true;
+    connect( this, SIGNAL( startStat( const KUrl &) ),
+             &m_cpthread, SLOT( stat( const KUrl &) ) );
     connect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
                        this, SLOT( slotStatEntry( const KIO::UDSEntry & ) ) );
-    m_cpthread.stat(url);
+    emit startStat( url );
     while( m_statBusy )
         QCoreApplication::processEvents();
 }
@@ -107,8 +111,10 @@ void UPnPMS::stat( const KUrl &url )
 void UPnPMS::get( const KUrl &url )
 {
     m_statBusy = true;
-    Q_ASSERT( connect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry & ) ), this, SLOT( slotRedirect( const KIO::UDSEntry & ) ) ) );
-    m_cpthread.stat( url );
+    connect( this, SIGNAL( startStat( const KUrl &) ),
+             &m_cpthread, SLOT( stat( const KUrl &) ) );
+    connect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry & ) ), this, SLOT( slotRedirect( const KIO::UDSEntry & ) ) );
+    emit startStat( url );
     while( m_statBusy )
         QCoreApplication::processEvents();
 }
@@ -123,11 +129,13 @@ void UPnPMS::slotError( int type, const QString &message )
 void UPnPMS::listDir( const KUrl &url )
 {
     m_listBusy = true;
+    connect( this, SIGNAL( startListDir( const KUrl &) ),
+             &m_cpthread, SLOT( listDir( const KUrl &) ) );
     connect( &m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
                        this, SLOT( slotListEntry( const KIO::UDSEntry & ) ) );
     connect( &m_cpthread, SIGNAL( listingDone() ),
                        this, SLOT( slotListingDone() ) );
-    m_cpthread.listDir(url);
+    emit startListDir( url );
     while( m_listBusy )
         QCoreApplication::processEvents();
 }
@@ -138,6 +146,8 @@ void UPnPMS::slotStatEntry( const KIO::UDSEntry &entry )
               this, SLOT( slotStatEntry( const KIO::UDSEntry & ) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
+    disconnect( this, SIGNAL( startStat( const KUrl &) ),
+             &m_cpthread, SLOT( stat( const KUrl &) ) );
     statEntry( entry );
     finished();
     m_statBusy = false;
@@ -149,6 +159,8 @@ void UPnPMS::slotRedirect( const KIO::UDSEntry &entry )
               this, SLOT( slotRedirect( const KIO::UDSEntry & ) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
+    disconnect( this, SIGNAL( startStat( const KUrl &) ),
+             &m_cpthread, SLOT( stat( const KUrl &) ) );
     if( entry.isDir() ) {
         error( KIO::ERR_CANNOT_OPEN_FOR_READING, QString() );
         return;
@@ -166,6 +178,8 @@ void UPnPMS::slotListEntry( const KIO::UDSEntry &entry )
 
 void UPnPMS::slotListingDone()
 {
+    disconnect( this, SIGNAL( startListDir( const KUrl &) ),
+             &m_cpthread, SLOT( listDir( const KUrl &) ) );
     disconnect( &m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
               this, SLOT( slotListEntry( const KIO::UDSEntry & ) ) );
     disconnect( &m_cpthread, SIGNAL( listingDone() ),
