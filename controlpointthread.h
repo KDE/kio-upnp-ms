@@ -20,8 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef CONTROLPOINTTHREAD_H
 #define CONTROLPOINTTHREAD_H
 
-#include "deviceinfo.h"
-
 #include <QCache>
 #include <QThread>
 #include <QMutex>
@@ -31,6 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <HUpnp>
 #include <HAsyncOp>
 #include <HActionArguments>
+#include <HDeviceInfo>
 
 namespace Herqq
 {
@@ -71,7 +70,7 @@ class ControlPointThread : public QThread
 
     struct MediaServerDevice {
         Herqq::Upnp::HDeviceProxy *device;
-        DeviceInfo deviceInfo;
+        Herqq::Upnp::HDeviceInfo deviceInfo;
         ObjectCache *cache;
         QStringList searchCapabilities;
     };

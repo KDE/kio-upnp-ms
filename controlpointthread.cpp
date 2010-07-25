@@ -44,8 +44,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <HUdn>
 #include <HUpnp>
 
-#include "deviceinfo.h"
-#include "dbuscodec.h"
 #include "didlparser.h"
 #include "didlobjects.h"
 #include "upnptypes.h"
@@ -116,7 +114,6 @@ ControlPointThread::ControlPointThread( QObject *parent )
     //Herqq::Upnp::SetLoggingLevel( Herqq::Upnp::Debug );
     qRegisterMetaType<KIO::UDSEntry>();
     qRegisterMetaType<Herqq::Upnp::HActionArguments>();
-    qDBusRegisterMetaType<DeviceInfo>();
 
     start();
 
@@ -170,6 +167,7 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
     // NOTE as a reference!
     MediaServerDevice &dev = m_devices[device->deviceInfo().udn().toSimpleUuid()];
     dev.device = device;
+    dev.deviceInfo = device->deviceInfo();
     dev.cache = new ObjectCache( this );
 
     HStateVariable *systemUpdateID = contentDirectory(dev.device)->stateVariableByName( "SystemUpdateID" );
@@ -242,7 +240,7 @@ void ControlPointThread::rootDeviceOffline(HDeviceProxy *device) // SLOT
         if( m_currentDevice.device->deviceInfo().udn() == device->deviceInfo().udn() ) {
             kDebug() << "Was current device - invalidating";
             m_currentDevice.device = NULL;
-            m_currentDevice.deviceInfo = DeviceInfo();
+            m_currentDevice.deviceInfo = HDeviceInfo();
         }
 
         m_devices.remove( uuid );
@@ -257,32 +255,18 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
 {
     kDebug() << "Updating device info for " << url;
 
-    QDBusConnection bus = QDBusConnection::sessionBus();
-    QDBusInterface iface( "org.kde.Cagibi", "/org/kde/Cagibi", "org.kde.Cagibi", bus );
     QString udn = "uuid:" + url.host();
-    QDBusReply<DeviceInfo> res = iface.call("deviceDetails", udn);
-    if( !res.isValid() ) {
-        kDebug() << "Invalid request" << res.error().message();
-        emit error(KIO::ERR_COULD_NOT_CONNECT, udn);
-        return false;
-    }
-
-    DeviceInfo deviceInfo = res.value();
-    if( deviceInfo.udn().isEmpty() ) {
-        emit error( KIO::ERR_COULD_NOT_MOUNT, i18n( "Device %1 is offline", url.host() ) );
-        return false;
-    }
 
     // the device is definitely present, so we let the scan fill in
     // remaining details
     MediaServerDevice dev;
     dev.device = NULL;
-    dev.deviceInfo = deviceInfo;
+    dev.deviceInfo = HDeviceInfo();
     dev.cache = NULL;
     dev.searchCapabilities = QStringList();
     m_devices[url.host()] = dev;
 
-    HDiscoveryType specific(deviceInfo.udn());
+    HDiscoveryType specific( udn );
     // Stick to multicast, unicast is a UDA 1.1 feature
     // all devices don't support it
     // Thanks to Tuomo Penttinen for pointing that out
@@ -301,9 +285,12 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
             SIGNAL(deviceReady()),
             &local,
             SLOT(quit()));
+    QTimer::singleShot( 5000, &local, SLOT(quit()) );
     local.exec();
 
-    kDebug() << "+++ REeturning from loop";
+    if( !m_devices[url.host()].deviceInfo.isValid() )
+        return false;
+
     return true;
 }
 
