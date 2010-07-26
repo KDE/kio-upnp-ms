@@ -121,7 +121,6 @@ void UPnPMS::get( const KUrl &url )
 
 void UPnPMS::slotError( int type, const QString &message )
 {
-    m_cpthread.quit();
     m_statBusy = false;
     m_listBusy = false;
     error( type, message );
