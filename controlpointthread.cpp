@@ -188,7 +188,7 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
         kDebug() << dev.deviceInfo.friendlyName() << "does not support updates";
     }
 
-    PersistentAction *action = new PersistentAction;
+    PersistentAction *action = new PersistentAction( this, 1 ); // try just once
 
     HAction *searchCapAction = contentDirectory(dev.device)->actionByName( "GetSearchCapabilities" );
     Q_ASSERT( searchCapAction );
