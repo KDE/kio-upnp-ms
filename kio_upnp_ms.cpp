@@ -101,7 +101,7 @@ void UPnPMS::stat( const KUrl &url )
     m_statBusy = true;
     connect( this, SIGNAL( startStat( const KUrl &) ),
              &m_cpthread, SLOT( stat( const KUrl &) ) );
-    connect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
+    connect( &m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
                        this, SLOT( slotStatEntry( const KIO::UDSEntry & ) ) );
     emit startStat( url );
     while( m_statBusy )
@@ -142,7 +142,7 @@ void UPnPMS::listDir( const KUrl &url )
 
 void UPnPMS::slotStatEntry( const KIO::UDSEntry &entry )
 {
-    bool ok = disconnect( &m_cpthread, SIGNAL( statEntry( const KIO::UDSEntry &) ),
+    bool ok = disconnect( &m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
               this, SLOT( slotStatEntry( const KIO::UDSEntry & ) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
