@@ -558,9 +558,22 @@ void ControlPointThread::listDir( const KUrl &url )
             }
         }
 
-        connect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
-                 this, SLOT( searchResolvedPath( const DIDL::Object * ) ) );
-        m_currentDevice.cache->resolvePathToObject( path );
+        if( url.hasQueryItem( "id" ) ) {
+            connect( this, SIGNAL(browseResult(Herqq::Upnp::HActionArguments,ActionStateInfo*)),
+                    this, SLOT(createSearchListing(Herqq::Upnp::HActionArguments,ActionStateInfo*)) );
+            browseOrSearchObject( new DIDL::Object( DIDL::SuperObject::Item, url.queryItem( "id" ), "-1", true ),
+                                  searchAction(),
+                                  m_queryString,
+                                  m_filter,
+                                  0,
+                                  30, // TODO not a good constant, #define this somewhere
+                                  "" );
+        }
+        else {
+            connect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
+                    this, SLOT( searchResolvedPath( const DIDL::Object * ) ) );
+            m_currentDevice.cache->resolvePathToObject( path );
+        }
         return;
     }
 

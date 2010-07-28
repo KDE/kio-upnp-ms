@@ -81,44 +81,51 @@ class ControlPointThread : public QThread
 
   public slots:
     /**
-    * Search capabilities
-    *
-    * Users of the kio-slave can check if searching is supported
-    * by the remote MediaServer/CDS by passing the query option
-    * 'searchcapabilities' to the slave.
-    * Each capability is returned as a file entry with the name
-    * being the exact proprety supported in the search.
-    * It is recommended that a synchronous job be used to test this.
-    *
-    * Errors are always reported by error(), so if you do not
-    * receive any entries, that means 0 items matched the search.
-    *
-    * A search can be run instead of a browse by passing the following
-    * query parameters:
-    *  - search : Required. activate search rather than browse.
-    *  - query : Required. a valid UPnP Search query string.
-    *  - query2 : Optional. A query logically ANDed with query1.
-    *  - ......
-    *  - queryN : Similar to query 2
-    *  - resolvePath : Optional. Resolve paths to search results. ( Default: false ).
-    *        If resolvePath is set, the search result's UDS_NAME
-    *        is set to point to the relative path to the actual
-    *        item, from the search root.
-    *  - filter : Optional. A CSV string specifying which DIDL-Lite fields should
-    *        be returned. The required fields are always returned.
-    *  - getCount : Optional. Return only a count (TotalMatches) instead of actual entries.
-    *        One item will be emitted with UDS_NAME being the count.
-    *
-    * NOTE: The path component of the URL is treated as the top-level
-    * container against which the search is run.
-    * Usually you will want to use '/', but try to be more
-    * specific if possible since that will give faster results.
-    * It is recommended that values be percent encoded.
-    * Since CDS implementations can be quite flaky or rigid, Stick
-    * to the SearchCriteria specified in the UPNP specification.
-    * In addition the slave will check that only properties
-    * supported by the server are used.
-    */
+     * General
+     *
+     * Instead of a path, the slave also accepts a query parameter 'id'
+     * containing a valid container ID on which the browse or search will
+     * be performed instead. This is useful for applications using
+     * the slave internally, since it can really speed up the listing.
+     * 
+     * Search capabilities
+     *
+     * Users of the kio-slave can check if searching is supported
+     * by the remote MediaServer/CDS by passing the query option
+     * 'searchcapabilities' to the slave.
+     * Each capability is returned as a file entry with the name
+     * being the exact proprety supported in the search.
+     * It is recommended that a synchronous job be used to test this.
+     *
+     * Errors are always reported by error(), so if you do not
+     * receive any entries, that means 0 items matched the search.
+     *
+     * A search can be run instead of a browse by passing the following
+     * query parameters:
+     *  - search : Required. activate search rather than browse.
+     *  - query : Required. a valid UPnP Search query string.
+     *  - query2 : Optional. A query logically ANDed with query1.
+     *  - ......
+     *  - queryN : Similar to query 2
+     *  - resolvePath : Optional. Resolve paths to search results. ( Default: false ).
+     *        If resolvePath is set, the search result's UDS_NAME
+     *        is set to point to the relative path to the actual
+     *        item, from the search root.
+     *  - filter : Optional. A CSV string specifying which DIDL-Lite fields should
+     *        be returned. The required fields are always returned.
+     *  - getCount : Optional. Return only a count (TotalMatches) instead of actual entries.
+     *        One item will be emitted with UDS_NAME being the count.
+     *
+     * NOTE: The path component of the URL is treated as the top-level
+     * container against which the search is run.
+     * Usually you will want to use '/', but try to be more
+     * specific if possible since that will give faster results.
+     * It is recommended that values be percent encoded.
+     * Since CDS implementations can be quite flaky or rigid, Stick
+     * to the SearchCriteria specified in the UPNP specification.
+     * In addition the slave will check that only properties
+     * supported by the server are used.
+     */
     void listDir( const KUrl &url );
 
     /**
@@ -182,6 +189,9 @@ class ControlPointThread : public QThread
      * Connect to the browseResult() signal
      * to receive the HActionArguments received
      * from the result.
+     *
+     * @param obj - A DIDL::Object referred ONLY for the ID.
+     *              A temporarily created object can be used with invalid values as long as ID is valid
      */
     void browseOrSearchObject( const DIDL::Object *obj,
                                Herqq::Upnp::HAction *action,
