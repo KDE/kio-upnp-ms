@@ -373,21 +373,12 @@ void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
         return;
     }
 
-    entry.insert( KIO::UDSEntry::UDS_NAME, object->title() );
-    entry.insert( KIO::UDSEntry::UDS_DISPLAY_NAME, QUrl::fromPercentEncoding( object->title().toAscii() ) );
-    entry.insert( KIO::UPNP_CLASS, object->upnpClass() );
     if( object->type() == DIDL::SuperObject::Container )
-        entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
-    else {
-        entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
-        const DIDL::Item *item = static_cast<const DIDL::Item *>( object );
-        if( item && item->hasResource() ) {
-            DIDL::Resource res = item->resource();
-            entry.insert( KIO::UDSEntry::UDS_TARGET_URL, res["uri"] );
-            entry.insert( KIO::UDSEntry::UDS_SIZE, res["size"].toULongLong() );
-        }
-    }
-    emit statEntry( entry );
+        fillContainer( entry, static_cast<const DIDL::Container*>( object ) );
+    else if( object->type() == DIDL::SuperObject::Item )
+        fillItem( entry, static_cast<const DIDL::Item*>( object ) );
+
+    emit listEntry( entry );
 }
 
 /////////////////////////////////////////////
