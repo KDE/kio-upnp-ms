@@ -80,7 +80,54 @@ class ControlPointThread : public QThread
     virtual ~ControlPointThread();
 
   public slots:
+    /**
+    * Search capabilities
+    *
+    * Users of the kio-slave can check if searching is supported
+    * by the remote MediaServer/CDS by passing the query option
+    * 'searchcapabilities' to the slave.
+    * Each capability is returned as a file entry with the name
+    * being the exact proprety supported in the search.
+    * It is recommended that a synchronous job be used to test this.
+    *
+    * Errors are always reported by error(), so if you do not
+    * receive any entries, that means 0 items matched the search.
+    *
+    * A search can be run instead of a browse by passing the following
+    * query parameters:
+    *  - search : Required. activate search rather than browse.
+    *  - query : Required. a valid UPnP Search query string.
+    *  - query2 : Optional. A query logically ANDed with query1.
+    *  - ......
+    *  - queryN : Similar to query 2
+    *  - resolvePath : Optional. Resolve paths to search results. ( Default: false ).
+    *        If resolvePath is set, the search result's UDS_NAME
+    *        is set to point to the relative path to the actual
+    *        item, from the search root.
+    *  - filter : Optional. A CSV string specifying which DIDL-Lite fields should
+    *        be returned. The required fields are always returned.
+    *  - getCount : Optional. Return only a count (TotalMatches) instead of actual entries.
+    *        One item will be emitted with UDS_NAME being the count.
+    *
+    * NOTE: The path component of the URL is treated as the top-level
+    * container against which the search is run.
+    * Usually you will want to use '/', but try to be more
+    * specific if possible since that will give faster results.
+    * It is recommended that values be percent encoded.
+    * Since CDS implementations can be quite flaky or rigid, Stick
+    * to the SearchCriteria specified in the UPNP specification.
+    * In addition the slave will check that only properties
+    * supported by the server are used.
+    */
     void listDir( const KUrl &url );
+
+    /**
+     * Stat returns meta-data for the path passed in.
+     * Alternatively stat accepts a query:
+     *  - id : Optional. A string ID.
+     *         When 'id' is passed, stat directly attempts to fetch meta-data for that id.
+     *         This can be significantly faster and can be used by applications using the kio-slave
+     */
     void stat( const KUrl &url );
 
   protected:
