@@ -564,6 +564,18 @@ void ControlPointThread::listDir( const KUrl &url )
         return;
     }
 
+    if( url.hasQueryItem( "id" ) ) {
+        connect( this, SIGNAL(browseResult(Herqq::Upnp::HActionArguments,ActionStateInfo*)),
+                 this, SLOT(createDirectoryListing(Herqq::Upnp::HActionArguments,ActionStateInfo*)) );
+        browseOrSearchObject( new DIDL::Object( DIDL::SuperObject::Item, url.queryItem( "id" ), "-1", true ),
+                              browseAction(),
+                              BROWSE_DIRECT_CHILDREN,
+                              "*",
+                              0,
+                              0,
+                              "" );
+        return;
+    }
     connect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
              this, SLOT( browseResolvedPath( const DIDL::Object *) ) );
     m_currentDevice.cache->resolvePathToObject(path);
