@@ -148,9 +148,9 @@ class ControlPointThread : public QThread
     Herqq::Upnp::HAction* browseAction() const;
     Herqq::Upnp::HAction* searchAction() const;
 
-    void fillCommon( KIO::UDSEntry &entry, DIDL::Object *obj );
-    void fillContainer( KIO::UDSEntry &entry, DIDL::Container *c );
-    void fillItem( KIO::UDSEntry &entry, DIDL::Item *item );
+    void fillCommon( KIO::UDSEntry &entry, const DIDL::Object *obj );
+    void fillContainer( KIO::UDSEntry &entry, const DIDL::Container *c );
+    void fillItem( KIO::UDSEntry &entry, const DIDL::Item *item );
 
     Herqq::Upnp::HControlPoint *m_controlPoint;
 

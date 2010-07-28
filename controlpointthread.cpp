@@ -669,7 +669,7 @@ void ControlPointThread::slotParseError( const QString &errorString )
     emit error(KIO::ERR_SLAVE_DEFINED, errorString);
 }
 
-void ControlPointThread::fillCommon( KIO::UDSEntry &entry, DIDL::Object *obj )
+void ControlPointThread::fillCommon( KIO::UDSEntry &entry, const DIDL::Object *obj )
 {
     entry.insert( KIO::UDSEntry::UDS_NAME, obj->title() );
     entry.insert( KIO::UDSEntry::UDS_DISPLAY_NAME, QUrl::fromPercentEncoding( obj->title().toAscii() ) );
@@ -687,7 +687,7 @@ void ControlPointThread::fillCommon( KIO::UDSEntry &entry, DIDL::Object *obj )
     entry.insert( KIO::UPNP_PARENT_ID, obj->parentId() );
 }
 
-void ControlPointThread::fillContainer( KIO::UDSEntry &entry, DIDL::Container *c )
+void ControlPointThread::fillContainer( KIO::UDSEntry &entry, const DIDL::Container *c )
 {
     fillCommon( entry, c );
     entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
@@ -695,7 +695,7 @@ void ControlPointThread::fillContainer( KIO::UDSEntry &entry, DIDL::Container *c
     fillMetadata(entry, KIO::UPNP_ALBUM_CHILDCOUNT, c, "childCount");
 }
 
-void ControlPointThread::fillItem( KIO::UDSEntry &entry, DIDL::Item *item )
+void ControlPointThread::fillItem( KIO::UDSEntry &entry, const DIDL::Item *item )
 {
     fillCommon( entry, item );
     entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );

@@ -128,7 +128,7 @@ class Item : public Object
     void addResource( const Resource &res );
 
     void setRefId( const QString &id ) { m_refId = id; }
-    QString refId() { return m_refId; }
+    QString refId() const { return m_refId; }
 
   private:
     // Container can have a <res>, but is it done in
