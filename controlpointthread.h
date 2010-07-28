@@ -107,6 +107,7 @@ class ControlPointThread : public QThread
     void searchResolvedPath( const DIDL::Object *object, uint start = 0, uint count = 30 );
     void createSearchListing( const Herqq::Upnp::HActionArguments &args, ActionStateInfo *info );
 
+    void createStatResult( Herqq::Upnp::HActionArguments output, ActionStateInfo *info );
     void statResolvedPath( const DIDL::Object * );
 
     void searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString );

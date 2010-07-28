@@ -353,12 +353,46 @@ void ControlPointThread::stat( const KUrl &url )
       return;
     }
 
+    if( url.hasQueryItem( "id" ) ) {
+        connect( this, SIGNAL(browseResult(Herqq::Upnp::HActionArguments,ActionStateInfo*)),
+                 this, SLOT(createStatResult(Herqq::Upnp::HActionArguments,ActionStateInfo*)) );
+        browseOrSearchObject( new DIDL::Object( DIDL::SuperObject::Item, url.queryItem( "id" ), "-1", true ),
+                              browseAction(),
+                              BROWSE_METADATA,
+                              "*",
+                              0,
+                              0,
+                              "" );
+        return;
+    }
+
     QString path = url.path(KUrl::RemoveTrailingSlash);
     kDebug() << url << path;
     connect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
              this, SLOT( statResolvedPath( const DIDL::Object * ) ) );
 
     m_currentDevice.cache->resolvePathToObject( path );
+}
+
+void ControlPointThread::createStatResult(Herqq::Upnp::HActionArguments output, ControlPointThread::ActionStateInfo* info)
+{
+    Q_UNUSED( info );
+    bool ok = disconnect( this, SIGNAL(browseResult(Herqq::Upnp::HActionArguments,ActionStateInfo*)),
+                          this, SLOT( createStatResult(Herqq::Upnp::HActionArguments,ActionStateInfo*)) );
+    Q_ASSERT( ok );
+    Q_UNUSED( ok );
+    if( !output["Result"] ) {
+        emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
+        return;
+    }
+
+    QString didlString = output["Result"]->value().toString();
+    kDebug() << "STAT" << didlString;
+    DIDL::Parser parser;
+    connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
+    connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) );
+    connect( &parser, SIGNAL(itemParsed(DIDL::Item *)), this, SLOT(slotListItem(DIDL::Item *)) );
+    parser.parse(didlString);
 }
 
 void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
