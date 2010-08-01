@@ -9,7 +9,7 @@
 #include <KAboutData>
 #include <KUrl>
 #include <kdebug.h>
-#include <kio/upnptypes.h>
+#include "upnptypes.h"
  
 stattest::stattest(const KUrl &url)
     : QObject(0)
