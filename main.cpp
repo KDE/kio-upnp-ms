@@ -11,13 +11,16 @@
 #include <kdebug.h>
 #include <kio/upnptypes.h>
  
-upnptest::upnptest(const KUrl &url)
+upnptest::upnptest(const KCmdLineArgs *args)
     : QObject()
 {
-    KIO::ListJob *job = KIO::listDir(url);
-    connect( job, SIGNAL(entries(KIO::Job *, const KIO::UDSEntryList&)),
-             this, SLOT(entries(KIO::Job *, const KIO::UDSEntryList&)));
-    connect( job, SIGNAL(result(KJob *)), this, SLOT(done(KJob *)));
+    for( int i = 0; i < args->count(); ++i ) {
+        KUrl url = args->url( i );
+        KIO::ListJob *job = KIO::listDir(url);
+        connect( job, SIGNAL(entries(KIO::Job *, const KIO::UDSEntryList&)),
+                this, SLOT(entries(KIO::Job *, const KIO::UDSEntryList&)), Qt::UniqueConnection);
+        connect( job, SIGNAL(result(KJob *)), this, SLOT(done(KJob *)), Qt::UniqueConnection);
+    }
 }
 
 void upnptest::done(KJob *job)
@@ -25,7 +28,7 @@ void upnptest::done(KJob *job)
     kDebug() << "Done";
     if( job->error() ) {
         kDebug() << "ERROR!" << job->errorString();
-        kapp->quit();
+        job->kill();
     }
     //kapp->quit();
 }
@@ -33,7 +36,7 @@ void upnptest::done(KJob *job)
 void upnptest::entries(KIO::Job *job, const KIO::UDSEntryList &list )
 {
     Q_UNUSED( job );
-    kDebug() << "-------------------------------------------";
+    kDebug() << static_cast<KIO::ListJob*>(job)->url() << "-------------------------------------------";
     foreach( KIO::UDSEntry entry, list ) {
         kDebug() << entry.stringValue( KIO::UDSEntry::UDS_NAME )
                  << entry.stringValue( KIO::UDSEntry::UDS_MIME_TYPE );
@@ -56,11 +59,11 @@ int main (int argc, char *argv[])
   KCmdLineArgs::init( argc, argv, &aboutData );
 
   KCmdLineOptions options;
-  options.add("+[url]", ki18n("path"));
+  options.add("+urls", ki18n("path"));
   KCmdLineArgs::addCmdLineOptions(options);
 
   KApplication khello;
  
-  new upnptest( KCmdLineArgs::parsedArgs()->url(0).url() );
+  new upnptest( KCmdLineArgs::parsedArgs() );
   khello.exec();
 }
