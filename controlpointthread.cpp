@@ -215,9 +215,10 @@ void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArgum
     MediaServerDevice &dev = m_devices[device->deviceInfo().udn().toSimpleUuid()];
 
     if( !ok ) {
-        emit error( KIO::ERR_SLAVE_DEFINED, "Could not invoke GetSearchCapabilities(): " + errorString );
-        // we are still 'ready' because browse is always possible
+        emit error( KIO::ERR_COULD_NOT_MOUNT, "Could not invoke GetSearchCapabilities(): " + errorString );
         dev.searchCapabilities = QStringList();
+        // no info, so error
+        dev.deviceInfo = HDeviceInfo();
         emit deviceReady();
         return;
     }
@@ -330,6 +331,7 @@ bool ControlPointThread::ensureDevice( const KUrl &url )
     if( m_devices.contains( url.host() ) ) {
         kDebug() << "We already know of device" << url.host();
         m_currentDevice = m_devices[url.host()];
+        Q_ASSERT( m_currentDevice.cache );
         return true;
     }
 
