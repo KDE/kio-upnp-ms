@@ -121,8 +121,11 @@ void UPnPMS::get( const KUrl &url )
 
 void UPnPMS::slotError( int type, const QString &message )
 {
+    m_cpthread.disconnect();
     m_statBusy = false;
     m_listBusy = false;
+    bool ok = connect( &m_cpthread, SIGNAL( error( int, const QString & ) ),
+                       this, SLOT( slotError( int, const QString & ) ) );
     error( type, message );
 }
 
@@ -130,7 +133,7 @@ void UPnPMS::listDir( const KUrl &url )
 {
     m_listBusy = true;
     connect( this, SIGNAL( startListDir( const KUrl &) ),
-             &m_cpthread, SLOT( listDir( const KUrl &) ) );
+             &m_cpthread, SLOT( listDir( const KUrl &) ), Qt::UniqueConnection );
     connect( &m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
                        this, SLOT( slotListEntry( const KIO::UDSEntry & ) ) );
     connect( &m_cpthread, SIGNAL( listingDone() ),
