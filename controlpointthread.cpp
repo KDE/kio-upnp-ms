@@ -215,7 +215,6 @@ void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArgum
     MediaServerDevice &dev = m_devices[device->deviceInfo().udn().toSimpleUuid()];
 
     if( !ok ) {
-        emit error( KIO::ERR_COULD_NOT_MOUNT, "Could not invoke GetSearchCapabilities(): " + errorString );
         dev.searchCapabilities = QStringList();
         // no info, so error
         dev.deviceInfo = HDeviceInfo();
@@ -289,8 +288,10 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
     QTimer::singleShot( 5000, &local, SLOT(quit()) );
     local.exec();
 
-    if( !m_devices[url.host()].deviceInfo.isValid() )
+    if( !m_devices[url.host()].deviceInfo.isValid() ) {
+        m_devices.remove( url.host() );
         return false;
+    }
 
     return true;
 }
