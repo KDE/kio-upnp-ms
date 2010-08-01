@@ -133,12 +133,14 @@ void UPnPMS::listDir( const KUrl &url )
 {
     m_listBusy = true;
     connect( this, SIGNAL( startListDir( const KUrl &) ),
-             &m_cpthread, SLOT( listDir( const KUrl &) ), Qt::UniqueConnection );
+             &m_cpthread, SLOT( listDir( const KUrl &) ) );
     connect( &m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
                        this, SLOT( slotListEntry( const KIO::UDSEntry & ) ) );
     connect( &m_cpthread, SIGNAL( listingDone() ),
                        this, SLOT( slotListingDone() ) );
     emit startListDir( url );
+    disconnect( this, SIGNAL( startListDir( const KUrl &) ),
+                &m_cpthread, SLOT( listDir( const KUrl &) ) );
     while( m_listBusy )
         QCoreApplication::processEvents();
 }
