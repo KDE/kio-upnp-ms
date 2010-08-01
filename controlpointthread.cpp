@@ -489,7 +489,7 @@ void ControlPointThread::listDir( const KUrl &url )
         return;
     }
 
-    if( !url.queryItem( "search" ).isNull() ) {
+    if( url.hasQueryItem( "search" ) ) {
         QMap<QString, QString> searchQueries = url.queryItems();
         m_baseSearchPath = url.path( KUrl::AddTrailingSlash );
         m_resolveSearchPaths = url.queryItems().contains("resolvePath");
