@@ -122,11 +122,11 @@ void UPnPMS::get( const KUrl &url )
 void UPnPMS::slotError( int type, const QString &message )
 {
     m_cpthread.disconnect();
-    m_statBusy = false;
-    m_listBusy = false;
+    error( KIO::ERR_UNKNOWN_HOST, message );
     bool ok = connect( &m_cpthread, SIGNAL( error( int, const QString & ) ),
                        this, SLOT( slotError( int, const QString & ) ) );
-    error( type, message );
+    m_statBusy = false;
+    m_listBusy = false;
 }
 
 void UPnPMS::listDir( const KUrl &url )
@@ -193,4 +193,33 @@ void UPnPMS::slotListingDone()
     listEntry( entry, true );
     finished();
     m_listBusy = false;
+}
+
+void UPnPMS::openConnection()
+{
+    if( m_connectedHost.isNull() ) {
+        error( KIO::ERR_UNKNOWN_HOST, QString() );
+        return;
+    }
+    connect( &m_cpthread, SIGNAL(deviceReady()), this, SLOT(slotConnected()) );
+    m_statBusy = true;
+    connect( this, SIGNAL( startStat( const KUrl &) ),
+             &m_cpthread, SLOT( stat( const KUrl &) ) );
+    connect( &m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
+                       this, SLOT(slotConnected()), Qt::QueuedConnection );
+    emit startStat( "upnp-ms://" + m_connectedHost );
+    while( m_statBusy )
+        QCoreApplication::processEvents();
+}
+
+void UPnPMS::slotConnected()
+{
+    disconnect( &m_cpthread, SIGNAL(listEntry(KIO::UDSEntry)), this, SLOT(slotConnected()) );
+    connected();
+    m_statBusy = false;
+}
+
+void UPnPMS::setHost(const QString& host, quint16 port, const QString& user, const QString& pass)
+{
+    m_connectedHost = host;
 }

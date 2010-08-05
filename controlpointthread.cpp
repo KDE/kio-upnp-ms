@@ -293,6 +293,7 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
         return false;
     }
 
+    emit connected();
     return true;
 }
 
@@ -352,7 +353,7 @@ bool ControlPointThread::ensureDevice( const KUrl &url )
 void ControlPointThread::stat( const KUrl &url )
 {
     if( !ensureDevice( url ) ) {
-      emit error( KIO::ERR_DOES_NOT_EXIST, url.prettyUrl() );
+      emit error( KIO::ERR_COULD_NOT_CONNECT, QString() );
       return;
     }
 
@@ -473,7 +474,7 @@ void ControlPointThread::listDir( const KUrl &url )
     kDebug() << url;
 
     if( !ensureDevice( url ) ) {
-      emit error( KIO::ERR_DOES_NOT_EXIST, url.prettyUrl() );
+      emit error( KIO::ERR_COULD_NOT_CONNECT, url.prettyUrl() );
       return;
     }
 

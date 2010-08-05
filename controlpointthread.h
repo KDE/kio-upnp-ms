@@ -174,6 +174,7 @@ class ControlPointThread : public QThread
      * For internal use only.
      */
     void deviceReady();
+    void connected();
     /** Used for both stat() and listDir() **/
     void listEntry( const KIO::UDSEntry & );
     void listingDone();

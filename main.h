@@ -3,6 +3,10 @@
 #include <KUrl>
 #include <KIO/NetAccess>
 
+namespace KIO {
+    class Slave;
+}
+
 class KJob;
 class KCmdLineArgs;
 class upnptest : public QObject
@@ -13,5 +17,6 @@ class upnptest : public QObject
   public slots:
     void done(KJob *);
     void entries(KIO::Job *job, const KIO::UDSEntryList &list);
+    void slotSlaveError( KIO::Slave *slave, int err, const QString &msg );
+    void slotConnected( KIO::Slave *slave );
 };
-

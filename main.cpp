@@ -1,6 +1,7 @@
 #include "main.h"
 
 #include <kmainwindow.h>
+#include <kio/slave.h>
 #include <kio/scheduler.h>
 #include <kurl.h>
 #include <kio/jobclasses.h>
@@ -14,12 +15,20 @@
 upnptest::upnptest(const KCmdLineArgs *args)
     : QObject()
 {
+    KIO::Scheduler::connect( SIGNAL(slaveError(KIO::Slave*,int,QString)), this, SLOT(slotSlaveError(KIO::Slave*,int,QString)));
+    KIO::Scheduler::connect( SIGNAL(slaveConnected(KIO::Slave*)), this, SLOT(slotConnected(KIO::Slave*)) );
     for( int i = 0; i < args->count(); ++i ) {
         KUrl url = args->url( i );
+        int err;
+        QString err_str;
+        KIO::Slave *slave = KIO::Scheduler::getConnectedSlave( url );
         KIO::ListJob *job = KIO::listDir(url);
+        Q_ASSERT( slave );
+        KIO::Scheduler::assignJobToSlave( slave, job );
         connect( job, SIGNAL(entries(KIO::Job *, const KIO::UDSEntryList&)),
                 this, SLOT(entries(KIO::Job *, const KIO::UDSEntryList&)), Qt::UniqueConnection);
         connect( job, SIGNAL(result(KJob *)), this, SLOT(done(KJob *)), Qt::UniqueConnection);
+        job->start();
     }
 }
 
@@ -48,6 +57,18 @@ void upnptest::entries(KIO::Job *job, const KIO::UDSEntryList &list )
 //        }
     }
     kDebug() << "-------------------------------------------";
+}
+
+void upnptest::slotSlaveError(KIO::Slave* slave, int err, const QString& msg)
+{
+    kDebug() << "SLAVE ERROR!" << slave << err << msg;
+    KIO::Scheduler::disconnectSlave(slave);
+    slave = 0;
+}
+
+void upnptest::slotConnected(KIO::Slave* slave)
+{
+    kDebug() << slave << "CONNECTED";
 }
 
 int main (int argc, char *argv[])

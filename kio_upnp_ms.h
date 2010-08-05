@@ -71,6 +71,9 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     void get( const KUrl &url );
     void stat( const KUrl &url );
     void listDir( const KUrl &url );
+    void openConnection();
+    void closeConnection() { m_connectedHost = QString(); }
+    void setHost( const QString &host, quint16 port, const QString &user, const QString &pass );
 
  signals:
     void startStat( const KUrl &url );
@@ -82,8 +85,11 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     void slotRedirect( const KIO::UDSEntry & );
     void slotListingDone();
     void slotError( int, const QString & );
+    void slotConnected();
 
   private:
+    // used for connection oriented mode.
+    QString m_connectedHost;
 
     ControlPointThread m_cpthread;
     bool m_statBusy;
