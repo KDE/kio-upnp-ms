@@ -700,6 +700,15 @@ void ControlPointThread::fillCommon( KIO::UDSEntry &entry, const DIDL::Object *o
     }
     entry.insert( KIO::UPNP_ID, obj->id() );
     entry.insert( KIO::UPNP_PARENT_ID, obj->parentId() );
+
+    fillMetadata(entry, KIO::UPNP_DATE, obj, "date");
+    fillMetadata(entry, KIO::UPNP_CREATOR, obj, "creator");
+    fillMetadata(entry, KIO::UPNP_ARTIST, obj, "artist");
+    fillMetadata(entry, KIO::UPNP_ALBUM, obj, "album");
+    fillMetadata(entry, KIO::UPNP_GENRE, obj, "genre");
+    fillMetadata(entry, KIO::UPNP_ALBUMART_URI, obj, "albumArtURI");
+    fillMetadata(entry, KIO::UPNP_CHANNEL_NAME, obj, "channelName");
+    fillMetadata(entry, KIO::UPNP_CHANNEL_NUMBER, obj, "channelNr");
 }
 
 void ControlPointThread::fillContainer( KIO::UDSEntry &entry, const DIDL::Container *c )
@@ -730,20 +739,11 @@ void ControlPointThread::fillItem( KIO::UDSEntry &entry, const DIDL::Item *item 
     if( !item->refId().isNull() )
         entry.insert( KIO::UPNP_REF_ID, item->refId() );
 
-    fillMetadata(entry, KIO::UPNP_CREATOR, item, "creator");
-    fillMetadata(entry, KIO::UPNP_ARTIST, item, "artist");
-    fillMetadata(entry, KIO::UPNP_ALBUM, item, "album");
-    fillMetadata(entry, KIO::UPNP_GENRE, item, "genre");
     fillMetadata(entry, KIO::UPNP_TRACK_NUMBER, item, "originalTrackNumber");
-// TODO processing
-    fillMetadata(entry, KIO::UPNP_DATE, item, "date");
 
     fillResourceMetadata(entry, KIO::UPNP_DURATION, item, "duration");
     fillResourceMetadata(entry, KIO::UPNP_BITRATE, item, "bitrate");
     fillResourceMetadata(entry, KIO::UPNP_IMAGE_RESOLUTION, item, "resolution");
-    fillMetadata(entry, KIO::UPNP_CHANNEL_NAME, item, "channelName");
-    fillMetadata(entry, KIO::UPNP_CHANNEL_NUMBER, item, "channelNr");
-    fillMetadata(entry, KIO::UPNP_ALBUMART_URI, item, "albumArtURI");
 }
 
 void ControlPointThread::slotListContainer( DIDL::Container *c )
