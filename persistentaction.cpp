@@ -98,10 +98,8 @@ void PersistentAction::invokeComplete( Herqq::Upnp::HAsyncOp invocationOp ) // S
         }
         else {
             kDebug() << "Failed even after" << m_tries << "tries. Giving up!";
-            bool ok = disconnect( m_action, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
+            disconnect( m_action, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
                         this, SLOT( invokeComplete( Herqq::Upnp::HAsyncOp ) ) );
-            Q_ASSERT( ok );
-            Q_UNUSED( ok );
             emit invokeComplete( output, invocationOp, false, errorString );
             return;
         }
