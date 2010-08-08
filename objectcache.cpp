@@ -123,6 +123,12 @@ void ObjectCache::resolvePathToObjectInternal()
     m_resolve.pathIndex++;
     m_resolve.lookingFor = m_resolve.fullPath.mid( m_resolve.pathIndex, SEP_POS( m_resolve.fullPath, m_resolve.pathIndex ) - m_resolve.pathIndex );
     m_resolve.object = 0;
+    if( !m_cpt->browseAction() ) {
+        kDebug() << "Failed to get a valid Browse action";
+        emit m_cpt->error( KIO::ERR_COULD_NOT_CONNECT, QString() );
+        return;
+    }
+
     connect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo *) ),
              this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) );
     m_cpt->browseOrSearchObject( m_reverseCache[m_resolve.segment],
@@ -270,6 +276,11 @@ void ObjectCache::resolveNextIdToPath()
 
 void ObjectCache::resolveIdToPathInternal()
 {
+    if( !m_cpt->browseAction() ) {
+        kDebug() << "Failed to get a valid Browse action";
+        emit m_cpt->error( KIO::ERR_COULD_NOT_CONNECT, QString() );
+        return;
+    }
     connect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo *) ),
              this, SLOT( attemptIdToPathResolution( const Herqq::Upnp::HActionArguments & ) ) );
     kDebug() << "Now resolving path for ID" << m_idResolve.currentId << m_idResolve.fullPath;

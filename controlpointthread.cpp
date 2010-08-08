@@ -305,7 +305,10 @@ HServiceProxy* ControlPointThread::contentDirectory(HDeviceProxy *forDevice) con
     HDeviceProxy *device = forDevice;
     if( !device )
         device = m_currentDevice.device;
-    Q_ASSERT( device );
+    if( !device ) {
+        emit error( KIO::ERR_CONNECTION_BROKEN, QString() );
+        return NULL;
+    }
     HServiceProxy *contentDir = device->serviceProxyById( HServiceId("urn:schemas-upnp-org:serviceId:ContentDirectory") );
     if( !contentDir ) {
         contentDir = device->serviceProxyById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
@@ -315,14 +318,12 @@ HServiceProxy* ControlPointThread::contentDirectory(HDeviceProxy *forDevice) con
 
 HAction* ControlPointThread::browseAction() const
 {
-    Q_ASSERT( contentDirectory() );
-    return contentDirectory()->actionByName( "Browse" );
+    return contentDirectory() ? contentDirectory()->actionByName( "Browse" ) : NULL;
 }
 
 HAction* ControlPointThread::searchAction() const
 {
-    Q_ASSERT( contentDirectory() );
-    return contentDirectory()->actionByName( "Search" );
+    return contentDirectory() ? contentDirectory()->actionByName( "Search" ) : NULL;
 }
 
 bool ControlPointThread::ensureDevice( const KUrl &url )
@@ -608,6 +609,11 @@ void ControlPointThread::browseResolvedPath( const DIDL::Object *object, uint st
         return;
     }
 
+    if( !browseAction() ) {
+        emit error( KIO::ERR_COULD_NOT_CONNECT, QString() );
+        return;
+    }
+
     Q_ASSERT(connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
                       this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) ));
     browseOrSearchObject( object,
@@ -635,7 +641,8 @@ void ControlPointThread::browseInvokeDone( HActionArguments output, HAsyncOp inv
     action->deleteLater();
 
     ActionStateInfo *info = ( ActionStateInfo *)invocationOp.userData();
-    Q_ASSERT( info );
+    if( ok )
+        Q_ASSERT( info );
     emit browseResult( output, info );
 }
 
@@ -827,6 +834,11 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint st
     if( !object ) {
         kDebug() << "ERROR: idString null";
         emit error( KIO::ERR_DOES_NOT_EXIST, QString() );
+        return;
+    }
+
+    if( !searchAction() ) {
+        emit error( KIO::ERR_COULD_NOT_CONNECT, QString() );
         return;
     }
 

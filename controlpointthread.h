@@ -178,7 +178,7 @@ class ControlPointThread : public QThread
     /** Used for both stat() and listDir() **/
     void listEntry( const KIO::UDSEntry & );
     void listingDone();
-    void error( int type, const QString & );
+    void error( int type, const QString & ) const;
     void browseResult( const Herqq::Upnp::HActionArguments &args, ActionStateInfo *info );
 
   private:
