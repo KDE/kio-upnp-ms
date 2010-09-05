@@ -26,11 +26,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <KDirNotify>
 
 #include <QCoreApplication>
-#include <QtDBus>
 #include <QXmlStreamReader>
 
 #include <HAction>
 #include <HActionArguments>
+#include <HActionInfo>
 #include <HControlPoint>
 #include <HControlPointConfiguration>
 #include <HDeviceInfo>
@@ -162,12 +162,12 @@ void ControlPointThread::run()
 
 void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
 {
-    kDebug() << "Received device " << device->deviceInfo().udn().toString();
+    kDebug() << "Received device " << device->info().udn().toString();
 
     // NOTE as a reference!
-    MediaServerDevice &dev = m_devices[device->deviceInfo().udn().toSimpleUuid()];
+    MediaServerDevice &dev = m_devices[device->info().udn().toSimpleUuid()];
     dev.device = device;
-    dev.deviceInfo = device->deviceInfo();
+    dev.info = device->info();
     dev.cache = new ObjectCache( this );
 
     HStateVariable *systemUpdateID = contentDirectory(dev.device)->stateVariableByName( "SystemUpdateID" );
@@ -185,7 +185,7 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
         Q_ASSERT( ok );
     }
     else {
-        kDebug() << dev.deviceInfo.friendlyName() << "does not support updates";
+        kDebug() << dev.info.friendlyName() << "does not support updates";
     }
 
     PersistentAction *action = new PersistentAction( this, 1 ); // try just once
@@ -198,7 +198,7 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
              this,
              SLOT( searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
 
-    HActionArguments input = searchCapAction->inputArguments();
+    HActionArguments input = searchCapAction->info().inputArguments();
 
     action->invoke( searchCapAction, input, dev.device );
 }
@@ -206,18 +206,19 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
 void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString ) // SLOT
 {
     Q_UNUSED( op );
+    Q_UNUSED( errorString );
     PersistentAction *action = static_cast<PersistentAction *>( QObject::sender() );
     action->deleteLater();
 
     // NOTE as a reference!
     HDeviceProxy *device = (HDeviceProxy *) op.userData();
     Q_ASSERT( device );
-    MediaServerDevice &dev = m_devices[device->deviceInfo().udn().toSimpleUuid()];
+    MediaServerDevice &dev = m_devices[device->info().udn().toSimpleUuid()];
 
     if( !ok ) {
         dev.searchCapabilities = QStringList();
         // no info, so error
-        dev.deviceInfo = HDeviceInfo();
+        dev.info = HDeviceInfo();
         emit deviceReady();
         return;
     }
@@ -234,13 +235,13 @@ void ControlPointThread::rootDeviceOffline(HDeviceProxy *device) // SLOT
     // if we aren't valid, we don't really care about
     // devices going offline
     // This slot can get called twice by HUpnp
-    QString uuid = device->deviceInfo().udn().toSimpleUuid();
+    QString uuid = device->info().udn().toSimpleUuid();
     if( m_devices.contains( uuid ) ) {
         kDebug() << "Removing" << uuid;
-        if( m_currentDevice.device->deviceInfo().udn() == device->deviceInfo().udn() ) {
+        if( m_currentDevice.device->info().udn() == device->info().udn() ) {
             kDebug() << "Was current device - invalidating";
             m_currentDevice.device = NULL;
-            m_currentDevice.deviceInfo = HDeviceInfo();
+            m_currentDevice.info = HDeviceInfo();
         }
 
         m_devices.remove( uuid );
@@ -261,7 +262,7 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
     // remaining details
     MediaServerDevice dev;
     dev.device = NULL;
-    dev.deviceInfo = HDeviceInfo();
+    dev.info = HDeviceInfo();
     dev.cache = NULL;
     dev.searchCapabilities = QStringList();
     m_devices[url.host()] = dev;
@@ -288,7 +289,7 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
     QTimer::singleShot( 5000, &local, SLOT(quit()) );
     local.exec();
 
-    if( !m_devices[url.host()].deviceInfo.isValid() ) {
+    if( !m_devices[url.host()].info.isValid(Herqq::Upnp::LooseChecks) ) {
         m_devices.remove( url.host() );
         return false;
     }
@@ -328,7 +329,7 @@ HAction* ControlPointThread::searchAction() const
 
 bool ControlPointThread::ensureDevice( const KUrl &url )
 {
-    if( ("uuid:" + url.host()) == m_currentDevice.deviceInfo.udn() )
+    if( ("uuid:" + url.host()) == m_currentDevice.info.udn() )
         return true;
 
     if( m_devices.contains( url.host() ) ) {
@@ -437,19 +438,19 @@ void ControlPointThread::browseOrSearchObject( const DIDL::Object *obj,
                                                const QString &sortCriteria )
 {
     if( !contentDirectory() ) {
-        emit error( KIO::ERR_UNSUPPORTED_ACTION, "UPnP device " + m_currentDevice.deviceInfo.friendlyName() + " does not support browsing" );
+        emit error( KIO::ERR_UNSUPPORTED_ACTION, "UPnP device " + m_currentDevice.info.friendlyName() + " does not support browsing" );
     }
 
     PersistentAction *pAction = new PersistentAction;
    
-    HActionArguments args = action->inputArguments();
+    HActionArguments args = action->info().inputArguments();
   
     Q_ASSERT( obj );
-    if( action->name() == "Browse" ) {
+    if( action->info().name() == "Browse" ) {
         args["ObjectID"]->setValue( obj->id() );
         args["BrowseFlag"]->setValue( secondArgument );
     }
-    else if( action->name() == "Search" ) {
+    else if( action->info().name() == "Search" ) {
         args["ContainerID"]->setValue( obj->id() );
         args["SearchCriteria"]->setValue( secondArgument );
     }
@@ -782,38 +783,38 @@ void ControlPointThread::slotCDSUpdated( const HStateVariableEvent &event )
 void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event )
 {
     kDebug() << "UPDATED containers" << event.newValue();
-
-    HDevice *deviceForEvent = event.eventSource()->parentService()->parentDevice();
-    Q_ASSERT( deviceForEvent );
-    QString uuid = deviceForEvent->deviceInfo().udn().toSimpleUuid();
-
-    QStringList filesChanged;
-
-    QStringList updates = event.newValue().toString().split(",");
-    QStringList::const_iterator it;
-    for( it = updates.begin(); it != updates.end(); /* see loop */ ) {
-        QString id = *it;
-        it++;
-        QString updateValue = *it;
-        it++;
-
-// NOTE what about CDS's with tracking changes option?
-// TODO implement later
-
-        if( m_devices[uuid].cache->update( id, updateValue ) ) {
-            QString updatedPath = m_devices[uuid].cache->pathForId( id );
-            kDebug() << "ID" << id << "Path" << updatedPath;
-
-            KUrl fullPath;
-
-            fullPath.setProtocol( "upnp-ms" );
-            fullPath.setHost( uuid );
-            fullPath.setPath( updatedPath );
-            filesChanged << fullPath.prettyUrl();
-        }
-    }
-    kDebug() << "Files Changed" << filesChanged;
-    OrgKdeKDirNotifyInterface::emitFilesChanged( filesChanged );
+//
+//    HDevice *deviceForEvent = event.eventSource()->parentService()->parentDevice();
+//    Q_ASSERT( deviceForEvent );
+//    QString uuid = deviceForEvent->info().udn().toSimpleUuid();
+//
+//    QStringList filesChanged;
+//
+//    QStringList updates = event.newValue().toString().split(",");
+//    QStringList::const_iterator it;
+//    for( it = updates.begin(); it != updates.end(); /* see loop */ ) {
+//        QString id = *it;
+//        it++;
+//        QString updateValue = *it;
+//        it++;
+//
+//// NOTE what about CDS's with tracking changes option?
+//// TODO implement later
+//
+//        if( m_devices[uuid].cache->update( id, updateValue ) ) {
+//            QString updatedPath = m_devices[uuid].cache->pathForId( id );
+//            kDebug() << "ID" << id << "Path" << updatedPath;
+//
+//            KUrl fullPath;
+//
+//            fullPath.setProtocol( "upnp-ms" );
+//            fullPath.setHost( uuid );
+//            fullPath.setPath( updatedPath );
+//            filesChanged << fullPath.prettyUrl();
+//        }
+//    }
+//    kDebug() << "Files Changed" << filesChanged;
+//    OrgKdeKDirNotifyInterface::emitFilesChanged( filesChanged );
 }
 
 ///////////////////

@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <HUpnp>
 #include <HAction>
 #include <HActionArguments>
+#include <HActionInfo>
 #include <HAsyncOp>
 
 using namespace Herqq::Upnp;
@@ -52,6 +53,7 @@ void PersistentAction::timeout()
     // disconnect so that we don't get multiple invokeComplete calls in case it just finishes
     bool ok = disconnect( m_action, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
                        this, SLOT( invokeComplete( Herqq::Upnp::HAsyncOp ) ) );
+    Q_UNUSED( ok );
     HAsyncOp op;
     op.setWaitCode( Herqq::Upnp::HAsyncOp::WaitTimeout );
     invokeComplete( op );
@@ -69,7 +71,7 @@ void PersistentAction::invoke( Herqq::Upnp::HAction *action, const Herqq::Upnp::
 
 void PersistentAction::invoke( void *userData )
 {
-    kDebug() << "Beginning invoke" << m_action->name() << "Try number" << m_tries;
+    kDebug() << "Beginning invoke" << m_action->info().name() << "Try number" << m_tries;
     connect( m_action, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp ) ),
                        this, SLOT( invokeComplete( Herqq::Upnp::HAsyncOp ) ), Qt::UniqueConnection );
     HAsyncOp op = m_action->beginInvoke( m_inputArgs );

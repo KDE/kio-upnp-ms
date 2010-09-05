@@ -70,7 +70,7 @@ class ControlPointThread : public QThread
 
     struct MediaServerDevice {
         Herqq::Upnp::HDeviceProxy *device;
-        Herqq::Upnp::HDeviceInfo deviceInfo;
+        Herqq::Upnp::HDeviceInfo info;
         ObjectCache *cache;
         QStringList searchCapabilities;
     };

@@ -121,10 +121,12 @@ void UPnPMS::get( const KUrl &url )
 
 void UPnPMS::slotError( int type, const QString &message )
 {
+    Q_UNUSED( type );
     m_cpthread.disconnect();
     error( KIO::ERR_UNKNOWN_HOST, message );
     bool ok = connect( &m_cpthread, SIGNAL( error( int, const QString & ) ),
                        this, SLOT( slotError( int, const QString & ) ) );
+    Q_UNUSED(ok);
     m_statBusy = false;
     m_listBusy = false;
 }
@@ -221,5 +223,8 @@ void UPnPMS::slotConnected()
 
 void UPnPMS::setHost(const QString& host, quint16 port, const QString& user, const QString& pass)
 {
+    Q_UNUSED( port );
+    Q_UNUSED( user );
+    Q_UNUSED( pass );
     m_connectedHost = host;
 }

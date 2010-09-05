@@ -19,8 +19,6 @@ upnptest::upnptest(const KCmdLineArgs *args)
     KIO::Scheduler::connect( SIGNAL(slaveConnected(KIO::Slave*)), this, SLOT(slotConnected(KIO::Slave*)) );
     for( int i = 0; i < args->count(); ++i ) {
         KUrl url = args->url( i );
-        int err;
-        QString err_str;
         KIO::Slave *slave = KIO::Scheduler::getConnectedSlave( url );
         KIO::ListJob *job = KIO::listDir(url);
         Q_ASSERT( slave );
