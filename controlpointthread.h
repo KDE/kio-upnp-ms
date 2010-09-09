@@ -26,10 +26,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <kio/slavebase.h>
 
-#include <HUpnp>
-#include <HAsyncOp>
-#include <HActionArguments>
-#include <HDeviceInfo>
+#include <HUpnpCore/HUpnp>
+#include <HUpnpCore/HAsyncOp>
+#include <HUpnpCore/HActionArguments>
+#include <HUpnpCore/HDeviceInfo>
 
 namespace Herqq
 {

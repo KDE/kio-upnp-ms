@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <kdebug.h>
 
-#include <HActionArguments>
+#include <HUpnpCore/HActionArguments>
 
 #include "controlpointthread.h"
 #include "didlparser.h"

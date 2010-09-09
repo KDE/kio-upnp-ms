@@ -28,21 +28,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <QCoreApplication>
 #include <QXmlStreamReader>
 
-#include <HAction>
-#include <HActionArguments>
-#include <HActionInfo>
-#include <HControlPoint>
-#include <HControlPointConfiguration>
-#include <HDeviceInfo>
-#include <HDeviceProxy>
-#include <HDiscoveryType>
-#include <HEndpoint>
-#include <HResourceType>
-#include <HServiceId>
-#include <HServiceProxy>
-#include <HStateVariable>
-#include <HUdn>
-#include <HUpnp>
+#include <HUpnpCore/HAction>
+#include <HUpnpCore/HActionArguments>
+#include <HUpnpCore/HActionInfo>
+#include <HUpnpCore/HControlPoint>
+#include <HUpnpCore/HControlPointConfiguration>
+#include <HUpnpCore/HDeviceInfo>
+#include <HUpnpCore/HDeviceProxy>
+#include <HUpnpCore/HDiscoveryType>
+#include <HUpnpCore/HEndpoint>
+#include <HUpnpCore/HResourceType>
+#include <HUpnpCore/HServiceId>
+#include <HUpnpCore/HServiceProxy>
+#include <HUpnpCore/HStateVariable>
+#include <HUpnpCore/HUdn>
+#include <HUpnpCore/HUpnp>
 
 #include "didlparser.h"
 #include "didlobjects.h"

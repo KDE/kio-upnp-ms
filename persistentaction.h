@@ -22,8 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <QObject>
 
-#include <HActionArguments>
-#include <HAsyncOp>
+#include <HUpnpCore/HActionArguments>
+#include <HUpnpCore/HAsyncOp>
 
 class QTimer;
 

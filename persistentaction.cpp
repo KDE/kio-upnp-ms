@@ -24,11 +24,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <kdebug.h>
 
-#include <HUpnp>
-#include <HAction>
-#include <HActionArguments>
-#include <HActionInfo>
-#include <HAsyncOp>
+#include <HUpnpCore/HUpnp>
+#include <HUpnpCore/HAction>
+#include <HUpnpCore/HActionArguments>
+#include <HUpnpCore/HActionInfo>
+#include <HUpnpCore/HAsyncOp>
 
 using namespace Herqq::Upnp;
 

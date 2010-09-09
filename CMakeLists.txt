@@ -12,7 +12,7 @@ set(kio_upnp_ms_PART_SRCS
    persistentaction.cpp
    )
 
-find_path( HUpnp_INCLUDE_DIRS HUpnp )
+find_path( HUpnp_INCLUDE_DIRS HUpnpCore/HUpnp )
 find_library( HUpnp_LIBS HUpnp )
 
 kde4_add_plugin(kio_upnp_ms ${kio_upnp_ms_PART_SRCS})
