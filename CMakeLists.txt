@@ -1,5 +1,13 @@
 PROJECT( kio_upnp_ms )
 FIND_PACKAGE(KDE4 REQUIRED)
+set(KIO_UPNP_MS_VERSION "0.5.0")
+
+find_package(HUpnp REQUIRED)
+if( HUPNP_FOUND )
+else( HUPNP_FOUND )
+    message(FATAL_ERROR "The UPnP MediaServer kioslave requires the HUpnp library -- http://www.herqq.org")
+endif( HUPNP_FOUND )
+
 INCLUDE_DIRECTORIES( ${KDE4_INCLUDES}
     ${CMAKE_SOURCE_DIR} build . )
 
@@ -12,14 +20,11 @@ set(kio_upnp_ms_PART_SRCS
    persistentaction.cpp
    )
 
-find_path( HUpnp_INCLUDE_DIRS HUpnpCore/HUpnp )
-find_library( HUpnp_LIBS HUpnp )
-
 kde4_add_plugin(kio_upnp_ms ${kio_upnp_ms_PART_SRCS})
 
-include_directories( ${HUpnp_INCLUDE_DIRS} )
+include_directories( ${HUPNP_INCLUDE_DIR} )
 target_link_libraries(kio_upnp_ms ${KDE4_KIO_LIBS})
-target_link_libraries(kio_upnp_ms ${HUpnp_LIBS})
+target_link_libraries(kio_upnp_ms ${HUPNP_LIBS})
 
 install(TARGETS kio_upnp_ms  DESTINATION ${PLUGIN_INSTALL_DIR})
 
