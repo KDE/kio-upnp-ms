@@ -1,0 +1,52 @@
+kio-upnp-ms: KIO slave to access UPnP MediaServers
+==================================================
+
+This KIO slave enables KDE applications to access
+files over the UPnP MediaServer protocol. It currently
+supports both Browse and Search operations depending on
+what the server supports.
+
+The protocol is "upnp-ms://<uuid>"
+
+where UUID is the UUID of the MediaServer device without the "uuid:" prefix.
+
+Installation
+------------
+
+Dependencies:
+* HUpnp - http://www.herqq.org
+    HUpnp is a library under development, kio-upnp-ms works against
+    Subversion revision 55. Although HUpnp has had a 0.6 release, the library
+    has changed significantly after that and the svn version is required.
+
+1) Install HUpnp
+2) Download kio-upnp-ms
+  a)  As a package
+  b) Clone from git://gitorious.org/kio-upnp-ms/mainline.git
+3) Unpack the archive
+4) cd kio-upnp-ms
+5) mkdir build && cd build
+6) cmake -DCMAKE_INSTALL_PREFIX=/usr  ../
+   You may have to replace /usr with the path where KDE is installed
+7) make && su -c 'make install'
+
+Usage
+-----
+
+The slave is used just like any other KIO slave, usually launched via a Job.
+For search API, please see the file controlpointthread.h which includes detailed documentation.
+
+The slave will listen to updates from the devices it is connected too. It spawns a separate thread
+which keeps running and will notify of updates using OrgKdeKDirNotifyInterface over D-BUS.
+
+The slave is capable of multiplexing, that is, one slave can handle connections to multiple MediaServers
+and can check for updates from all of them. But it does so serially due to the nature of slaves. To use multiple
+devices parallely, it is better to use KIO::Scheduler::getConnectedSlave() and the like. For a full example
+see:
+
+http://gitorious.org/~nikhilm/amarok/nikhilms-amarok/blobs/upnp-collection/src/core-impl/collections/upnpcollection/UpnpCollectionBase.cpp
+
+Contact
+-------
+
+Bug reports may be filed at http://bugs.kde.org or emailed directly to nsm.nikhil@gmail.com.
