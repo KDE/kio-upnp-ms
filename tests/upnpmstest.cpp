@@ -1,4 +1,4 @@
-#include "main.h"
+#include "upnpmstest.h"
 
 #include <kmainwindow.h>
 #include <kio/slave.h>
@@ -10,7 +10,7 @@
 #include <KAboutData>
 #include <KUrl>
 #include <kdebug.h>
-#include "upnptypes.h"
+#include "../upnptypes.h"
  
 upnptest::upnptest(const KCmdLineArgs *args)
     : QObject()

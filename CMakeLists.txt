@@ -34,19 +34,22 @@ install(TARGETS kio_upnp_ms  DESTINATION ${PLUGIN_INSTALL_DIR})
 
 install(FILES kio_upnp_ms.protocol DESTINATION ${SERVICES_INSTALL_DIR})
 
-KDE4_ADD_EXECUTABLE(upnpmstest main.cpp)
- 
-TARGET_LINK_LIBRARIES(upnpmstest ${KDE4_KDEUI_LIBS}
-    ${KDE4_KPARTS_LIBS} )
-
-KDE4_ADD_EXECUTABLE(stattest stattest.cpp)
- 
-TARGET_LINK_LIBRARIES(stattest ${KDE4_KDEUI_LIBS}
-    ${KDE4_KPARTS_LIBS} )
-
 # so other programs can access the types
 install(FILES upnptypes.h DESTINATION
     ${INCLUDE_INSTALL_DIR}/kio COMPONENT devel)
  
-install(TARGETS upnpmstest  DESTINATION ${BIN_INSTALL_DIR})
-install(TARGETS stattest  DESTINATION ${BIN_INSTALL_DIR})
+########### test programs ##############
+if(KDE4_BUILD_TESTS)
+    KDE4_ADD_EXECUTABLE(upnpmstest tests/upnpmstest.cpp)
+
+    TARGET_LINK_LIBRARIES(upnpmstest ${KDE4_KDEUI_LIBS}
+        ${KDE4_KPARTS_LIBS} )
+
+    KDE4_ADD_EXECUTABLE(stattest tests/stattest.cpp)
+
+    TARGET_LINK_LIBRARIES(stattest ${KDE4_KDEUI_LIBS}
+        ${KDE4_KPARTS_LIBS} )
+
+    install(TARGETS upnpmstest  DESTINATION ${BIN_INSTALL_DIR})
+    install(TARGETS stattest  DESTINATION ${BIN_INSTALL_DIR})
+endif()
