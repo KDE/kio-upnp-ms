@@ -1,0 +1,28 @@
+Code layout
+-----------
+
+controlpointthread.cpp - The crux of the slave, runs in a separate thread to perform
+    update monitoring and invoke actions asynchronously while providing a blocking
+    interface to KIO.
+
+didlobjects.cpp - represents DIDL XML parsed objects <container> <item> <description>
+
+didlparser.cpp - a QXmlStreamReader based incremental parser for DIDL received from UPnP
+    devices, it emits signals to report the same to listeners.
+
+kio_upnp_ms.cpp - inherits KIO::SlaveBase, sets up some stuff and provides the I/O
+    interface while interacting with the ControlPointThread in the background.
+
+kio_upnp_ms.protocol - service description file
+
+objectcache.cpp - used for caching upnp responses so that objects (files and directories)
+    on devices can be cached for some time and things like resolving the file path
+    to the UPnP container/item ID can be done.
+
+persistentaction.cpp - Tries to invoke a UPnP action repeatedly before giving up. Some
+    servers might disconnect us if actions are performed too fast. This will back off in
+    case of an error and try after increasing delays.
+
+tests/stattest.cpp - performs a stat on a upnp device passed as the first argument (upnp-ms://uuid)
+
+tests/upnpmstest.cpp - performs a listDir on a upnp device passed as the first argument (upnp-ms://uuid)
