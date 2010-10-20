@@ -1,2 +1,2 @@
 #! /bin/sh
-$XGETTEXT *.cpp -o $podir/kio-upnp-ms.pot
+$XGETTEXT *.cpp -o $podir/kio_upnp_ms.pot
