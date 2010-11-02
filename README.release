@@ -1,11 +1,14 @@
 Steps for Release
 =================
 
-1) Ensure all changes are done, see git status
-2) Update ChangeLog
-3) Bump version in CMakeLists.txt
-4) Tag in git
-5) Create tar.gz
-6) Update .lsm
-7) Upload to ftp://ktown.kde.org/incoming/stable/KDE4.x/
-8) Open a bug on BKO to make the upload
+*) Ensure all changes are done, see git status
+*) Update ChangeLog
+*) Bump version in CMakeLists.txt
+*) Do clean compiles in Release and Debug mode
+*) Tag in git
+*) Create tar.gz
+*) Update .lsm
+*) Upload to ftp://ktown.kde.org/incoming/stable/KDE4.x/
+*) Open a bug on BKO to make the upload
+*) Announce on kde-announce-apps
+*) Announce in other places
