@@ -329,6 +329,10 @@ HAction* ControlPointThread::searchAction() const
 
 bool ControlPointThread::ensureDevice( const KUrl &url )
 {
+    // TODO probably list all media servers
+    if( url.host().isEmpty() )
+        return false;
+
     if( ("uuid:" + url.host()) == m_currentDevice.info.udn() )
         return true;
 
