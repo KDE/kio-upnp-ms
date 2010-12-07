@@ -28,19 +28,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <QCoreApplication>
 #include <QXmlStreamReader>
 
-#include <HUpnpCore/HAction>
+#include <HUpnpCore/HClientAction>
 #include <HUpnpCore/HActionArguments>
 #include <HUpnpCore/HActionInfo>
+#include <HUpnpCore/HClientDevice>
+#include <HUpnpCore/HClientService>
+#include <HUpnpCore/HClientStateVariable>
 #include <HUpnpCore/HControlPoint>
 #include <HUpnpCore/HControlPointConfiguration>
 #include <HUpnpCore/HDeviceInfo>
-#include <HUpnpCore/HDeviceProxy>
 #include <HUpnpCore/HDiscoveryType>
 #include <HUpnpCore/HEndpoint>
 #include <HUpnpCore/HResourceType>
 #include <HUpnpCore/HServiceId>
-#include <HUpnpCore/HServiceProxy>
-#include <HUpnpCore/HStateVariable>
+#include <HUpnpCore/HStateVariableEvent>
 #include <HUpnpCore/HUdn>
 #include <HUpnpCore/HUpnp>
 
@@ -137,13 +138,13 @@ void ControlPointThread::run()
     config.setAutoDiscovery(false);
     m_controlPoint = new HControlPoint( config, this );
     connect(m_controlPoint,
-            SIGNAL(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)),
+            SIGNAL(rootDeviceOnline(Herqq::Upnp::HClientDevice *)),
             this,
-            SLOT(rootDeviceOnline(Herqq::Upnp::HDeviceProxy *)));
+            SLOT(rootDeviceOnline(Herqq::Upnp::HClientDevice *)));
     connect(m_controlPoint,
-            SIGNAL(rootDeviceOffline(Herqq::Upnp::HDeviceProxy *)),
+            SIGNAL(rootDeviceOffline(Herqq::Upnp::HClientDevice *)),
             this,
-            SLOT(rootDeviceOffline(Herqq::Upnp::HDeviceProxy *)));
+            SLOT(rootDeviceOffline(Herqq::Upnp::HClientDevice *)));
 
     if( !m_controlPoint->init() )
     {
@@ -160,23 +161,23 @@ void ControlPointThread::run()
     delete m_controlPoint;
 }
 
-void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
+void ControlPointThread::rootDeviceOnline(HClientDevice *device) // SLOT
 {
     kDebug() << "Received device " << device->info().udn().toString();
 
-    // NOTE as a reference!
+    // NOTE: as a reference!
     MediaServerDevice &dev = m_devices[device->info().udn().toSimpleUuid()];
     dev.device = device;
     dev.info = device->info();
     dev.cache = new ObjectCache( this );
 
-    HStateVariable *systemUpdateID = contentDirectory(dev.device)->stateVariableByName( "SystemUpdateID" );
+    /*const HClientStateVariable *systemUpdateID = contentDirectory(dev.device)->stateVariables()["SystemUpdateID"];
     connect( systemUpdateID,
              SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
              this,
              SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) );
  
-    HStateVariable *containerUpdates = contentDirectory(dev.device)->stateVariableByName( "ContainerUpdateIDs" );
+    const HClientStateVariable *containerUpdates = contentDirectory(dev.device)->stateVariables()["ContainerUpdateIDs"];
     if( containerUpdates ) {
         bool ok = connect( containerUpdates,
                            SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
@@ -186,12 +187,12 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
     }
     else {
         kDebug() << dev.info.friendlyName() << "does not support updates";
-    }
+    }*/
 
-    PersistentAction *action = new PersistentAction( this, 1 ); // try just once
-
-    HAction *searchCapAction = contentDirectory(dev.device)->actionByName( "GetSearchCapabilities" );
+    HClientAction *searchCapAction = contentDirectory(dev.device)->actions()["GetSearchCapabilities"];
     Q_ASSERT( searchCapAction );
+
+    PersistentAction *action = new PersistentAction( searchCapAction, this, 1 ); // try just once
 
     connect( action,
              SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
@@ -200,7 +201,8 @@ void ControlPointThread::rootDeviceOnline(HDeviceProxy *device) // SLOT
 
     HActionArguments input = searchCapAction->info().inputArguments();
 
-    action->invoke( searchCapAction, input, dev.device );
+    Q_ASSERT(dev.device);
+    action->invoke( input, dev.device );
 }
 
 void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString ) // SLOT
@@ -211,7 +213,7 @@ void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArgum
     action->deleteLater();
 
     // NOTE as a reference!
-    HDeviceProxy *device = (HDeviceProxy *) op.userData();
+    HClientDevice *device = (HClientDevice *) op.userData();
     Q_ASSERT( device );
     MediaServerDevice &dev = m_devices[device->info().udn().toSimpleUuid()];
 
@@ -230,7 +232,7 @@ void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArgum
     emit deviceReady();
 }
 
-void ControlPointThread::rootDeviceOffline(HDeviceProxy *device) // SLOT
+void ControlPointThread::rootDeviceOffline(HClientDevice *device) // SLOT
 {
     // if we aren't valid, we don't really care about
     // devices going offline
@@ -301,30 +303,30 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
 /*
  * Returns a ContentDirectory service or 0
  */
-HServiceProxy* ControlPointThread::contentDirectory(HDeviceProxy *forDevice) const
+HClientService* ControlPointThread::contentDirectory(HClientDevice *forDevice) const
 {
-    HDeviceProxy *device = forDevice;
+    HClientDevice *device = forDevice;
     if( !device )
         device = m_currentDevice.device;
     if( !device ) {
         emit error( KIO::ERR_CONNECTION_BROKEN, QString() );
         return NULL;
     }
-    HServiceProxy *contentDir = device->serviceProxyById( HServiceId("urn:schemas-upnp-org:serviceId:ContentDirectory") );
+    HClientService *contentDir = device->serviceById( HServiceId("urn:schemas-upnp-org:serviceId:ContentDirectory") );
     if( !contentDir ) {
-        contentDir = device->serviceProxyById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
+        contentDir = device->serviceById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
     }
     return contentDir;
 }
 
-HAction* ControlPointThread::browseAction() const
+HClientAction* ControlPointThread::browseAction() const
 {
-    return contentDirectory() ? contentDirectory()->actionByName( "Browse" ) : NULL;
+    return contentDirectory() ? contentDirectory()->actions()["Browse"] : NULL;
 }
 
-HAction* ControlPointThread::searchAction() const
+HClientAction* ControlPointThread::searchAction() const
 {
-    return contentDirectory() ? contentDirectory()->actionByName( "Search" ) : NULL;
+    return contentDirectory() ? contentDirectory()->actions()["Search"] : NULL;
 }
 
 bool ControlPointThread::ensureDevice( const KUrl &url )
@@ -434,7 +436,7 @@ void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
  * BROWSE_METADATA or a valid search string.
  */
 void ControlPointThread::browseOrSearchObject( const DIDL::Object *obj,
-                                               HAction *action,
+                                               HClientAction *action,
                                                const QString &secondArgument,
                                                const QString &filter,
                                                const uint startIndex,
@@ -445,7 +447,7 @@ void ControlPointThread::browseOrSearchObject( const DIDL::Object *obj,
         emit error( KIO::ERR_UNSUPPORTED_ACTION, "UPnP device " + m_currentDevice.info.friendlyName() + " does not support browsing" );
     }
 
-    PersistentAction *pAction = new PersistentAction;
+    PersistentAction *pAction = new PersistentAction( action );
    
     HActionArguments args = action->info().inputArguments();
   
@@ -472,7 +474,7 @@ void ControlPointThread::browseOrSearchObject( const DIDL::Object *obj,
              this,
              SLOT( browseInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
 
-    pAction->invoke( action, args, info );
+    pAction->invoke( args, info );
 }
 
 void ControlPointThread::listDir( const KUrl &url )
@@ -788,7 +790,7 @@ void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariable
 {
     kDebug() << "UPDATED containers" << event.newValue();
 
-    HDevice *deviceForEvent = event.eventSource()->parentService()->parentDevice();
+    HClientDevice *deviceForEvent = NULL; //event.eventSource()->parentService()->parentDevice();
     Q_ASSERT( deviceForEvent );
     QString uuid = deviceForEvent->info().udn().toSimpleUuid();
 

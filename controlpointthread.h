@@ -36,8 +36,8 @@ namespace Herqq
   namespace Upnp
   {
     class HControlPoint;
-    class HDeviceProxy;
-    class HAction;
+    class HClientDevice;
+    class HClientAction;
   }
 }
 
@@ -69,7 +69,7 @@ class ControlPointThread : public QThread
     };
 
     struct MediaServerDevice {
-        Herqq::Upnp::HDeviceProxy *device;
+        Herqq::Upnp::HClientDevice *device;
         Herqq::Upnp::HDeviceInfo info;
         ObjectCache *cache;
         QStringList searchCapabilities;
@@ -141,8 +141,8 @@ class ControlPointThread : public QThread
     virtual void run();
 
   private slots:
-    void rootDeviceOnline(Herqq::Upnp::HDeviceProxy *device);
-    void rootDeviceOffline(Herqq::Upnp::HDeviceProxy *device);
+    void rootDeviceOnline(Herqq::Upnp::HClientDevice *device);
+    void rootDeviceOffline(Herqq::Upnp::HClientDevice *device);
     void slotParseError( const QString &errorString );
 
     void slotListContainer( DIDL::Container *c );
@@ -195,7 +195,7 @@ class ControlPointThread : public QThread
      *              A temporarily created object can be used with invalid values as long as ID is valid
      */
     void browseOrSearchObject( const DIDL::Object *obj,
-                               Herqq::Upnp::HAction *action,
+                               Herqq::Upnp::HClientAction *action,
                                const QString &secondArgument,
                                const QString &filter,
                                const uint startIndex,
@@ -203,9 +203,9 @@ class ControlPointThread : public QThread
                                const QString &sortCriteria );
 
     // uses m_currentDevice if not specified
-    Herqq::Upnp::HServiceProxy* contentDirectory(Herqq::Upnp::HDeviceProxy *forDevice = NULL) const;
-    Herqq::Upnp::HAction* browseAction() const;
-    Herqq::Upnp::HAction* searchAction() const;
+    Herqq::Upnp::HClientService* contentDirectory(Herqq::Upnp::HClientDevice *forDevice = NULL) const;
+    Herqq::Upnp::HClientAction* browseAction() const;
+    Herqq::Upnp::HClientAction* searchAction() const;
 
     void fillCommon( KIO::UDSEntry &entry, const DIDL::Object *obj );
     void fillContainer( KIO::UDSEntry &entry, const DIDL::Container *c );

@@ -31,14 +31,14 @@ namespace Herqq
 {
     namespace Upnp
     {
-        class HAction;
+        class HClientAction;
         class HActionArguments;
     }
 }
 
 /**
  * The PersistentAction class
- * invokes an HAction with supplied
+ * invokes an HClientAction with supplied
  * arguments until it succeeds with
  * successively increasing timeouts
  * in case of undefined failures.
@@ -52,9 +52,9 @@ class PersistentAction : public QObject
 {
     Q_OBJECT
 public:
-    PersistentAction( QObject *parent = 0, uint maximumTries = 3 );
+    PersistentAction( Herqq::Upnp::HClientAction *action,  QObject *parent = 0, uint maximumTries = 3 );
     QString errorString() const { return m_errorString; }
-    void invoke( Herqq::Upnp::HAction *action, const Herqq::Upnp::HActionArguments &args, void *userData );
+    void invoke( const Herqq::Upnp::HActionArguments &args, void *userData );
 
 signals:
     /**
@@ -69,7 +69,7 @@ signals:
     void invokeComplete( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp, bool ok, QString error );
 
 private slots:
-    void invokeComplete( Herqq::Upnp::HAsyncOp ); // SLOT
+    void invokeComplete( Herqq::Upnp::HAsyncOp, const Herqq::Upnp::HActionArguments& ); // SLOT
     void timeout();
 
 private:
@@ -80,7 +80,7 @@ private:
     ulong m_delay;
     QTimer *m_timer;
 
-    Herqq::Upnp::HAction *m_action;
+    Herqq::Upnp::HClientAction *m_action;
     Herqq::Upnp::HActionArguments m_inputArgs;
 };
 

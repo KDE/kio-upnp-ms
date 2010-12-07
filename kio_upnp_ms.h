@@ -33,7 +33,7 @@ namespace Herqq
   namespace Upnp
   {
     class HControlPoint;
-    class HDeviceProxy;
+    class HClientDevice;
     class HActionArguments;
   }
 }
