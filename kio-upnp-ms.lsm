@@ -1,0 +1,15 @@
+Begin4
+Title: kio-upnp-ms
+Version: 0.8.0
+Entered-date: 2010-10-17
+Description: A kio slave to allow browsing of UPnP MediaServers.
+Keywords: upnp, kde, kio
+Author: nsm.nikhil@gmail.com (Nikhil Marathe)
+Maintained-by: nsm.nikhil@gmail.com (Nikhil Marathe)
+Primary-site: ftp.kde.org pub/kde/stable/kio-upnp-ms
+              31kb        kio-upnp-ms-0.8.0.tar.gz
+Alternate-site: 
+Original-site:  
+Platforms:
+Copying-policy: GPL
+End
