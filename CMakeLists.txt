@@ -50,6 +50,11 @@ if(KDE4_BUILD_TESTS)
     TARGET_LINK_LIBRARIES(stattest ${KDE4_KDEUI_LIBS}
         ${KDE4_KPARTS_LIBS} )
 
+    KDE4_ADD_EXECUTABLE(recursive_upnp tests/recursive_upnp.cpp)
+
+    TARGET_LINK_LIBRARIES(recursive_upnp ${KDE4_KDEUI_LIBS} ${KDE4_KPARTS_LIBS})
+
     install(TARGETS upnpmstest  DESTINATION ${BIN_INSTALL_DIR})
     install(TARGETS stattest  DESTINATION ${BIN_INSTALL_DIR})
+    install(TARGETS recursive_upnp DESTINATION ${BIN_INSTALL_DIR})
 endif()
