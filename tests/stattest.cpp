@@ -34,6 +34,7 @@ void stattest::done(KJob *job)
     KIO::StatJob *statJob = static_cast<KIO::StatJob*>( job );
     KIO::UDSEntry entry = statJob->statResult();
     kDebug() << entry.stringValue( KIO::UPNP_CLASS );
+    kapp->quit();
 }
 
 int main (int argc, char *argv[])

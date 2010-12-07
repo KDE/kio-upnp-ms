@@ -37,7 +37,7 @@ void upnptest::done(KJob *job)
         kDebug() << "ERROR!" << job->errorString();
         job->kill();
     }
-    //kapp->quit();
+    kapp->quit();
 }
 
 void upnptest::entries(KIO::Job *job, const KIO::UDSEntryList &list )
@@ -60,8 +60,17 @@ void upnptest::entries(KIO::Job *job, const KIO::UDSEntryList &list )
 void upnptest::slotSlaveError(KIO::Slave* slave, int err, const QString& msg)
 {
     kDebug() << "SLAVE ERROR!" << slave << err << msg;
+    kDebug() << "HAS JOB? " << slave->job();
+    if( slave->job() )
+        slave->job()->kill();
+
+    kDebug() << "Killed job? still has?" << slave->job();
     KIO::Scheduler::disconnectSlave(slave);
+    kDebug() << "Requested disconnect";
+    delete slave;
+    kDebug() << "DELETED";
     slave = 0;
+    kapp->quit();
 }
 
 void upnptest::slotConnected(KIO::Slave* slave)
