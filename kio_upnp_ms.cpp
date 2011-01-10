@@ -63,6 +63,7 @@ extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
 {
 
   KComponentData instance( "kio_upnp_ms" );
+  KGlobal::locale();
   QCoreApplication app( argc, argv );
 
   if (argc != 4)
