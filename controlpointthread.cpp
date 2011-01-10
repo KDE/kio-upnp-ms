@@ -269,7 +269,7 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
     dev.searchCapabilities = QStringList();
     m_devices[url.host()] = dev;
 
-    HDiscoveryType specific( udn );
+    HDiscoveryType specific( udn, Herqq::Upnp::LooseChecks );
     // Stick to multicast, unicast is a UDA 1.1 feature
     // all devices don't support it
     // Thanks to Tuomo Penttinen for pointing that out
