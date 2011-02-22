@@ -28,7 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <HUpnpCore/HClientAction>
 #include <HUpnpCore/HActionArguments>
 #include <HUpnpCore/HActionInfo>
-#include <HUpnpCore/HAsyncOp>
+#include <HUpnpCore/HClientActionOp>
 
 using namespace Herqq::Upnp;
 
@@ -51,38 +51,38 @@ void PersistentAction::timeout()
 {
     m_timer->stop();
     // disconnect so that we don't get multiple invokeComplete calls in case it just finishes
-    bool ok = disconnect( m_action, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp, const Herqq::Upnp::HActionArguments& ) ),
-                       this, SLOT( invokeComplete( Herqq::Upnp::HAsyncOp, const Herqq::Upnp::HActionArguments& ) ) );
+    bool ok = disconnect( m_action, SIGNAL( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp&) ),
+                       this, SLOT( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp&) ) );
     Q_UNUSED( ok );
-    HAsyncOp op;
+    HClientActionOp op;
     op.setReturnValue( Herqq::Upnp::UpnpActionFailed );
     op.setErrorDescription( QLatin1String("Action timed out") );
 
     HActionArguments empty;
-    invokeComplete( op, empty );
+    invokeComplete(m_action, op);
 }
 
-void PersistentAction::invoke( const Herqq::Upnp::HActionArguments &args, void *userData )
+void PersistentAction::invoke( const Herqq::Upnp::HActionArguments &args )
 {
     m_inputArgs = args;
     m_tries = 0;
     m_delay = 1000;
-
-    invoke( userData );
+    invoke();
 }
 
-void PersistentAction::invoke( void *userData )
+void PersistentAction::invoke()
 {
     kDebug() << "Beginning invoke" << m_action->info().name() << "Try number" << m_tries;
-    connect( m_action, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp, const Herqq::Upnp::HActionArguments& ) ),
-                       this, SLOT( invokeComplete( Herqq::Upnp::HAsyncOp, const Herqq::Upnp::HActionArguments& ) ), Qt::UniqueConnection );
-    HAsyncOp op = m_action->beginInvoke( m_inputArgs );
+    bool ok = connect( m_action, SIGNAL( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp &) ),
+                       this, SLOT( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp &) ), Qt::UniqueConnection );
+    Q_ASSERT(ok);
+    HClientActionOp op = m_action->beginInvoke( m_inputArgs );
     m_timer->start( 5000 );
-    op.setUserData( userData );
 }
 
-void PersistentAction::invokeComplete( Herqq::Upnp::HAsyncOp invocationOp, const Herqq::Upnp::HActionArguments &output ) // SLOT
+void PersistentAction::invokeComplete(Herqq::Upnp::HClientAction *action, const Herqq::Upnp::HClientActionOp &invocationOp) // SLOT
 {
+    kDebug() << "INVOKE COMPLETE";
     m_timer->stop();
 
     if( invocationOp.returnValue() != Herqq::Upnp::UpnpSuccess ) {
@@ -95,23 +95,23 @@ void PersistentAction::invokeComplete( Herqq::Upnp::HAsyncOp invocationOp, const
             Sleeper::msleep( m_delay );
             m_tries++;
             m_delay = m_delay * 2;
-            invoke( (void *) invocationOp.userData() );
+            invoke();
             return;
         }
         else {
             kDebug() << "Failed even after" << m_tries << "tries. Giving up!";
-            disconnect( m_action, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp, const Herqq::Upnp::HActionArguments& ) ),
-                        this, SLOT( invokeComplete( Herqq::Upnp::HAsyncOp, const Herqq::Upnp::HActionArguments& ) ) );
-            emit invokeComplete( output, invocationOp, false, errorString );
+            disconnect( m_action, SIGNAL( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp&) ),
+                        this, SLOT( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp&) ) );
+            emit invokeComplete( action, invocationOp, false, errorString );
             return;
         }
     }
 
-    bool ok = disconnect( m_action, SIGNAL( invokeComplete( Herqq::Upnp::HAsyncOp, const Herqq::Upnp::HActionArguments& ) ),
-                this, SLOT( invokeComplete( Herqq::Upnp::HAsyncOp, const Herqq::Upnp::HActionArguments& ) ) );
+    bool ok = disconnect( m_action, SIGNAL( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp&) ),
+                this, SLOT( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp &) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
 
-    emit invokeComplete( output, invocationOp, true, QString() );
+    emit invokeComplete( action, invocationOp, true, QString() );
 }
 

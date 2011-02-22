@@ -195,25 +195,24 @@ void ControlPointThread::rootDeviceOnline(HClientDevice *device) // SLOT
     PersistentAction *action = new PersistentAction( searchCapAction, this, 1 ); // try just once
 
     connect( action,
-             SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
+             SIGNAL( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp&, bool, QString ) ),
              this,
-             SLOT( searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
+             SLOT( searchCapabilitiesInvokeDone(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp&, bool, QString ) ) );
 
     HActionArguments input = searchCapAction->info().inputArguments();
 
     Q_ASSERT(dev.device);
-    action->invoke( input, dev.device );
+    action->invoke(input);
 }
 
-void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString ) // SLOT
+void ControlPointThread::searchCapabilitiesInvokeDone(Herqq::Upnp::HClientAction *action, const Herqq::Upnp::HClientActionOp &op, bool ok, QString errorString ) // SLOT
 {
-    Q_UNUSED( op );
     Q_UNUSED( errorString );
-    PersistentAction *action = static_cast<PersistentAction *>( QObject::sender() );
-    action->deleteLater();
+    PersistentAction *pAction = static_cast<PersistentAction *>( QObject::sender() );
+    pAction->deleteLater();
 
     // NOTE as a reference!
-    HClientDevice *device = (HClientDevice *) op.userData();
+    HClientDevice *device = action->parentService()->parentDevice();
     Q_ASSERT( device );
     MediaServerDevice &dev = m_devices[device->info().udn().toSimpleUuid()];
 
@@ -225,7 +224,8 @@ void ControlPointThread::searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArgum
         return;
     }
 
-    QString reply = output["SearchCaps"]->value().toString();
+    HActionArguments output = op.outputArguments();
+    QString reply = output["SearchCaps"].value().toString();
 
     dev.searchCapabilities = reply.split(",", QString::SkipEmptyParts);
 
@@ -366,9 +366,9 @@ void ControlPointThread::stat( const KUrl &url )
     }
 
     if( url.hasQueryItem( "id" ) ) {
-        connect( this, SIGNAL(browseResult(Herqq::Upnp::HActionArguments,ActionStateInfo*)),
-                 this, SLOT(createStatResult(Herqq::Upnp::HActionArguments,ActionStateInfo*)) );
-        browseOrSearchObject( new DIDL::Object( DIDL::SuperObject::Item, url.queryItem( "id" ), "-1", true ),
+        connect( this, SIGNAL(browseResult(const Herqq::Upnp::HClientActionOp &)),
+                 this, SLOT(createStatResult(const Herqq::Upnp::HClientActionOp &)) );
+        browseOrSearchObject( url.queryItem( "id" ),
                               browseAction(),
                               BROWSE_METADATA,
                               "*",
@@ -386,19 +386,19 @@ void ControlPointThread::stat( const KUrl &url )
     m_currentDevice.cache->resolvePathToObject( path );
 }
 
-void ControlPointThread::createStatResult(Herqq::Upnp::HActionArguments output, ControlPointThread::ActionStateInfo* info)
+void ControlPointThread::createStatResult(const Herqq::Upnp::HClientActionOp &op)
 {
-    Q_UNUSED( info );
-    bool ok = disconnect( this, SIGNAL(browseResult(Herqq::Upnp::HActionArguments,ActionStateInfo*)),
-                          this, SLOT( createStatResult(Herqq::Upnp::HActionArguments,ActionStateInfo*)) );
+    HActionArguments output = op.outputArguments();
+    bool ok = disconnect( this, SIGNAL(browseResult(const Herqq::Upnp::HClientActionOp &)),
+                          this, SLOT( createStatResult(const Herqq::Upnp::HClientActionOp &)) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
-    if( !output["Result"] ) {
+    if( !output["Result"].isValid() ) {
         emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
         return;
     }
 
-    QString didlString = output["Result"]->value().toString();
+    QString didlString = output["Result"].value().toString();
     kDebug() << "STAT" << didlString;
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
@@ -435,7 +435,7 @@ void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
  * secondArgument should be one of BROWSE_DIRECT_CHILDREN,
  * BROWSE_METADATA or a valid search string.
  */
-void ControlPointThread::browseOrSearchObject( const DIDL::Object *obj,
+void ControlPointThread::browseOrSearchObject( const QString &id,
                                                HClientAction *action,
                                                const QString &secondArgument,
                                                const QString &filter,
@@ -451,30 +451,25 @@ void ControlPointThread::browseOrSearchObject( const DIDL::Object *obj,
    
     HActionArguments args = action->info().inputArguments();
   
-    Q_ASSERT( obj );
     if( action->info().name() == "Browse" ) {
-        args["ObjectID"]->setValue( obj->id() );
-        args["BrowseFlag"]->setValue( secondArgument );
+        args["ObjectID"].setValue( id );
+        args["BrowseFlag"].setValue( secondArgument );
     }
     else if( action->info().name() == "Search" ) {
-        args["ContainerID"]->setValue( obj->id() );
-        args["SearchCriteria"]->setValue( secondArgument );
+        args["ContainerID"].setValue( id );
+        args["SearchCriteria"].setValue( secondArgument );
     }
-    args["Filter"]->setValue( filter );
-    args["StartingIndex"]->setValue( startIndex );
-    args["RequestedCount"]->setValue( requestedCount );
-    args["SortCriteria"]->setValue( sortCriteria );
-
-    ActionStateInfo *info = new ActionStateInfo;
-    info->on = obj;
-    info->start = startIndex;
+    args["Filter"].setValue( filter );
+    args["StartingIndex"].setValue( startIndex );
+    args["RequestedCount"].setValue( requestedCount );
+    args["SortCriteria"].setValue( sortCriteria );
 
     connect( pAction,
-             SIGNAL( invokeComplete( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ),
+             SIGNAL( invokeComplete( Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp&, bool, QString ) ),
              this,
-             SLOT( browseInvokeDone( Herqq::Upnp::HActionArguments, Herqq::Upnp::HAsyncOp, bool, QString ) ) );
+             SLOT( browseInvokeDone( Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp&, bool, QString ) ) );
 
-    pAction->invoke( args, info );
+    pAction->invoke(args);
 }
 
 void ControlPointThread::listDir( const KUrl &url )
@@ -571,9 +566,9 @@ void ControlPointThread::listDir( const KUrl &url )
         }
 
         if( url.hasQueryItem( "id" ) ) {
-            connect( this, SIGNAL(browseResult(Herqq::Upnp::HActionArguments,ActionStateInfo*)),
-                    this, SLOT(createSearchListing(Herqq::Upnp::HActionArguments,ActionStateInfo*)) );
-            browseOrSearchObject( new DIDL::Object( DIDL::SuperObject::Item, url.queryItem( "id" ), "-1", true ),
+            connect( this, SIGNAL(browseResult(const Herqq::Upnp::HClientActionOp &)),
+                    this, SLOT(createSearchListing(const Herqq::Upnp::HClientActionOp &)) );
+            browseOrSearchObject( url.queryItem( "id" ),
                                   searchAction(),
                                   m_queryString,
                                   m_filter,
@@ -590,9 +585,9 @@ void ControlPointThread::listDir( const KUrl &url )
     }
 
     if( url.hasQueryItem( "id" ) ) {
-        connect( this, SIGNAL(browseResult(Herqq::Upnp::HActionArguments,ActionStateInfo*)),
-                 this, SLOT(createDirectoryListing(Herqq::Upnp::HActionArguments,ActionStateInfo*)) );
-        browseOrSearchObject( new DIDL::Object( DIDL::SuperObject::Item, url.queryItem( "id" ), "-1", true ),
+        connect( this, SIGNAL(browseResult(const Herqq::Upnp::HClientActionOp &)),
+                 this, SLOT(createDirectoryListing(const Herqq::Upnp::HClientActionOp &)) );
+        browseOrSearchObject( url.queryItem( "id" ),
                               browseAction(),
                               BROWSE_DIRECT_CHILDREN,
                               "*",
@@ -601,16 +596,23 @@ void ControlPointThread::listDir( const KUrl &url )
                               "" );
         return;
     }
+    kDebug() << "RESOLVING PATH TO OBJ";
     connect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
              this, SLOT( browseResolvedPath( const DIDL::Object *) ) );
     m_currentDevice.cache->resolvePathToObject(path);
 }
 
-void ControlPointThread::browseResolvedPath( const DIDL::Object *object, uint start, uint count ) // SLOT
+void ControlPointThread::browseResolvedPath( const DIDL::Object *object )
 {
+    kDebug() << "PATH RESOLVED" << object->id();
     disconnect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
                 this, SLOT( browseResolvedPath( const DIDL::Object *) ) );
-    if( !object ) {
+    browseResolvedPath(object->id());
+}
+
+void ControlPointThread::browseResolvedPath( const QString &id, uint start, uint count ) // SLOT
+{
+    if( id.isNull() ) {
         kDebug() << "ERROR: idString null";
         emit error( KIO::ERR_DOES_NOT_EXIST, QString() );
         return;
@@ -621,9 +623,10 @@ void ControlPointThread::browseResolvedPath( const DIDL::Object *object, uint st
         return;
     }
 
-    Q_ASSERT(connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
-                      this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) ));
-    browseOrSearchObject( object,
+    Q_ASSERT(connect( this, SIGNAL( browseResult( const Herqq::Upnp::HClientActionOp & ) ),
+                      this, SLOT( createDirectoryListing( const Herqq::Upnp::HClientActionOp&) ) ));
+    kDebug() << "BEGINNING browseOrSearch call";
+    browseOrSearchObject( id,
                           browseAction(),
                           BROWSE_DIRECT_CHILDREN,
                           "*",
@@ -632,8 +635,10 @@ void ControlPointThread::browseResolvedPath( const DIDL::Object *object, uint st
                           "" );
 }
 
-void ControlPointThread::browseInvokeDone( HActionArguments output, HAsyncOp invocationOp, bool ok, QString error ) // SLOT
+void ControlPointThread::browseInvokeDone(HClientAction *action, const HClientActionOp &invocationOp, bool ok, QString error ) // SLOT
 {
+    kDebug() << "BROWSEINVOKEDONE";
+    HActionArguments output = invocationOp.outputArguments();
     if( !ok ) {
         kDebug() << "browse failed" << error;
         m_lastErrorString = error;
@@ -644,27 +649,28 @@ void ControlPointThread::browseInvokeDone( HActionArguments output, HAsyncOp inv
     }
 
     // delete the PersistentAction
-    PersistentAction *action = static_cast<PersistentAction *>( QObject::sender() );
-    action->deleteLater();
+    PersistentAction *pAction = static_cast<PersistentAction *>( QObject::sender() );
+    pAction->deleteLater();
 
-    ActionStateInfo *info = ( ActionStateInfo *)invocationOp.userData();
-    if( ok )
-        Q_ASSERT( info );
-    emit browseResult( output, info );
+    emit browseResult( invocationOp );
 }
 
-void ControlPointThread::createDirectoryListing( const HActionArguments &args, ActionStateInfo *info ) // SLOT
+void ControlPointThread::createDirectoryListing(const HClientActionOp &op) // SLOT
 {
-    bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
-                          this, SLOT( createDirectoryListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) );
+    kDebug() << "CDR CALLED";
+    bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HClientActionOp&) ),
+                          this, SLOT( createDirectoryListing(const Herqq::Upnp::HClientActionOp &) ) );
+
     Q_ASSERT( ok );
     Q_UNUSED( ok );
-    if( !args["Result"] ) {
+
+    HActionArguments output = op.outputArguments();
+    if( !output["Result"].isValid() ) {
         emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
         return;
     }
 
-    QString didlString = args["Result"]->value().toString();
+    QString didlString = output["Result"].value().toString();
     kDebug() << didlString;
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
@@ -677,13 +683,15 @@ void ControlPointThread::createDirectoryListing( const HActionArguments &args, A
     // the parsing begins, but perhaps this delay is good for
     // adding some 'break' to the network connections, so that
     // disconnection by the remote device can be avoided.
-    Q_ASSERT( info );
-    uint num = args["NumberReturned"]->value().toUInt();
-    uint total = args["TotalMatches"]->value().toUInt();
-    if( num > 0 && ( info->start + num < total ) ) {
-        Q_ASSERT( info->on );
+    HActionArguments input = op.inputArguments();
+    QString id = input["ObjectID"].value().toString();
+    uint start = input["StartingIndex"].value().toUInt();
+
+    uint num = output["NumberReturned"].value().toUInt();
+    uint total = output["TotalMatches"].value().toUInt();
+    if( num > 0 && ( start + num < total ) ) {
         msleep( 1000 );
-        browseResolvedPath( info->on, info->start + num );
+        browseResolvedPath( id, start + num );
     }
     else {
         emit listingDone();
@@ -715,6 +723,12 @@ void ControlPointThread::fillCommon( KIO::UDSEntry &entry, const DIDL::Object *o
     entry.insert( KIO::UPNP_ID, obj->id() );
     entry.insert( KIO::UPNP_PARENT_ID, obj->parentId() );
 
+    if( m_stupidSet.contains( obj->title() ) ) {
+        kDebug() << "XXXX duplicate" << obj->title() << obj->id() << obj->parentId();
+        kDebug() << "PREV was " << m_stupidSet[obj->title()]->id() << m_stupidSet[obj->title()]->parentId();
+        Q_ASSERT(false);
+    }
+    m_stupidSet.insert(obj->title(), obj);
     fillMetadata(entry, KIO::UPNP_DATE, obj, "date");
     fillMetadata(entry, KIO::UPNP_CREATOR, obj, "creator");
     fillMetadata(entry, KIO::UPNP_ARTIST, obj, "artist");
@@ -834,7 +848,7 @@ void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariable
 // - somehow use createDirectoryListing's slot-recursive action
 //   invocation in a generalised manner
 
-void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint start, uint count )
+void ControlPointThread::searchResolvedPath( const DIDL::Object *object )
 {
     disconnect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
                 this, SLOT( searchResolvedPath( const DIDL::Object *) ) );
@@ -844,6 +858,11 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint st
         return;
     }
 
+    searchResolvedPath(object->id());
+}
+
+void ControlPointThread::searchResolvedPath( const QString &id, uint start, uint count )
+{
     if( !searchAction() ) {
         emit error( KIO::ERR_COULD_NOT_CONNECT, QString() );
         return;
@@ -851,7 +870,7 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint st
 
     Q_ASSERT(connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
                       this, SLOT( createSearchListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) ));
-    browseOrSearchObject( object,
+    browseOrSearchObject( id,
                           searchAction(),
                           m_queryString,
                           m_filter,
@@ -860,20 +879,21 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object, uint st
                           "" );
 }
 
-void ControlPointThread::createSearchListing( const HActionArguments &args, ActionStateInfo *info ) // SLOT
+void ControlPointThread::createSearchListing(const HClientActionOp &op) // SLOT
 {
     kDebug() << "DONE";
-    bool ok = disconnect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
-                          this, SLOT( createSearchListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) );
+    HActionArguments output = op.outputArguments();
+    bool ok = disconnect( this, SIGNAL( browseResult(const Herqq::Upnp::HClientActionOp &) ),
+                          this, SLOT( createSearchListing(const Herqq::Upnp::HClientActionOp &) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
-    if( !args["Result"] ) {
+    if( !output["Result"].isValid() ) {
         emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
         return;
     }
 
     if( m_getCount ) {
-        QString matches = args["TotalMatches"]->value().toString();
+        QString matches = output["TotalMatches"].value().toString();
         KIO::UDSEntry entry;
         entry.insert( KIO::UDSEntry::UDS_NAME, matches );
         emit listEntry( entry );
@@ -881,7 +901,7 @@ void ControlPointThread::createSearchListing( const HActionArguments &args, Acti
         return;
     }
 
-    QString didlString = args["Result"]->value().toString();
+    QString didlString = output["Result"].value().toString();
     kDebug() << didlString;
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
@@ -901,17 +921,19 @@ void ControlPointThread::createSearchListing( const HActionArguments &args, Acti
     // the parsing begins, but perhaps this delay is good for
     // adding some 'break' to the network connections, so that
     // disconnection by the remote device can be avoided.
-    Q_ASSERT( info );
-    uint num = args["NumberReturned"]->value().toUInt();
+    HActionArguments input = op.inputArguments();
+    QString id = input["ObjectID"].value().toString();
+    uint start = input["StartingIndex"].value().toUInt();
+
+    uint num = output["NumberReturned"].value().toUInt();
 
     if( m_resolveSearchPaths )
         m_searchListingCounter += num;
 
-    uint total = args["TotalMatches"]->value().toUInt();
-    if( num > 0 && ( info->start + num < total ) ) {
-        Q_ASSERT( info->on );
+    uint total = output["TotalMatches"].value().toUInt();
+    if( num > 0 && ( start + num < total ) ) {
         msleep( 1000 );
-        searchResolvedPath( info->on, info->start + num );
+        searchResolvedPath( id, start + num );
     }
     else {
         if( !m_resolveSearchPaths )

@@ -92,8 +92,8 @@ public slots:
     void resolveIdToPath( const QString &id );
 
 private slots:
-    void attemptResolution( const Herqq::Upnp::HActionArguments &args );
-    void attemptIdToPathResolution( const Herqq::Upnp::HActionArguments &args );
+    void attemptResolution( const Herqq::Upnp::HClientActionOp &op );
+    void attemptIdToPathResolution( const Herqq::Upnp::HClientActionOp &op );
     void slotResolveId( DIDL::Item *object );
     void slotResolveId( DIDL::Container *object );
     void slotBuildPathForId( DIDL::Item * );

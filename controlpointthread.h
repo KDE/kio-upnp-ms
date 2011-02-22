@@ -23,12 +23,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <QCache>
 #include <QThread>
 #include <QMutex>
+#include <QSet>
 
 #include <kio/slavebase.h>
 
 #include <HUpnpCore/HUpnp>
-#include <HUpnpCore/HAsyncOp>
 #include <HUpnpCore/HActionArguments>
+#include <HUpnpCore/HClientActionOp>
 #include <HUpnpCore/HDeviceInfo>
 
 namespace Herqq
@@ -63,11 +64,6 @@ class ControlPointThread : public QThread
 {
   Q_OBJECT
   private:
-    struct ActionStateInfo {
-      const DIDL::Object *on;
-      uint start;
-    };
-
     struct MediaServerDevice {
         Herqq::Upnp::HClientDevice *device;
         Herqq::Upnp::HDeviceInfo info;
@@ -154,17 +150,19 @@ class ControlPointThread : public QThread
     void slotCDSUpdated( const Herqq::Upnp::HStateVariableEvent &event );
     void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
 
-    void browseInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp invocationOp, bool ok, QString error );
-    void browseResolvedPath( const DIDL::Object *, uint start = 0, uint count = 30 );
-    void createDirectoryListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo *info );
+    void browseInvokeDone(Herqq::Upnp::HClientAction *action, const Herqq::Upnp::HClientActionOp &invocationOp, bool ok, QString error );
+    void browseResolvedPath( const DIDL::Object * );
+    void browseResolvedPath( const QString &id, uint start = 0, uint count = 30 );
+    void createDirectoryListing(const Herqq::Upnp::HClientActionOp &op);
 
-    void searchResolvedPath( const DIDL::Object *object, uint start = 0, uint count = 30 );
-    void createSearchListing( const Herqq::Upnp::HActionArguments &args, ActionStateInfo *info );
+    void searchResolvedPath( const DIDL::Object * );
+    void searchResolvedPath( const QString &id, uint start = 0, uint count = 30 );
+    void createSearchListing( const Herqq::Upnp::HClientActionOp &op);
 
-    void createStatResult( Herqq::Upnp::HActionArguments output, ActionStateInfo *info );
+    void createStatResult( const Herqq::Upnp::HClientActionOp &op);
     void statResolvedPath( const DIDL::Object * );
 
-    void searchCapabilitiesInvokeDone( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp op, bool ok, QString errorString );
+    void searchCapabilitiesInvokeDone(Herqq::Upnp::HClientAction *action, const Herqq::Upnp::HClientActionOp &op, bool ok, QString errorString );
 
   signals:
     /**
@@ -179,7 +177,7 @@ class ControlPointThread : public QThread
     void listEntry( const KIO::UDSEntry & );
     void listingDone();
     void error( int type, const QString & ) const;
-    void browseResult( const Herqq::Upnp::HActionArguments &args, ActionStateInfo *info );
+    void browseResult( const Herqq::Upnp::HClientActionOp& );
 
   private:
     bool updateDeviceInfo( const KUrl &url );
@@ -194,7 +192,7 @@ class ControlPointThread : public QThread
      * @param obj - A DIDL::Object referred ONLY for the ID.
      *              A temporarily created object can be used with invalid values as long as ID is valid
      */
-    void browseOrSearchObject( const DIDL::Object *obj,
+    void browseOrSearchObject( const QString &id,
                                Herqq::Upnp::HClientAction *action,
                                const QString &secondArgument,
                                const QString &filter,
@@ -228,6 +226,8 @@ class ControlPointThread : public QThread
     QString m_lastErrorString;
 
     friend class ObjectCache;
+
+    QHash<QString, const DIDL::Object*> m_stupidSet;
 };
 
 #endif

@@ -129,9 +129,9 @@ void ObjectCache::resolvePathToObjectInternal()
         return;
     }
 
-    connect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo *) ),
-             this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) );
-    m_cpt->browseOrSearchObject( m_reverseCache[m_resolve.segment],
+    connect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HClientActionOp & ) ),
+             this, SLOT( attemptResolution( const Herqq::Upnp::HClientActionOp & ) ) );
+    m_cpt->browseOrSearchObject( m_reverseCache[m_resolve.segment]->id(),
                                  m_cpt->browseAction(),
                                  BROWSE_DIRECT_CHILDREN,
                                  "dc:title",
@@ -140,14 +140,15 @@ void ObjectCache::resolvePathToObjectInternal()
                                  "" );
 }
 
-void ObjectCache::attemptResolution( const HActionArguments &args )
+void ObjectCache::attemptResolution( const HClientActionOp &op )
 {
+    HActionArguments output = op.outputArguments();
     // NOTE disconnection is important
-    bool ok = disconnect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
-                          this, SLOT( attemptResolution( const Herqq::Upnp::HActionArguments & ) ) );
+    bool ok = disconnect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HClientActionOp & ) ),
+                          this, SLOT( attemptResolution( const Herqq::Upnp::HClientActionOp & ) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
-    if( !args["Result"] ) {
+    if( !output["Result"].isValid() ) {
         emit m_cpt->error( KIO::ERR_SLAVE_DEFINED, "Resolution error" );
         return;
     }
@@ -158,7 +159,7 @@ void ObjectCache::attemptResolution( const HActionArguments &args )
     connect( &parser, SIGNAL(containerParsed(DIDL::Container *)),
              this, SLOT(slotResolveId(DIDL::Container *)) );
 
-    parser.parse( args["Result"]->value().toString() );
+    parser.parse( output["Result"].value().toString() );
 
     // we sleep because devices ( atleast MediaTomb )
     // seem to block continous TCP connections after some time
@@ -281,10 +282,10 @@ void ObjectCache::resolveIdToPathInternal()
         emit m_cpt->error( KIO::ERR_COULD_NOT_CONNECT, QString() );
         return;
     }
-    connect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo *) ),
-             this, SLOT( attemptIdToPathResolution( const Herqq::Upnp::HActionArguments & ) ) );
+    connect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HClientActionOp & ) ),
+             this, SLOT( attemptIdToPathResolution( const Herqq::Upnp::HClientActionOp & ) ) );
     kDebug() << "Now resolving path for ID" << m_idResolve.currentId << m_idResolve.fullPath;
-    m_cpt->browseOrSearchObject( new DIDL::Object( DIDL::SuperObject::Item, m_idResolve.currentId, "-1", true ),
+    m_cpt->browseOrSearchObject(  m_idResolve.currentId,
                                  m_cpt->browseAction(),
                                  BROWSE_METADATA,
                                  "dc:title",
@@ -293,18 +294,19 @@ void ObjectCache::resolveIdToPathInternal()
                                  "" );
 }
 
-void ObjectCache::attemptIdToPathResolution( const HActionArguments &args )
+void ObjectCache::attemptIdToPathResolution( const HClientActionOp &op )
 {
+    HActionArguments output = op.outputArguments();
     // NOTE disconnection is important
-    bool ok = disconnect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
-                          this, SLOT( attemptIdToPathResolution( const Herqq::Upnp::HActionArguments & ) ) );
+    bool ok = disconnect( m_cpt, SIGNAL( browseResult( const Herqq::Upnp::HClientActionOp & ) ),
+                          this, SLOT( attemptIdToPathResolution( const Herqq::Upnp::HClientActionOp & ) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
-    if( !args["Result"] ) {
+    if( !output["Result"].isValid() ) {
         emit m_cpt->error( KIO::ERR_SLAVE_DEFINED, "ID to Path Resolution error" );
         return;
     }
-    kDebug() << "In attempt for" << m_idResolve.currentId << "got"<< args["Result"]->value().toString();
+    kDebug() << "In attempt for" << m_idResolve.currentId << "got"<< output["Result"].value().toString();
 
     DIDL::Parser parser;
     connect( &parser, SIGNAL(itemParsed(DIDL::Item *)),
@@ -312,7 +314,7 @@ void ObjectCache::attemptIdToPathResolution( const HActionArguments &args )
     connect( &parser, SIGNAL(containerParsed(DIDL::Container *)),
              this, SLOT(slotBuildPathForId(DIDL::Container *)) );
 
-    parser.parse( args["Result"]->value().toString() );
+    parser.parse( output["Result"].value().toString() );
 
     // we sleep because devices ( atleast MediaTomb )
     // seem to block continous TCP connections after some time

@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <QObject>
 
 #include <HUpnpCore/HActionArguments>
-#include <HUpnpCore/HAsyncOp>
+#include <HUpnpCore/HClientActionOp>
 
 class QTimer;
 
@@ -54,26 +54,26 @@ class PersistentAction : public QObject
 public:
     PersistentAction( Herqq::Upnp::HClientAction *action,  QObject *parent = 0, uint maximumTries = 3 );
     QString errorString() const { return m_errorString; }
-    void invoke( const Herqq::Upnp::HActionArguments &args, void *userData );
+    void invoke(const Herqq::Upnp::HActionArguments &args);
 
 signals:
     /**
      * Emitted when the action invocation is done
      * ( however many tries it may have taken )
-     * The HAsyncOp can be used to recover any user data
+     * The HClientActionOp can be used to recover any user data
      * @c ok is set to false if an error occured, true otherwise.
      * In case of error @c error is the error
      * otherwise it is a null string.
-     * the HAsyncOp can be directly used.
+     * the HClientActionOp can be directly used.
      */
-    void invokeComplete( Herqq::Upnp::HActionArguments output, Herqq::Upnp::HAsyncOp, bool ok, QString error );
+    void invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp &, bool ok, QString error );
 
 private slots:
-    void invokeComplete( Herqq::Upnp::HAsyncOp, const Herqq::Upnp::HActionArguments& ); // SLOT
+    void invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp &); // SLOT
     void timeout();
 
 private:
-    void invoke( void *userData );
+    void invoke();
     uint m_maximumTries;
     uint m_tries;
     QString m_errorString;
