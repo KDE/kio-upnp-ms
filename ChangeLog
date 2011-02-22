@@ -1,0 +1,15 @@
+kio-upnp-ms ChangeLog
+=====================
+(C) 2010-2011 Nikhil Marathe
+
+
+VERSION 0.9.0
+  CHANGES:
+	* Updated slave to use HUpnp version 0.9.0
+	* Update check notifications have been disabled
+	  (will probably be dropped in later versions)
+	* i18n support for errors
+	* Looser checks for UUID strictness so that more
+	  devices are supported.
+
+# vim: expandtab ts=2 sw=2
