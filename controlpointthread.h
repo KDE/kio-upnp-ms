@@ -144,9 +144,6 @@ class ControlPointThread : public QObject
     void slotListSearchItem( DIDL::Item *item );
     void slotEmitSearchEntry( const QString &id, const QString &path );
 
-    void slotCDSUpdated( const Herqq::Upnp::HStateVariableEvent &event );
-    void slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event );
-
     void browseInvokeDone(Herqq::Upnp::HClientAction *action, const Herqq::Upnp::HClientActionOp &invocationOp, bool ok, QString error );
     void browseResolvedPath( const DIDL::Object * );
     void browseResolvedPath( const QString &id, uint start = 0, uint count = 30 );

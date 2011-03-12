@@ -41,7 +41,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <HUpnpCore/HEndpoint>
 #include <HUpnpCore/HResourceType>
 #include <HUpnpCore/HServiceId>
-#include <HUpnpCore/HStateVariableEvent>
 #include <HUpnpCore/HUdn>
 #include <HUpnpCore/HUpnp>
 
@@ -162,24 +161,6 @@ void ControlPointThread::rootDeviceOnline(HClientDevice *device) // SLOT
     dev.device = device;
     dev.info = device->info();
     dev.cache = new ObjectCache( this );
-
-    /*const HClientStateVariable *systemUpdateID = contentDirectory(dev.device)->stateVariables()["SystemUpdateID"];
-    connect( systemUpdateID,
-             SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
-             this,
-             SLOT( slotCDSUpdated(const Herqq::Upnp::HStateVariableEvent&) ) );
- 
-    const HClientStateVariable *containerUpdates = contentDirectory(dev.device)->stateVariables()["ContainerUpdateIDs"];
-    if( containerUpdates ) {
-        bool ok = connect( containerUpdates,
-                           SIGNAL( valueChanged(const Herqq::Upnp::HStateVariableEvent&) ),
-                           this,
-                           SLOT( slotContainerUpdates(const Herqq::Upnp::HStateVariableEvent&) ) );
-        Q_ASSERT( ok );
-    }
-    else {
-        kDebug() << dev.info.friendlyName() << "does not support updates";
-    }*/
 
     HClientAction *searchCapAction = contentDirectory(dev.device)->actions()["GetSearchCapabilities"];
     Q_ASSERT( searchCapAction );
@@ -777,51 +758,6 @@ void ControlPointThread::slotListItem( DIDL::Item *item )
 ////////////////////////////////////////////
 //// ID/title/object mapping/resolution ////
 ////////////////////////////////////////////
-
-///////////////////
-////  Updates  //// 
-///////////////////
-void ControlPointThread::slotCDSUpdated( const HStateVariableEvent &event )
-{
-    kDebug() << "UPDATE" << event.newValue();
-}
-
-void ControlPointThread::slotContainerUpdates( const Herqq::Upnp::HStateVariableEvent& event )
-{
-    kDebug() << "UPDATED containers" << event.newValue();
-
-    HClientDevice *deviceForEvent = NULL; //event.eventSource()->parentService()->parentDevice();
-    Q_ASSERT( deviceForEvent );
-    QString uuid = deviceForEvent->info().udn().toSimpleUuid();
-
-    QStringList filesChanged;
-
-    QStringList updates = event.newValue().toString().split(",");
-    QStringList::const_iterator it;
-    for( it = updates.begin(); it != updates.end(); /* see loop */ ) {
-        QString id = *it;
-        it++;
-        QString updateValue = *it;
-        it++;
-
-// NOTE what about CDS's with tracking changes option?
-// TODO implement later
-
-        if( m_devices[uuid].cache->update( id, updateValue ) ) {
-            QString updatedPath = m_devices[uuid].cache->pathForId( id );
-            kDebug() << "ID" << id << "Path" << updatedPath;
-
-            KUrl fullPath;
-
-            fullPath.setProtocol( "upnp-ms" );
-            fullPath.setHost( uuid );
-            fullPath.setPath( updatedPath );
-            filesChanged << fullPath.prettyUrl();
-        }
-    }
-    kDebug() << "Files Changed" << filesChanged;
-    OrgKdeKDirNotifyInterface::emitFilesChanged( filesChanged );
-}
 
 ///////////////////
 //// Searching ////
