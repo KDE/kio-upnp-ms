@@ -22,6 +22,25 @@ void recursivetest::check()
 {
     KIO::ListJob *job = KIO::listRecursive(m_url);
     connect( job, SIGNAL(result(KJob *)), this, SLOT(done(KJob *)));
+    connect( job, SIGNAL(entries(KIO::Job *, const KIO::UDSEntryList&)),
+            this, SLOT(entries(KIO::Job *, const KIO::UDSEntryList&)), Qt::UniqueConnection);
+}
+
+void recursivetest::entries(KIO::Job *job, const KIO::UDSEntryList &list )
+{
+    Q_UNUSED( job );
+    kDebug() << static_cast<KIO::ListJob*>(job)->url() << "-------------------------------------------";
+    foreach( KIO::UDSEntry entry, list ) {
+        kDebug() << entry.stringValue( KIO::UDSEntry::UDS_NAME )
+                 << entry.stringValue( KIO::UDSEntry::UDS_MIME_TYPE );
+// Enable if you really want to see all the data
+// slows listing ~10 times obviously
+//        for( uint f = KIO::UPNP_CLASS; f <= KIO::UPNP_CHANNEL_NUMBER; f++ ) {
+//            if( entry.contains(f) )
+//                kDebug() << "      " << entry.numberValue(f) << entry.stringValue(f);
+//        }
+    }
+    kDebug() << "-------------------------------------------";
 }
 
 void recursivetest::done(KJob *job)

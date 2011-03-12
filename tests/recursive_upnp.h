@@ -13,6 +13,7 @@ class recursivetest : public QObject
   public slots:
     void done(KJob *);
     void check();
+    void entries(KIO::Job *job, const KIO::UDSEntryList &list);
 
   private:
     KUrl m_url;
