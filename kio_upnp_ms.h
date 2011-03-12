@@ -91,7 +91,7 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     // used for connection oriented mode.
     QString m_connectedHost;
 
-    ControlPointThread m_cpthread;
+    ControlPointThread *m_cpthread;
     bool m_statBusy;
     bool m_listBusy;
 };

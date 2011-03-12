@@ -20,6 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "objectcache.h"
 
 #include <QDir>
+#include <QEventLoop>
+#include <QTimer>
 
 #include <kdebug.h>
 
@@ -30,6 +32,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 using namespace Herqq;
 using namespace Herqq::Upnp;
+
+void block(unsigned long msecs)
+{
+    QEventLoop local;
+    QTimer::singleShot( msecs, &local, SLOT(quit()) );
+    local.exec();
+}
 
 ObjectCache::ObjectCache( ControlPointThread *cpt )
     : QObject( cpt )
@@ -161,10 +170,10 @@ void ObjectCache::attemptResolution( const HClientActionOp &op )
 
     parser.parse( output["Result"].value().toString() );
 
-    // we sleep because devices ( atleast MediaTomb )
+    // we block because devices ( atleast MediaTomb )
     // seem to block continous TCP connections after some time
     // this interval might need modification
-    m_cpt->msleep(500);
+    block(500);
 
     // TODO have some kind of slot to stop the parser as 
     // soon as we find our guy, so that the rest of the
@@ -316,10 +325,10 @@ void ObjectCache::attemptIdToPathResolution( const HClientActionOp &op )
 
     parser.parse( output["Result"].value().toString() );
 
-    // we sleep because devices ( atleast MediaTomb )
+    // we block because devices ( atleast MediaTomb )
     // seem to block continous TCP connections after some time
     // this interval might need modification
-    m_cpt->msleep(500);
+    block(500);
 
 // TODO fill stuff here
 

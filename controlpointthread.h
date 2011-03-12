@@ -21,8 +21,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define CONTROLPOINTTHREAD_H
 
 #include <QCache>
-#include <QThread>
-#include <QMutex>
 #include <QSet>
 
 #include <kio/slavebase.h>
@@ -60,7 +58,7 @@ Q_DECLARE_METATYPE( Herqq::Upnp::HActionArguments );
 /**
   This class implements a upnp kioslave
  */
-class ControlPointThread : public QThread
+class ControlPointThread : public QObject
 {
   Q_OBJECT
   private:
@@ -133,8 +131,7 @@ class ControlPointThread : public QThread
      */
     void stat( const KUrl &url );
 
-  protected:
-    virtual void run();
+    void run();
 
   private slots:
     void rootDeviceOnline(Herqq::Upnp::HClientDevice *device);

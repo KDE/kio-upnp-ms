@@ -108,7 +108,7 @@ QRegExp searchCriteria(
 }
 
 ControlPointThread::ControlPointThread( QObject *parent )
-    : QThread( parent )
+    : QObject( parent )
     , m_controlPoint( 0 )
     , m_searchListingCounter( 0 )
 {
@@ -116,17 +116,16 @@ ControlPointThread::ControlPointThread( QObject *parent )
     qRegisterMetaType<KIO::UDSEntry>();
     qRegisterMetaType<Herqq::Upnp::HActionArguments>();
 
-    start();
-
-    // necessary due to Qt's concept of thread affinity
-    // since ControlPointThread is created in UPnPMS, it
-    // belongs to the main thread. We reparent it to the
-    // ControlPointThread.
-    QObject::moveToThread(this);
+    run();
 }
 
 ControlPointThread::~ControlPointThread()
 {
+    foreach( MediaServerDevice dev, m_devices ) {
+        delete dev.cache;
+        dev.cache = NULL;
+    }
+    delete m_controlPoint;
 }
 
 void ControlPointThread::run()
@@ -152,13 +151,6 @@ void ControlPointThread::run()
       kDebug() << "Error initing control point";
     }
 
-    exec();
-
-    foreach( MediaServerDevice dev, m_devices ) {
-        delete dev.cache;
-        dev.cache = NULL;
-    }
-    delete m_controlPoint;
 }
 
 void ControlPointThread::rootDeviceOnline(HClientDevice *device) // SLOT
@@ -690,7 +682,7 @@ void ControlPointThread::createDirectoryListing(const HClientActionOp &op) // SL
     uint num = output["NumberReturned"].value().toUInt();
     uint total = output["TotalMatches"].value().toUInt();
     if( num > 0 && ( start + num < total ) ) {
-        msleep( 1000 );
+        //TODO: msleep( 1000 );
         browseResolvedPath( id, start + num );
     }
     else {
@@ -862,8 +854,10 @@ void ControlPointThread::searchResolvedPath( const QString &id, uint start, uint
         return;
     }
 
-    Q_ASSERT(connect( this, SIGNAL( browseResult( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ),
-                      this, SLOT( createSearchListing( const Herqq::Upnp::HActionArguments &, ActionStateInfo * ) ) ));
+    bool ok = disconnect( this, SIGNAL( browseResult(const Herqq::Upnp::HClientActionOp &) ),
+                          this, SLOT( createSearchListing(const Herqq::Upnp::HClientActionOp &) ) );
+    Q_ASSERT( ok );
+    Q_UNUSED( ok );
     browseOrSearchObject( id,
                           searchAction(),
                           m_queryString,
@@ -926,7 +920,7 @@ void ControlPointThread::createSearchListing(const HClientActionOp &op) // SLOT
 
     uint total = output["TotalMatches"].value().toUInt();
     if( num > 0 && ( start + num < total ) ) {
-        msleep( 1000 );
+        //TODO: msleep( 1000 );
         searchResolvedPath( id, start + num );
     }
     else {
