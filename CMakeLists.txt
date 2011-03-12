@@ -5,10 +5,11 @@ set(KIO_UPNP_MS_MINOR_VERSION "8")
 set(KIO_UPNP_MS_PATCH_VERSION "0")
 
 find_package(HUpnp REQUIRED)
-if( HUPNP_FOUND )
-else( HUPNP_FOUND )
-    message(FATAL_ERROR "The UPnP MediaServer kioslave requires the HUpnp library -- http://www.herqq.org")
-endif( HUPNP_FOUND )
+
+if( HUPNP_FOUND AND HUPNP_VERSION_MAJOR EQUAL 0 AND HUPNP_VERSION_MINOR EQUAL 9 )
+else()
+    message(FATAL_ERROR "The UPnP MediaServer kioslave requires the HUpnp library version==0.9.x -- http://www.herqq.org")
+endif()
 
 INCLUDE_DIRECTORIES( ${KDE4_INCLUDES}
     ${CMAKE_SOURCE_DIR} build . )
