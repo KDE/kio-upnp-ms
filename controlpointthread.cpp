@@ -723,12 +723,6 @@ void ControlPointThread::fillCommon( KIO::UDSEntry &entry, const DIDL::Object *o
     entry.insert( KIO::UPNP_ID, obj->id() );
     entry.insert( KIO::UPNP_PARENT_ID, obj->parentId() );
 
-    if( m_stupidSet.contains( obj->title() ) ) {
-        kDebug() << "XXXX duplicate" << obj->title() << obj->id() << obj->parentId();
-        kDebug() << "PREV was " << m_stupidSet[obj->title()]->id() << m_stupidSet[obj->title()]->parentId();
-        Q_ASSERT(false);
-    }
-    m_stupidSet.insert(obj->title(), obj);
     fillMetadata(entry, KIO::UPNP_DATE, obj, "date");
     fillMetadata(entry, KIO::UPNP_CREATOR, obj, "creator");
     fillMetadata(entry, KIO::UPNP_ARTIST, obj, "artist");

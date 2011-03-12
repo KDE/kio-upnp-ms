@@ -226,8 +226,6 @@ class ControlPointThread : public QThread
     QString m_lastErrorString;
 
     friend class ObjectCache;
-
-    QHash<QString, const DIDL::Object*> m_stupidSet;
 };
 
 #endif
