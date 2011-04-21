@@ -6,9 +6,9 @@ set(KIO_UPNP_MS_PATCH_VERSION "0")
 
 find_package(HUpnp REQUIRED)
 
-if( HUPNP_FOUND AND HUPNP_VERSION_MAJOR EQUAL 0 AND HUPNP_VERSION_MINOR EQUAL 9 )
+if ( HUPNP_FOUND AND ((HUPNP_VERSION_MAJOR EQUAL 0 AND HUPNP_VERSION_MINOR EQUAL 9) OR (HUPNP_VERSION_MAJOR EQUAL 1)))
 else()
-    message(FATAL_ERROR "The UPnP MediaServer kioslave requires the HUpnp library version==0.9.x -- http://www.herqq.org")
+    message(FATAL_ERROR "The UPnP MediaServer kioslave requires the HUpnp library version>=0.9.0 -- http://www.herqq.org")
 endif()
 
 INCLUDE_DIRECTORIES( ${KDE4_INCLUDES}
