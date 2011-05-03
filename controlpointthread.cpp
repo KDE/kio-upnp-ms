@@ -352,7 +352,6 @@ void ControlPointThread::stat( const KUrl &url )
     }
 
     QString path = url.path(KUrl::RemoveTrailingSlash);
-    kDebug() << url << path;
     connect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
              this, SLOT( statResolvedPath( const DIDL::Object * ) ) );
 

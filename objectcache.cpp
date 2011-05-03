@@ -131,6 +131,7 @@ void ObjectCache::resolvePathToObjectInternal()
     // skip the '/'
     m_resolve.pathIndex++;
     m_resolve.lookingFor = m_resolve.fullPath.mid( m_resolve.pathIndex, SEP_POS( m_resolve.fullPath, m_resolve.pathIndex ) - m_resolve.pathIndex );
+
     m_resolve.object = 0;
     if( !m_cpt->browseAction() ) {
         kDebug() << "Failed to get a valid Browse action";
