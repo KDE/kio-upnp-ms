@@ -391,12 +391,15 @@ void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
         return;
     }
 
-    if( object->type() == DIDL::SuperObject::Container )
-        fillContainer( entry, static_cast<const DIDL::Container*>( object ) );
-    else if( object->type() == DIDL::SuperObject::Item )
-        fillItem( entry, static_cast<const DIDL::Item*>( object ) );
-
-    emit listEntry( entry );
+    connect( this, SIGNAL(browseResult(const Herqq::Upnp::HClientActionOp &)),
+             this, SLOT(createStatResult(const Herqq::Upnp::HClientActionOp &)) );
+    browseOrSearchObject( object->id(),
+                          browseAction(),
+                          BROWSE_METADATA,
+                          "*",
+                          0,
+                          0,
+                          "" );
 }
 
 /////////////////////////////////////////////
