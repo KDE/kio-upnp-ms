@@ -74,8 +74,9 @@ void PersistentAction::invoke()
 {
     kDebug() << "Beginning invoke" << m_action->info().name() << "Try number" << m_tries;
     bool ok = connect( m_action, SIGNAL( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp &) ),
-                       this, SLOT( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp &) ), Qt::UniqueConnection );
+                       this, SLOT( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp &) ));
     Q_ASSERT(ok);
+    Q_UNUSED(ok);
     HClientActionOp op = m_action->beginInvoke( m_inputArgs );
     m_timer->start( 5000 );
 }
@@ -100,8 +101,10 @@ void PersistentAction::invokeComplete(Herqq::Upnp::HClientAction *action, const 
         }
         else {
             kDebug() << "Failed even after" << m_tries << "tries. Giving up!";
-            disconnect( m_action, SIGNAL( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp&) ),
+            bool ok = disconnect( m_action, SIGNAL( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp&) ),
                         this, SLOT( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp&) ) );
+            Q_ASSERT( ok );
+            Q_UNUSED( ok );
             emit invokeComplete( action, invocationOp, false, errorString );
             return;
         }
