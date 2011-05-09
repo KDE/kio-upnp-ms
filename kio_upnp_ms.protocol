@@ -1,5 +1,4 @@
 [Protocol]
-DocPath=kioslave/kio_upnp_ms.html
 exec=kio_upnp_ms
 input=none
 output=filesystem
