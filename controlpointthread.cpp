@@ -371,7 +371,6 @@ void ControlPointThread::createStatResult(const Herqq::Upnp::HClientActionOp &op
     }
 
     QString didlString = output["Result"].value().toString();
-    kDebug() << "STAT" << didlString;
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
     connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) );
