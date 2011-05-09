@@ -46,7 +46,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "didlparser.h"
 #include "didlobjects.h"
-#include "upnptypes.h"
+#include "upnp-ms-types.h"
 #include "objectcache.h"
 #include "persistentaction.h"
 

@@ -10,7 +10,7 @@
 #include <KAboutData>
 #include <KUrl>
 #include <kdebug.h>
-#include "../upnptypes.h"
+#include "../upnp-ms-types.h"
  
 upnptest::upnptest(const KCmdLineArgs *args)
     : QObject()

@@ -9,7 +9,7 @@
 #include <KAboutData>
 #include <KUrl>
 #include <kdebug.h>
-#include "../upnptypes.h"
+#include "../upnp-ms-types.h"
  
 recursivetest::recursivetest(const KUrl &url)
     : QObject(0)
