@@ -36,7 +36,7 @@ install(TARGETS kio_upnp_ms  DESTINATION ${PLUGIN_INSTALL_DIR})
 install(FILES kio_upnp_ms.protocol DESTINATION ${SERVICES_INSTALL_DIR})
 
 # so other programs can access the types
-install(FILES upnptypes.h DESTINATION
+install(FILES upnp-ms-types.h DESTINATION
     ${INCLUDE_INSTALL_DIR}/kio COMPONENT devel)
  
 ########### test programs ##############
