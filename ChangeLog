@@ -3,13 +3,16 @@ kio-upnp-ms ChangeLog
 (C) 2010-2011 Nikhil Marathe
 
 
-VERSION 0.9.0
+VERSION 1.0.0
   CHANGES:
-	* Updated slave to use HUpnp version 0.9.0
+	* Updated slave to use HUpnp version >= 0.9.0
 	* Update check notifications have been disabled
 	  (will probably be dropped in later versions)
 	* i18n support for errors
 	* Looser checks for UUID strictness so that more
 	  devices are supported.
+	* Removed threading.
+	* Fixed a stat cache bug - a36639e710e951017ef97a269e7eb037bd50d495
+	* Renamed upnptypes.h to upnp-ms-types.h
 
 # vim: expandtab ts=2 sw=2
