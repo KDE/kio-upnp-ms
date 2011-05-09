@@ -382,7 +382,6 @@ void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
 {
     disconnect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
              this, SLOT( statResolvedPath( const DIDL::Object * ) ) );
-    KIO::UDSEntry entry;
 
     if( !object ) {
         kDebug() << "ERROR: idString null";
