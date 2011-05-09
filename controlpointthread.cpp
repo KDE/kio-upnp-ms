@@ -261,7 +261,7 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
             SIGNAL(deviceReady()),
             &local,
             SLOT(quit()));
-    QTimer::singleShot( 35000, &local, SLOT(quit()) );
+    QTimer::singleShot( 5000, &local, SLOT(quit()) );
     local.exec();
 
     if( !m_devices[url.host()].info.isValid(Herqq::Upnp::LooseChecks) ) {
