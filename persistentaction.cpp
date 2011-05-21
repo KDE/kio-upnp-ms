@@ -40,9 +40,9 @@ public:
 
 PersistentAction::PersistentAction( Herqq::Upnp::HClientAction *action, QObject *parent, uint maximumTries )
     : QObject( parent )
-    , m_action( action )
     , m_maximumTries( maximumTries )
     , m_timer( new QTimer( this ) )
+    , m_action( action )
 {
     connect( m_timer, SIGNAL( timeout() ), this, SLOT( timeout() ) );
 }
