@@ -46,7 +46,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "didlparser.h"
 #include "didlobjects.h"
-#include "upnptypes.h"
+#include "upnp-ms-types.h"
 #include "objectcache.h"
 #include "persistentaction.h"
 
@@ -261,7 +261,7 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
             SIGNAL(deviceReady()),
             &local,
             SLOT(quit()));
-    QTimer::singleShot( 35000, &local, SLOT(quit()) );
+    QTimer::singleShot( 5000, &local, SLOT(quit()) );
     local.exec();
 
     if( !m_devices[url.host()].info.isValid(Herqq::Upnp::LooseChecks) ) {
@@ -372,7 +372,6 @@ void ControlPointThread::createStatResult(const Herqq::Upnp::HClientActionOp &op
     }
 
     QString didlString = output[QLatin1String("Result")].value().toString();
-    kDebug() << "STAT" << didlString;
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
     connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) );
@@ -384,7 +383,6 @@ void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
 {
     disconnect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
              this, SLOT( statResolvedPath( const DIDL::Object * ) ) );
-    KIO::UDSEntry entry;
 
     if( !object ) {
         kDebug() << "ERROR: idString null";
