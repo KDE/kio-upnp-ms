@@ -42,22 +42,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * UPnPMS has no event loop.
  */
 
-/**
- * Fill UDSEntry @c entry,
- * setting uint @c property by retrieving
- * the value from the item/container @c object's meta-data
- * where the key is @c name.
- */
-#define FILL_METADATA(entry, property, object, name)\
-    if( object->data().contains(name) )\
-        entry.insert( property, object->data()[name] )
-
-/**
- * Fill from resource attributes
- */
-#define FILL_RESOURCE_METADATA(entry, property, object, name)\
-    if( object->resource().contains(name) )\
-        entry.insert( property, object->resource()[name] )
 
 extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
 {
