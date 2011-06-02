@@ -84,30 +84,26 @@ namespace SearchRegExp
 // create and keep
 
 // this isn't perfect, we skip certain things
-QString wchar("[\t\v\n\r\f ]");
-QString relOp("=|!=|<|<=|>|>=");
+#define wchar "[\t\v\n\r\f ]"
+#define relOp "=|!=|<|<=|>|>="
 
-QString quotedVal( "\"[^\"]*\"" ); // for example, no escape double quote checks
-QString stringOp("contains|doesNotContain|derivedfrom");
-QString existsOp("exists");
-QString boolVal("\"(?:true|false)\"");
+// for example, no escape double quote checks
+#define quotedVal "\"[^\"]*\""
+#define stringOp "contains|doesNotContain|derivedfrom"
+#define existsOp "exists"
+#define boolVal "\"(?:true|false)\""
 
-QString binOp( "(?:(?:" + relOp + ")|(?:" + stringOp + "))" );
+#define binOp "(?:(?:" relOp ")|(?:" stringOp "))"
 
-QString property( "\\S*" );
+#define propertyExp "\\S*"
 
-QString relExp1( "(" + property + ")" + wchar + "+" + binOp + wchar + "+" + quotedVal );
-QString relExp2( "(" + property + ")" + wchar + "+" + existsOp + wchar + "+" + boolVal );
+#define relExp1 "(" propertyExp ")" wchar "+" binOp wchar "+" quotedVal
+#define relExp2 "(" propertyExp ")" wchar "+" existsOp wchar "+" boolVal
 
-QString relExp( "(?:" + relExp1 + ")" + "|" + "(?:" + relExp2 + ")" );
+#define relExp "(?:" relExp1 ")|(?:" relExp2 ")"
 
-QRegExp searchCriteria(
-"\\("
-+ wchar + "*"
-+ "(" + relExp + ")"
-+ wchar + "*"
-+ "\\)"
-    );
+static const QRegExp searchCriteria =
+    QRegExp( QLatin1String("\\(" wchar "*(" relExp ")" wchar "*\\)") );
 }
 
 ControlPointThread::ControlPointThread( QObject *parent )
