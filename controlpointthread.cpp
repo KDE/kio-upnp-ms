@@ -61,8 +61,10 @@ using namespace Herqq::Upnp;
 static inline void fillMetadata( KIO::UDSEntry &entry, uint property,
                           const DIDL::Object *object, const QString &name )
 {
-    if( object->data().contains(name) )
-        entry.insert( property, object->data()[name] );
+    const DIDL::ExtraData data = object->data();
+    DIDL::ExtraData::ConstIterator it = data.find( name );
+    if( it != data.constEnd() )
+        entry.insert( property, it.value() );
 }
 
 /**
@@ -71,8 +73,10 @@ static inline void fillMetadata( KIO::UDSEntry &entry, uint property,
 static inline void fillResourceMetadata( KIO::UDSEntry &entry, uint property,
                                          const DIDL::Item *object, const QString &name )
 {
-    if( object->resource().contains(name) )
-        entry.insert( property, object->resource()[name] );
+    const DIDL::Resource resource = object->resource();
+    DIDL::Resource::ConstIterator it = resource.find( name );
+    if( it != resource.constEnd() )
+        entry.insert( property, it.value() );
 }
 
 namespace SearchRegExp
@@ -211,15 +215,15 @@ void ControlPointThread::rootDeviceOffline(HClientDevice *device) // SLOT
     // devices going offline
     // This slot can get called twice by HUpnp
     QString uuid = device->info().udn().toSimpleUuid();
-    if( m_devices.contains( uuid ) ) {
+    const int removedDevices = m_devices.remove( uuid );
+
+    if( removedDevices > 0 ) {
         kDebug() << "Removing" << uuid;
         if( m_currentDevice.device->info().udn() == device->info().udn() ) {
             kDebug() << "Was current device - invalidating";
             m_currentDevice.device = NULL;
             m_currentDevice.info = HDeviceInfo();
         }
-
-        m_devices.remove( uuid );
     }
 }
 
@@ -310,10 +314,11 @@ bool ControlPointThread::ensureDevice( const KUrl &url )
 
     if( (QLatin1String("uuid:") + url.host()) == m_currentDevice.info.udn() )
         return true;
-
-    if( m_devices.contains( url.host() ) ) {
+    QHash<QString, ControlPointThread::MediaServerDevice>::ConstIterator it =
+        m_devices.find( url.host() );
+    if( it != m_devices.constEnd() ) {
         kDebug() << "We already know of device" << url.host();
-        m_currentDevice = m_devices[url.host()];
+        m_currentDevice = it.value();
         Q_ASSERT( m_currentDevice.cache );
         return true;
     }
@@ -475,22 +480,18 @@ void ControlPointThread::listDir( const KUrl &url )
         m_baseSearchPath = url.path( KUrl::AddTrailingSlash );
         m_resolveSearchPaths = url.queryItems().contains(QLatin1String("resolvePath"));
 
-        if( !searchQueries.contains( QLatin1String("query") ) ) {
-            emit error( KIO::ERR_SLAVE_DEFINED, i18n( "Expected query parameter as a minimum requirement for searching" ) );
+        QMap<QString, QString>::ConstIterator it = searchQueries.find( QLatin1String("query") );
+        if( it == searchQueries.constEnd() ) {
+            emit error( KIO::ERR_SLAVE_DEFINED,
+                        i18n( "Expected query parameter as a minimum requirement for searching" ) );
             return;
         }
+        m_queryString = it.value();
 
-        if( searchQueries.contains( QLatin1String("filter") ) )
-            m_filter = searchQueries["filter"];
-        else
-            m_filter = QLatin1String("*");
+        m_filter = searchQueries.value( QLatin1String("filter"), QLatin1String("*"));
 
-        if( searchQueries.contains( QLatin1String("getCount") ) )
-            m_getCount = true;
-        else
-            m_getCount = false;
+        m_getCount = searchQueries.contains( QLatin1String("getCount") );
 
-        m_queryString = searchQueries[QLatin1String("query")];
         QRegExp queryParam(QLatin1String("query\\d+"));
         foreach( QString key, searchQueries.keys() ) {
             if( queryParam.exactMatch(key) ) {

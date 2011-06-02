@@ -68,8 +68,9 @@ void ObjectCache::reset()
 
 QString ObjectCache::idForName( const QString &name )
 {
-    if( m_reverseCache.contains( name ) )
-        return m_reverseCache[name]->id();
+    const DIDL::Object * const cachedObject = m_reverseCache.object( name );
+    if( cachedObject != 0 )
+        return cachedObject->id();
     return QString();
 }
 
@@ -241,8 +242,9 @@ bool ObjectCache::hasUpdateId( const QString &id )
 bool ObjectCache::update( const QString &id, const QString &containerUpdateId )
 {
     if( !hasUpdateId( id ) ) {
-        if( m_idToPathCache.contains( id ) )
-            m_updatesHash[id] = UpdateValueAndPath( QString(), *m_idToPathCache[id] );
+        const QString * const cachedPath = m_idToPathCache.object( id );
+        if( cachedPath != 0 )
+            m_updatesHash[id] = UpdateValueAndPath( QString(), *cachedPath );
         else
             return false;
     }
@@ -263,9 +265,10 @@ QString ObjectCache::pathForId( const QString &id )
 
 void ObjectCache::resolveIdToPath( const QString &id )
 {
-    if( m_idToPathCache.contains( id ) ) {
-        kDebug() << "I know the path for" << id << "it is" << *m_idToPathCache[id];
-        emit idToPathResolved( id, *m_idToPathCache[id] );
+    const QString * const cachedPath = m_idToPathCache.object( id );
+    if( cachedPath != 0 ) {
+        kDebug() << "I know the path for" << id << "it is" << *cachedPath;
+        emit idToPathResolved( id, *cachedPath );
         return;
     }
 
