@@ -62,7 +62,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
 {
 
-  KComponentData instance( "kio_upnp_ms" );
+  KComponentData instance( QByteArray("kio_upnp_ms") );
   KGlobal::locale();
   QCoreApplication app( argc, argv );
 
@@ -81,7 +81,7 @@ extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
 
 UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
   : QObject(0)
-  , SlaveBase( "upnp-ms", pool, app )
+  , SlaveBase( QByteArray("upnp-ms"), pool, app )
   , m_statBusy( false )
   , m_listBusy( false )
 {
@@ -213,7 +213,7 @@ void UPnPMS::openConnection()
              m_cpthread, SLOT( stat( const KUrl &) ) );
     connect( m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
                        this, SLOT(slotConnected()), Qt::QueuedConnection );
-    emit startStat( "upnp-ms://" + m_connectedHost );
+    emit startStat( QLatin1String("upnp-ms://") + m_connectedHost );
     while( m_statBusy )
         QCoreApplication::processEvents();
 }

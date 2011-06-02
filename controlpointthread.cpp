@@ -198,9 +198,9 @@ void ControlPointThread::searchCapabilitiesInvokeDone(Herqq::Upnp::HClientAction
     }
 
     HActionArguments output = op.outputArguments();
-    QString reply = output["SearchCaps"].value().toString();
+    QString reply = output[QLatin1String("SearchCaps")].value().toString();
 
-    dev.searchCapabilities = reply.split(",", QString::SkipEmptyParts);
+    dev.searchCapabilities = reply.split(QLatin1String(","), QString::SkipEmptyParts);
 
     emit deviceReady();
 }
@@ -231,7 +231,7 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
 {
     kDebug() << "Updating device info for " << url;
 
-    QString udn = "uuid:" + url.host();
+    QString udn = QLatin1String("uuid:") + url.host();
 
     // the device is definitely present, so we let the scan fill in
     // remaining details
@@ -285,21 +285,21 @@ HClientService* ControlPointThread::contentDirectory(HClientDevice *forDevice) c
         emit error( KIO::ERR_CONNECTION_BROKEN, QString() );
         return NULL;
     }
-    HClientService *contentDir = device->serviceById( HServiceId("urn:schemas-upnp-org:serviceId:ContentDirectory") );
+    HClientService *contentDir = device->serviceById( HServiceId(QLatin1String("urn:schemas-upnp-org:serviceId:ContentDirectory")) );
     if( !contentDir ) {
-        contentDir = device->serviceById( HServiceId( "urn:upnp-org:serviceId:ContentDirectory" ) );
+        contentDir = device->serviceById( HServiceId(QLatin1String("urn:upnp-org:serviceId:ContentDirectory")) );
     }
     return contentDir;
 }
 
 HClientAction* ControlPointThread::browseAction() const
 {
-    return contentDirectory() ? contentDirectory()->actions()["Browse"] : NULL;
+    return contentDirectory() ? contentDirectory()->actions()[QLatin1String("Browse")] : NULL;
 }
 
 HClientAction* ControlPointThread::searchAction() const
 {
-    return contentDirectory() ? contentDirectory()->actions()["Search"] : NULL;
+    return contentDirectory() ? contentDirectory()->actions()[QLatin1String("Search")] : NULL;
 }
 
 bool ControlPointThread::ensureDevice( const KUrl &url )
@@ -308,7 +308,7 @@ bool ControlPointThread::ensureDevice( const KUrl &url )
     if( url.host().isEmpty() )
         return false;
 
-    if( ("uuid:" + url.host()) == m_currentDevice.info.udn() )
+    if( (QLatin1String("uuid:") + url.host()) == m_currentDevice.info.udn() )
         return true;
 
     if( m_devices.contains( url.host() ) ) {
@@ -338,13 +338,13 @@ void ControlPointThread::stat( const KUrl &url )
       return;
     }
 
-    if( url.hasQueryItem( "id" ) ) {
+    if( url.hasQueryItem( QLatin1String("id") ) ) {
         connect( this, SIGNAL(browseResult(const Herqq::Upnp::HClientActionOp &)),
                  this, SLOT(createStatResult(const Herqq::Upnp::HClientActionOp &)) );
-        browseOrSearchObject( url.queryItem( "id" ),
+        browseOrSearchObject( url.queryItem( QLatin1String("id") ),
                               browseAction(),
                               BROWSE_METADATA,
-                              "*",
+                              QLatin1String("*"),
                               0,
                               0,
                               "" );
@@ -365,12 +365,12 @@ void ControlPointThread::createStatResult(const Herqq::Upnp::HClientActionOp &op
                           this, SLOT( createStatResult(const Herqq::Upnp::HClientActionOp &)) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
-    if( !output["Result"].isValid() ) {
+    if( !output[QLatin1String("Result")].isValid() ) {
         emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
         return;
     }
 
-    QString didlString = output["Result"].value().toString();
+    QString didlString = output[QLatin1String("Result")].value().toString();
     kDebug() << "STAT" << didlString;
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
@@ -396,7 +396,7 @@ void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
     browseOrSearchObject( object->id(),
                           browseAction(),
                           BROWSE_METADATA,
-                          "*",
+                          QLatin1String("*"),
                           0,
                           0,
                           "" );
@@ -419,25 +419,26 @@ void ControlPointThread::browseOrSearchObject( const QString &id,
                                                const QString &sortCriteria )
 {
     if( !contentDirectory() ) {
-        emit error( KIO::ERR_UNSUPPORTED_ACTION, "UPnP device " + m_currentDevice.info.friendlyName() + " does not support browsing" );
+        emit error( KIO::ERR_UNSUPPORTED_ACTION,
+                    QLatin1String("UPnP device ") + m_currentDevice.info.friendlyName() + QLatin1String(" does not support browsing.") );
     }
 
     PersistentAction *pAction = new PersistentAction( action );
    
     HActionArguments args = action->info().inputArguments();
   
-    if( action->info().name() == "Browse" ) {
-        args["ObjectID"].setValue( id );
-        args["BrowseFlag"].setValue( secondArgument );
+    if( action->info().name() == QLatin1String("Browse") ) {
+        args[QLatin1String("ObjectID")].setValue( id );
+        args[QLatin1String("BrowseFlag")].setValue( secondArgument );
     }
-    else if( action->info().name() == "Search" ) {
-        args["ContainerID"].setValue( id );
-        args["SearchCriteria"].setValue( secondArgument );
+    else if( action->info().name() == QLatin1String("Search") ) {
+        args[QLatin1String("ContainerID")].setValue( id );
+        args[QLatin1String("SearchCriteria")].setValue( secondArgument );
     }
-    args["Filter"].setValue( filter );
-    args["StartingIndex"].setValue( startIndex );
-    args["RequestedCount"].setValue( requestedCount );
-    args["SortCriteria"].setValue( sortCriteria );
+    args[QLatin1String("Filter")].setValue( filter );
+    args[QLatin1String("StartingIndex")].setValue( startIndex );
+    args[QLatin1String("RequestedCount")].setValue( requestedCount );
+    args[QLatin1String("SortCriteria")].setValue( sortCriteria );
 
     connect( pAction,
              SIGNAL( invokeComplete( Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp&, bool, QString ) ),
@@ -458,7 +459,7 @@ void ControlPointThread::listDir( const KUrl &url )
 
     QString path = url.path(KUrl::RemoveTrailingSlash);
 
-    if( !url.queryItem( "searchcapabilities" ).isNull() ) {
+    if( !url.queryItem( QLatin1String("searchcapabilities") ).isNull() ) {
         foreach( QString capability, m_currentDevice.searchCapabilities ) {
             KIO::UDSEntry entry;
             entry.insert( KIO::UDSEntry::UDS_NAME, capability );
@@ -469,31 +470,31 @@ void ControlPointThread::listDir( const KUrl &url )
         return;
     }
 
-    if( url.hasQueryItem( "search" ) ) {
+    if( url.hasQueryItem( QLatin1String("search") ) ) {
         QMap<QString, QString> searchQueries = url.queryItems();
         m_baseSearchPath = url.path( KUrl::AddTrailingSlash );
-        m_resolveSearchPaths = url.queryItems().contains("resolvePath");
+        m_resolveSearchPaths = url.queryItems().contains(QLatin1String("resolvePath"));
 
-        if( !searchQueries.contains( "query" ) ) {
+        if( !searchQueries.contains( QLatin1String("query") ) ) {
             emit error( KIO::ERR_SLAVE_DEFINED, i18n( "Expected query parameter as a minimum requirement for searching" ) );
             return;
         }
 
-        if( searchQueries.contains( "filter" ) )
+        if( searchQueries.contains( QLatin1String("filter") ) )
             m_filter = searchQueries["filter"];
         else
-            m_filter = "*";
+            m_filter = QLatin1String("*");
 
-        if( searchQueries.contains( "getCount" ) )
+        if( searchQueries.contains( QLatin1String("getCount") ) )
             m_getCount = true;
         else
             m_getCount = false;
 
-        m_queryString = searchQueries["query"];
-        QRegExp queryParam("query\\d+");
+        m_queryString = searchQueries[QLatin1String("query")];
+        QRegExp queryParam(QLatin1String("query\\d+"));
         foreach( QString key, searchQueries.keys() ) {
             if( queryParam.exactMatch(key) ) {
-                m_queryString += " and " + searchQueries[key];
+                m_queryString += QLatin1String(" and ") + searchQueries[key];
             }
         }
 
@@ -501,12 +502,12 @@ void ControlPointThread::listDir( const KUrl &url )
 
         kDebug() << m_queryString;
 
-        if( m_queryString == "*" && !m_currentDevice.searchCapabilities.contains("*") ) {
+        if( m_queryString == QLatin1String("*") && !m_currentDevice.searchCapabilities.contains(QLatin1String("*")) ) {
             emit error(KIO::ERR_SLAVE_DEFINED, "Bad search: parameter '*' unsupported by server" );
             return;
         }
 
-        if( m_queryString != "*" ) {
+        if( m_queryString != QLatin1String("*") ) {
             int offset = 0;
             while( SearchRegExp::searchCriteria.indexIn( m_queryString, offset ) != -1 ) {
                 offset += SearchRegExp::searchCriteria.matchedLength();
@@ -519,31 +520,34 @@ void ControlPointThread::listDir( const KUrl &url )
                 if( property.isEmpty() )
                     property = SearchRegExp::searchCriteria.cap(3);
 
-                QRegExp logicalOp("\\s*(and|or)\\s*");
+                QRegExp logicalOp(QLatin1String("\\s*(and|or)\\s*"));
                 if( logicalOp.indexIn( m_queryString, offset ) != -1 ) {
                     offset += logicalOp.matchedLength();
                 }
                 else {
                     if( offset < m_queryString.length() ) {
-                        emit error( KIO::ERR_SLAVE_DEFINED, "Bad search: Expected logical op at " + m_queryString.mid(offset, 10) );
+                        emit error( KIO::ERR_SLAVE_DEFINED,
+                                    QLatin1String("Bad search: Expected logical op at ") + m_queryString.mid(offset, 10) );
                         return;
                     }
                 }
                 if( !m_currentDevice.searchCapabilities.contains( property ) ) {
-                    emit error( KIO::ERR_SLAVE_DEFINED, "Bad search: unsupported property " + property );
+                    emit error( KIO::ERR_SLAVE_DEFINED,
+                                QLatin1String("Bad search: unsupported property ") + property );
                     return;
                 }
             }
             if( offset < m_queryString.length() ) {
-                emit error( KIO::ERR_SLAVE_DEFINED, "Bad search: Invalid query '" + m_queryString.mid(offset) + "'" );
+                emit error( KIO::ERR_SLAVE_DEFINED,
+                            QLatin1String("Bad search: Invalid query '") + m_queryString.mid(offset) + QLatin1Char('\'') );
                 return;
             }
         }
 
-        if( url.hasQueryItem( "id" ) ) {
+        if( url.hasQueryItem( QLatin1String("id") ) ) {
             connect( this, SIGNAL(browseResult(const Herqq::Upnp::HClientActionOp &)),
                     this, SLOT(createSearchListing(const Herqq::Upnp::HClientActionOp &)) );
-            browseOrSearchObject( url.queryItem( "id" ),
+            browseOrSearchObject( url.queryItem( QLatin1String("id") ),
                                   searchAction(),
                                   m_queryString,
                                   m_filter,
@@ -559,13 +563,13 @@ void ControlPointThread::listDir( const KUrl &url )
         return;
     }
 
-    if( url.hasQueryItem( "id" ) ) {
+    if( url.hasQueryItem( QLatin1String("id") ) ) {
         connect( this, SIGNAL(browseResult(const Herqq::Upnp::HClientActionOp &)),
                  this, SLOT(createDirectoryListing(const Herqq::Upnp::HClientActionOp &)) );
-        browseOrSearchObject( url.queryItem( "id" ),
+        browseOrSearchObject( url.queryItem( QLatin1String("id") ),
                               browseAction(),
                               BROWSE_DIRECT_CHILDREN,
-                              "*",
+                              QLatin1String("*"),
                               0,
                               0,
                               "" );
@@ -604,7 +608,7 @@ void ControlPointThread::browseResolvedPath( const QString &id, uint start, uint
     browseOrSearchObject( id,
                           browseAction(),
                           BROWSE_DIRECT_CHILDREN,
-                          "*",
+                          QLatin1String("*"),
                           start,
                           count,
                           "" );
@@ -619,7 +623,7 @@ void ControlPointThread::browseInvokeDone(HClientAction *action, const HClientAc
         m_lastErrorString = error;
     }
     else {
-        Q_ASSERT( output["Result"] );
+        Q_ASSERT( output[QLatin1String("Result")] );
         m_lastErrorString = QString();
     }
 
@@ -640,12 +644,12 @@ void ControlPointThread::createDirectoryListing(const HClientActionOp &op) // SL
     Q_UNUSED( ok );
 
     HActionArguments output = op.outputArguments();
-    if( !output["Result"].isValid() ) {
+    if( !output[QLatin1String("Result")].isValid() ) {
         emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
         return;
     }
 
-    QString didlString = output["Result"].value().toString();
+    QString didlString = output[QLatin1String("Result")].value().toString();
     kDebug() << didlString;
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
@@ -659,11 +663,11 @@ void ControlPointThread::createDirectoryListing(const HClientActionOp &op) // SL
     // adding some 'break' to the network connections, so that
     // disconnection by the remote device can be avoided.
     HActionArguments input = op.inputArguments();
-    QString id = input["ObjectID"].value().toString();
-    uint start = input["StartingIndex"].value().toUInt();
+    QString id = input[QLatin1String("ObjectID")].value().toString();
+    uint start = input[QLatin1String("StartingIndex")].value().toUInt();
 
-    uint num = output["NumberReturned"].value().toUInt();
-    uint total = output["TotalMatches"].value().toUInt();
+    uint num = output[QLatin1String("NumberReturned")].value().toUInt();
+    uint total = output[QLatin1String("TotalMatches")].value().toUInt();
     if( num > 0 && ( start + num < total ) ) {
         //TODO: msleep( 1000 );
         browseResolvedPath( id, start + num );
@@ -698,14 +702,14 @@ void ControlPointThread::fillCommon( KIO::UDSEntry &entry, const DIDL::Object *o
     entry.insert( KIO::UPNP_ID, obj->id() );
     entry.insert( KIO::UPNP_PARENT_ID, obj->parentId() );
 
-    fillMetadata(entry, KIO::UPNP_DATE, obj, "date");
-    fillMetadata(entry, KIO::UPNP_CREATOR, obj, "creator");
-    fillMetadata(entry, KIO::UPNP_ARTIST, obj, "artist");
-    fillMetadata(entry, KIO::UPNP_ALBUM, obj, "album");
-    fillMetadata(entry, KIO::UPNP_GENRE, obj, "genre");
-    fillMetadata(entry, KIO::UPNP_ALBUMART_URI, obj, "albumArtURI");
-    fillMetadata(entry, KIO::UPNP_CHANNEL_NAME, obj, "channelName");
-    fillMetadata(entry, KIO::UPNP_CHANNEL_NUMBER, obj, "channelNr");
+    fillMetadata(entry, KIO::UPNP_DATE, obj, QLatin1String("date"));
+    fillMetadata(entry, KIO::UPNP_CREATOR, obj, QLatin1String("creator"));
+    fillMetadata(entry, KIO::UPNP_ARTIST, obj, QLatin1String("artist"));
+    fillMetadata(entry, KIO::UPNP_ALBUM, obj, QLatin1String("album"));
+    fillMetadata(entry, KIO::UPNP_GENRE, obj, QLatin1String("genre"));
+    fillMetadata(entry, KIO::UPNP_ALBUMART_URI, obj, QLatin1String("albumArtURI"));
+    fillMetadata(entry, KIO::UPNP_CHANNEL_NAME, obj, QLatin1String("channelName"));
+    fillMetadata(entry, KIO::UPNP_CHANNEL_NUMBER, obj, QLatin1String("channelNr"));
 }
 
 void ControlPointThread::fillContainer( KIO::UDSEntry &entry, const DIDL::Container *c )
@@ -713,7 +717,7 @@ void ControlPointThread::fillContainer( KIO::UDSEntry &entry, const DIDL::Contai
     fillCommon( entry, c );
     entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFDIR );
 
-    fillMetadata(entry, KIO::UPNP_ALBUM_CHILDCOUNT, c, "childCount");
+    fillMetadata(entry, KIO::UPNP_ALBUM_CHILDCOUNT, c, QLatin1String("childCount"));
 }
 
 void ControlPointThread::fillItem( KIO::UDSEntry &entry, const DIDL::Item *item )
@@ -722,7 +726,7 @@ void ControlPointThread::fillItem( KIO::UDSEntry &entry, const DIDL::Item *item 
     entry.insert( KIO::UDSEntry::UDS_FILE_TYPE, S_IFREG );
     if( item->hasResource() ) {
         DIDL::Resource res = item->resource();
-        entry.insert( KIO::UDSEntry::UDS_MIME_TYPE, res["mimetype"] );
+        entry.insert( KIO::UDSEntry::UDS_MIME_TYPE, res[QLatin1String("mimetype")] );
         entry.insert( KIO::UDSEntry::UDS_SIZE, res["size"].toULongLong() );
         entry.insert( KIO::UDSEntry::UDS_TARGET_URL, res["uri"] );
     }
@@ -736,11 +740,11 @@ void ControlPointThread::fillItem( KIO::UDSEntry &entry, const DIDL::Item *item 
     if( !item->refId().isNull() )
         entry.insert( KIO::UPNP_REF_ID, item->refId() );
 
-    fillMetadata(entry, KIO::UPNP_TRACK_NUMBER, item, "originalTrackNumber");
+    fillMetadata(entry, KIO::UPNP_TRACK_NUMBER, item, QLatin1String("originalTrackNumber"));
 
-    fillResourceMetadata(entry, KIO::UPNP_DURATION, item, "duration");
-    fillResourceMetadata(entry, KIO::UPNP_BITRATE, item, "bitrate");
-    fillResourceMetadata(entry, KIO::UPNP_IMAGE_RESOLUTION, item, "resolution");
+    fillResourceMetadata(entry, KIO::UPNP_DURATION, item, QLatin1String("duration"));
+    fillResourceMetadata(entry, KIO::UPNP_BITRATE, item, QLatin1String("bitrate"));
+    fillResourceMetadata(entry, KIO::UPNP_IMAGE_RESOLUTION, item, QLatin1String("resolution"));
 }
 
 void ControlPointThread::slotListContainer( DIDL::Container *c )
@@ -813,13 +817,13 @@ void ControlPointThread::createSearchListing(const HClientActionOp &op) // SLOT
                           this, SLOT( createSearchListing(const Herqq::Upnp::HClientActionOp &) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
-    if( !output["Result"].isValid() ) {
+    if( !output[QLatin1String("Result")].isValid() ) {
         emit error( KIO::ERR_SLAVE_DEFINED, m_lastErrorString );
         return;
     }
 
     if( m_getCount ) {
-        QString matches = output["TotalMatches"].value().toString();
+        QString matches = output[QLatin1String("TotalMatches")].value().toString();
         KIO::UDSEntry entry;
         entry.insert( KIO::UDSEntry::UDS_NAME, matches );
         emit listEntry( entry );
@@ -827,7 +831,7 @@ void ControlPointThread::createSearchListing(const HClientActionOp &op) // SLOT
         return;
     }
 
-    QString didlString = output["Result"].value().toString();
+    QString didlString = output[QLatin1String("Result")].value().toString();
     kDebug() << didlString;
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
@@ -848,15 +852,15 @@ void ControlPointThread::createSearchListing(const HClientActionOp &op) // SLOT
     // adding some 'break' to the network connections, so that
     // disconnection by the remote device can be avoided.
     HActionArguments input = op.inputArguments();
-    QString id = input["ObjectID"].value().toString();
-    uint start = input["StartingIndex"].value().toUInt();
+    QString id = input[QLatin1String("ObjectID")].value().toString();
+    uint start = input[QLatin1String("StartingIndex")].value().toUInt();
 
-    uint num = output["NumberReturned"].value().toUInt();
+    uint num = output[QLatin1String("NumberReturned")].value().toUInt();
 
     if( m_resolveSearchPaths )
         m_searchListingCounter += num;
 
-    uint total = output["TotalMatches"].value().toUInt();
+    uint total = output[QLatin1String("TotalMatches")].value().toUInt();
     if( num > 0 && ( start + num < total ) ) {
         //TODO: msleep( 1000 );
         searchResolvedPath( id, start + num );
@@ -873,7 +877,8 @@ void ControlPointThread::slotListSearchContainer( DIDL::Container *c )
     fillContainer( entry, c );
 
     // ugly hack to get around lack of closures in C++
-    setProperty( ("upnp_id_" + c->id()).toAscii().constData(), QVariant::fromValue( entry ) );
+    setProperty( (QLatin1String("upnp_id_") + c->id()).toAscii().constData(),
+                 QVariant::fromValue( entry ) );
     connect( m_currentDevice.cache, SIGNAL( idToPathResolved( const QString &, const QString & ) ),
              this, SLOT( slotEmitSearchEntry( const QString &, const QString & ) ), Qt::UniqueConnection );
     m_currentDevice.cache->resolveIdToPath( c->id() );
@@ -883,7 +888,8 @@ void ControlPointThread::slotListSearchItem( DIDL::Item *item )
 {
     KIO::UDSEntry entry;
     fillItem( entry, item );
-    setProperty( ("upnp_id_" + item->id()).toAscii().constData(), QVariant::fromValue( entry ) );
+    setProperty( (QLatin1String("upnp_id_") + item->id()).toAscii().constData(),
+                 QVariant::fromValue( entry ) );
     connect( m_currentDevice.cache, SIGNAL( idToPathResolved( const QString &, const QString & ) ),
              this, SLOT( slotEmitSearchEntry( const QString &, const QString & ) ), Qt::UniqueConnection );
     m_currentDevice.cache->resolveIdToPath( item->id() );
@@ -891,9 +897,9 @@ void ControlPointThread::slotListSearchItem( DIDL::Item *item )
 
 void ControlPointThread::slotEmitSearchEntry( const QString &id, const QString &path )
 {
-    KIO::UDSEntry entry = property( ("upnp_id_" + id).toAscii().constData() ).value<KIO::UDSEntry>();
+    KIO::UDSEntry entry = property( (QLatin1String("upnp_id_") + id).toAscii().constData() ).value<KIO::UDSEntry>();
     // delete the property
-    setProperty( ("upnp_id_" + id).toAscii().constData(), QVariant() );
+    setProperty( (QLatin1String("upnp_id_") + id).toAscii().constData(), QVariant() );
 
     kDebug() << "RESOLVED PATH" << path;
     kDebug() << "BASE SEARCH PATH " << m_baseSearchPath;

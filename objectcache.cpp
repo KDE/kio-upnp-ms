@@ -57,10 +57,13 @@ void ObjectCache::reset()
     m_reverseCache.clear();
     m_idToPathCache.clear();
 
-    m_reverseCache.insert( "", new DIDL::Container( "0", "-1", false ) );
-    m_idToPathCache.insert( QString("0"), new QString("") );
+    m_reverseCache.insert( "",
+                           new DIDL::Container( QLatin1String("0"), QLatin1String("-1"), false ) );
+    m_idToPathCache.insert( QLatin1String("0"),
+                            new QString("") );
 
-    m_reverseCache.insert( "/", new DIDL::Container( "0", "-1", false ) );
+    m_reverseCache.insert( QLatin1String("/"),
+                           new DIDL::Container( QLatin1String("0"), QLatin1String("-1"), false ) );
 }
 
 QString ObjectCache::idForName( const QString &name )
@@ -144,7 +147,7 @@ void ObjectCache::resolvePathToObjectInternal()
     m_cpt->browseOrSearchObject( m_reverseCache[m_resolve.segment]->id(),
                                  m_cpt->browseAction(),
                                  BROWSE_DIRECT_CHILDREN,
-                                 "dc:title",
+                                 QLatin1String("dc:title"),
                                  0,
                                  0,
                                  "" );
@@ -158,7 +161,7 @@ void ObjectCache::attemptResolution( const HClientActionOp &op )
                           this, SLOT( attemptResolution( const Herqq::Upnp::HClientActionOp & ) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
-    if( !output["Result"].isValid() ) {
+    if( !output[QLatin1String("Result")].isValid() ) {
         emit m_cpt->error( KIO::ERR_SLAVE_DEFINED, "Resolution error" );
         return;
     }
@@ -169,7 +172,7 @@ void ObjectCache::attemptResolution( const HClientActionOp &op )
     connect( &parser, SIGNAL(containerParsed(DIDL::Container *)),
              this, SLOT(slotResolveId(DIDL::Container *)) );
 
-    parser.parse( output["Result"].value().toString() );
+    parser.parse( output[QLatin1String("Result")].value().toString() );
 
     // we block because devices ( atleast MediaTomb )
     // seem to block continous TCP connections after some time
@@ -298,7 +301,7 @@ void ObjectCache::resolveIdToPathInternal()
     m_cpt->browseOrSearchObject(  m_idResolve.currentId,
                                  m_cpt->browseAction(),
                                  BROWSE_METADATA,
-                                 "dc:title",
+                                 QLatin1String("dc:title"),
                                  0,
                                  0,
                                  "" );
@@ -324,7 +327,7 @@ void ObjectCache::attemptIdToPathResolution( const HClientActionOp &op )
     connect( &parser, SIGNAL(containerParsed(DIDL::Container *)),
              this, SLOT(slotBuildPathForId(DIDL::Container *)) );
 
-    parser.parse( output["Result"].value().toString() );
+    parser.parse( output[QLatin1String("Result")].value().toString() );
 
     // we block because devices ( atleast MediaTomb )
     // seem to block continous TCP connections after some time
@@ -335,8 +338,8 @@ void ObjectCache::attemptIdToPathResolution( const HClientActionOp &op )
 
     // if we are done, emit the relevant Object
     // otherwise recurse with a new (m_)resolve :)
-    if( m_idResolve.currentId == "0" ) {
-        emit idToPathResolved( m_idResolve.id, "/" + m_idResolve.fullPath );
+    if( m_idResolve.currentId == QLatin1String("0") ) {
+        emit idToPathResolved( m_idResolve.id, QLatin1Char('/') + m_idResolve.fullPath );
         m_idToPathRequestsInProgress = false;
         kDebug() << "Done with one resolve, continuing";
         if( !m_idToPathRequests.empty() )
@@ -350,7 +353,7 @@ void ObjectCache::attemptIdToPathResolution( const HClientActionOp &op )
 
 void ObjectCache::buildPathForId( DIDL::Object *object )
 {
-    m_idResolve.fullPath = object->title() + "/" + m_idResolve.fullPath;
+    m_idResolve.fullPath = object->title() + QLatin1Char('/') + m_idResolve.fullPath;
     kDebug() << "NOW SET FULL PATH TO" << m_idResolve.fullPath << "AND PARENT ID IS" << object->parentId();
     m_idResolve.currentId = object->parentId();
 }
