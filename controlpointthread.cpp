@@ -347,7 +347,7 @@ void ControlPointThread::stat( const KUrl &url )
                               QLatin1String("*"),
                               0,
                               0,
-                              "" );
+                              QString() );
         return;
     }
 
@@ -399,7 +399,7 @@ void ControlPointThread::statResolvedPath( const DIDL::Object *object ) // SLOT
                           QLatin1String("*"),
                           0,
                           0,
-                          "" );
+                          QString() );
 }
 
 /////////////////////////////////////////////
@@ -553,7 +553,7 @@ void ControlPointThread::listDir( const KUrl &url )
                                   m_filter,
                                   0,
                                   30, // TODO not a good constant, #define this somewhere
-                                  "" );
+                                  QString() );
         }
         else {
             connect( m_currentDevice.cache, SIGNAL( pathResolved( const DIDL::Object * ) ),
@@ -572,7 +572,7 @@ void ControlPointThread::listDir( const KUrl &url )
                               QLatin1String("*"),
                               0,
                               0,
-                              "" );
+                              QString() );
         return;
     }
     kDebug() << "RESOLVING PATH TO OBJ";
@@ -611,7 +611,7 @@ void ControlPointThread::browseResolvedPath( const QString &id, uint start, uint
                           QLatin1String("*"),
                           start,
                           count,
-                          "" );
+                          QString() );
 }
 
 void ControlPointThread::browseInvokeDone(HClientAction *action, const HClientActionOp &invocationOp, bool ok, QString error ) // SLOT
@@ -806,7 +806,7 @@ void ControlPointThread::searchResolvedPath( const QString &id, uint start, uint
                           m_filter,
                           start,
                           count,
-                          "" );
+                          QString() );
 }
 
 void ControlPointThread::createSearchListing(const HClientActionOp &op) // SLOT
@@ -903,7 +903,7 @@ void ControlPointThread::slotEmitSearchEntry( const QString &id, const QString &
 
     kDebug() << "RESOLVED PATH" << path;
     kDebug() << "BASE SEARCH PATH " << m_baseSearchPath;
-    entry.insert( KIO::UDSEntry::UDS_NAME, QString(path).replace( m_baseSearchPath, "" ) );
+    entry.insert( KIO::UDSEntry::UDS_NAME, QString(path).remove( m_baseSearchPath ) );
     emit listEntry( entry );
     m_searchListingCounter--;
 

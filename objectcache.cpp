@@ -57,10 +57,10 @@ void ObjectCache::reset()
     m_reverseCache.clear();
     m_idToPathCache.clear();
 
-    m_reverseCache.insert( "",
+    m_reverseCache.insert( QString(),
                            new DIDL::Container( QLatin1String("0"), QLatin1String("-1"), false ) );
     m_idToPathCache.insert( QLatin1String("0"),
-                            new QString("") );
+                            new QString() );
 
     m_reverseCache.insert( QLatin1String("/"),
                            new DIDL::Container( QLatin1String("0"), QLatin1String("-1"), false ) );
@@ -150,7 +150,7 @@ void ObjectCache::resolvePathToObjectInternal()
                                  QLatin1String("dc:title"),
                                  0,
                                  0,
-                                 "" );
+                                 QString() );
 }
 
 void ObjectCache::attemptResolution( const HClientActionOp &op )
@@ -242,7 +242,7 @@ bool ObjectCache::update( const QString &id, const QString &containerUpdateId )
 {
     if( !hasUpdateId( id ) ) {
         if( m_idToPathCache.contains( id ) )
-            m_updatesHash[id] = UpdateValueAndPath( "", *m_idToPathCache[id] );
+            m_updatesHash[id] = UpdateValueAndPath( QString(), *m_idToPathCache[id] );
         else
             return false;
     }
@@ -284,7 +284,7 @@ void ObjectCache::resolveNextIdToPath()
     QString headId = m_idToPathRequests.dequeue();
     m_idResolve.id = headId;
     m_idResolve.currentId = headId;
-    m_idResolve.fullPath = "";
+    m_idResolve.fullPath.clear();
     resolveIdToPathInternal();
 }
 
@@ -304,7 +304,7 @@ void ObjectCache::resolveIdToPathInternal()
                                  QLatin1String("dc:title"),
                                  0,
                                  0,
-                                 "" );
+                                 QString() );
 }
 
 void ObjectCache::attemptIdToPathResolution( const HClientActionOp &op )
