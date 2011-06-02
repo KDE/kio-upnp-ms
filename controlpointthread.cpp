@@ -688,7 +688,7 @@ void ControlPointThread::slotParseError( const QString &errorString )
 void ControlPointThread::fillCommon( KIO::UDSEntry &entry, const DIDL::Object *obj )
 {
     entry.insert( KIO::UDSEntry::UDS_NAME, obj->title() );
-    entry.insert( KIO::UDSEntry::UDS_DISPLAY_NAME, QUrl::fromPercentEncoding( obj->title().toAscii() ) );
+    entry.insert( KIO::UDSEntry::UDS_DISPLAY_NAME, QUrl::fromPercentEncoding( obj->title().toLatin1() ) );
     long long access = 0;
     // perform all permissions checks here
 
@@ -877,7 +877,7 @@ void ControlPointThread::slotListSearchContainer( DIDL::Container *c )
     fillContainer( entry, c );
 
     // ugly hack to get around lack of closures in C++
-    setProperty( (QLatin1String("upnp_id_") + c->id()).toAscii().constData(),
+    setProperty( (QLatin1String("upnp_id_") + c->id()).toLatin1().constData(),
                  QVariant::fromValue( entry ) );
     connect( m_currentDevice.cache, SIGNAL( idToPathResolved( const QString &, const QString & ) ),
              this, SLOT( slotEmitSearchEntry( const QString &, const QString & ) ), Qt::UniqueConnection );
@@ -888,7 +888,7 @@ void ControlPointThread::slotListSearchItem( DIDL::Item *item )
 {
     KIO::UDSEntry entry;
     fillItem( entry, item );
-    setProperty( (QLatin1String("upnp_id_") + item->id()).toAscii().constData(),
+    setProperty( (QLatin1String("upnp_id_") + item->id()).toLatin1().constData(),
                  QVariant::fromValue( entry ) );
     connect( m_currentDevice.cache, SIGNAL( idToPathResolved( const QString &, const QString & ) ),
              this, SLOT( slotEmitSearchEntry( const QString &, const QString & ) ), Qt::UniqueConnection );
@@ -897,9 +897,9 @@ void ControlPointThread::slotListSearchItem( DIDL::Item *item )
 
 void ControlPointThread::slotEmitSearchEntry( const QString &id, const QString &path )
 {
-    KIO::UDSEntry entry = property( (QLatin1String("upnp_id_") + id).toAscii().constData() ).value<KIO::UDSEntry>();
+    KIO::UDSEntry entry = property( (QLatin1String("upnp_id_") + id).toLatin1().constData() ).value<KIO::UDSEntry>();
     // delete the property
-    setProperty( (QLatin1String("upnp_id_") + id).toAscii().constData(), QVariant() );
+    setProperty( (QLatin1String("upnp_id_") + id).toLatin1().constData(), QVariant() );
 
     kDebug() << "RESOLVED PATH" << path;
     kDebug() << "BASE SEARCH PATH " << m_baseSearchPath;
