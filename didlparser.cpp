@@ -63,13 +63,13 @@ Resource Parser::parseResource()
             raiseError( i18n("Bad protocolInfo %1", (protocolInfo)) );
             return Resource();
         }
-        r[QLatin1String("mimetype")] = fields[2];
+        r.insert(QLatin1String("mimetype"), fields[2]);
     }
 
     foreach( QXmlStreamAttribute attr, m_reader->attributes() ) {
-        r[attr.name().toString()] = attr.value().toString();
+        r.insert(attr.name().toString(), attr.value().toString());
     }
-    r[QLatin1String("uri")] = m_reader->readElementText();
+    r.insert(QLatin1String("uri"), m_reader->readElementText());
 
     return r;
 }
