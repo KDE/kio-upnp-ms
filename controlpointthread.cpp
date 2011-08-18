@@ -364,6 +364,7 @@ void ControlPointThread::createStatResult(const Herqq::Upnp::HClientActionOp &op
     }
 
     QString didlString = output[QLatin1String("Result")].value().toString();
+    kDebug() << didlString;
     DIDL::Parser parser;
     connect( &parser, SIGNAL(error( const QString& )), this, SLOT(slotParseError( const QString& )) );
     connect( &parser, SIGNAL(containerParsed(DIDL::Container *)), this, SLOT(slotListContainer(DIDL::Container *)) );
@@ -773,20 +774,28 @@ void ControlPointThread::searchResolvedPath( const DIDL::Object *object )
         return;
     }
 
+    kDebug() << "Searching!!!!!!!!!!!!!!! " << object->id();
     searchResolvedPath(object->id());
 }
 
 void ControlPointThread::searchResolvedPath( const QString &id, uint start, uint count )
 {
+    kDebug() << "SearchResolvedPath";
+    if( id.isNull() ) {
+        kDebug() << "ERROR: idString null";
+        emit error( KIO::ERR_DOES_NOT_EXIST, QString() );
+        return;
+    }
+
     if( !searchAction() ) {
         emit error( KIO::ERR_COULD_NOT_CONNECT, QString() );
         return;
     }
 
-    bool ok = disconnect( this, SIGNAL( browseResult(const Herqq::Upnp::HClientActionOp &) ),
-                          this, SLOT( createSearchListing(const Herqq::Upnp::HClientActionOp &) ) );
-    Q_ASSERT( ok );
-    Q_UNUSED( ok );
+    Q_ASSERT(connect( this, SIGNAL( browseResult( const Herqq::Upnp::HClientActionOp & ) ),
+                      this, SLOT( createSearchListing( const Herqq::Upnp::HClientActionOp&) ) ));
+
+    kDebug() << "SEARCHING!" << m_queryString;
     browseOrSearchObject( id,
                           searchAction(),
                           m_queryString,
