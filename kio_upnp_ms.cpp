@@ -66,45 +66,47 @@ extern "C" int KDE_EXPORT kdemain( int argc, char **argv )
 UPnPMS::UPnPMS( const QByteArray &pool, const QByteArray &app )
   : QObject(0)
   , SlaveBase( QByteArray("upnp-ms"), pool, app )
-  , m_statBusy( false )
-  , m_listBusy( false )
 {
     m_cpthread = new ControlPointThread;
     bool ok = connect( m_cpthread, SIGNAL( error( int, const QString & ) ),
                        this, SLOT( slotError( int, const QString & ) ) );
     Q_ASSERT( ok );
     Q_UNUSED( ok );
-    kDebug() << "Running threadless";
 }
 
 UPnPMS::~UPnPMS()
 {
-    kDebug() << "Deleting";
     delete m_cpthread;
     m_cpthread = 0;
 }
 
+void UPnPMS::waitLoop()
+{
+    QEventLoop loop;
+    connect( this, SIGNAL( breakLoop() ),
+             &loop, SLOT( quit() ) );
+    loop.exec();
+}
+
 void UPnPMS::stat( const KUrl &url )
 {
-    m_statBusy = true;
+    kDebug() << "STATSTATSTAT-----|||||||||||||||||||||||||||||||||||||||||||||||";
     connect( this, SIGNAL( startStat( const KUrl &) ),
              m_cpthread, SLOT( stat( const KUrl &) ) );
     connect( m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
                        this, SLOT( slotStatEntry( const KIO::UDSEntry & ) ) );
     emit startStat( url );
-    while( m_statBusy )
-        QCoreApplication::processEvents();
+    waitLoop();
 }
 
 void UPnPMS::get( const KUrl &url )
 {
-    m_statBusy = true;
+    kDebug() << "GETGETGETGETGET-----|||||||||||||||||||||||||||||||||||||||||||||||";
     connect( this, SIGNAL( startStat( const KUrl &) ),
              m_cpthread, SLOT( stat( const KUrl &) ) );
     connect( m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry & ) ), this, SLOT( slotRedirect( const KIO::UDSEntry & ) ) );
     emit startStat( url );
-    while( m_statBusy )
-        QCoreApplication::processEvents();
+    waitLoop();
 }
 
 void UPnPMS::slotError( int type, const QString &message )
@@ -115,13 +117,12 @@ void UPnPMS::slotError( int type, const QString &message )
     bool ok = connect( m_cpthread, SIGNAL( error( int, const QString & ) ),
                        this, SLOT( slotError( int, const QString & ) ) );
     Q_UNUSED(ok);
-    m_statBusy = false;
-    m_listBusy = false;
+    breakLoop();
 }
 
 void UPnPMS::listDir( const KUrl &url )
 {
-    m_listBusy = true;
+    kDebug() << "LISTDIR-----|||||||||||||||||||||||||||||||||||||||||||||||";
     connect( this, SIGNAL( startListDir( const KUrl &) ),
              m_cpthread, SLOT( listDir( const KUrl &) ) );
     connect( m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
@@ -131,8 +132,7 @@ void UPnPMS::listDir( const KUrl &url )
     emit startListDir( url );
     disconnect( this, SIGNAL( startListDir( const KUrl &) ),
                 m_cpthread, SLOT( listDir( const KUrl &) ) );
-    while( m_listBusy )
-        QCoreApplication::processEvents();
+    waitLoop();
 }
 
 void UPnPMS::slotStatEntry( const KIO::UDSEntry &entry )
@@ -143,9 +143,9 @@ void UPnPMS::slotStatEntry( const KIO::UDSEntry &entry )
     Q_UNUSED( ok );
     disconnect( this, SIGNAL( startStat( const KUrl &) ),
              m_cpthread, SLOT( stat( const KUrl &) ) );
+    emit breakLoop();
     statEntry( entry );
     finished();
-    m_statBusy = false;
 }
 
 void UPnPMS::slotRedirect( const KIO::UDSEntry &entry )
@@ -163,7 +163,7 @@ void UPnPMS::slotRedirect( const KIO::UDSEntry &entry )
     kDebug() << "REDIRECTING TO " << entry.stringValue( KIO::UDSEntry::UDS_TARGET_URL );
     redirection( entry.stringValue( KIO::UDSEntry::UDS_TARGET_URL ) );
     finished();
-    m_statBusy = false;
+    emit breakLoop();
 }
 
 void UPnPMS::slotListEntry( const KIO::UDSEntry &entry )
@@ -182,31 +182,31 @@ void UPnPMS::slotListingDone()
     KIO::UDSEntry entry;
     listEntry( entry, true );
     finished();
-    m_listBusy = false;
+    emit breakLoop();
 }
 
 void UPnPMS::openConnection()
 {
+    kDebug() << "OPENCONNECTION-----|||||||||||||||||||||||||||||||||||||||||||||||";
     if( m_connectedHost.isNull() ) {
         error( KIO::ERR_UNKNOWN_HOST, QString() );
         return;
     }
     connect( m_cpthread, SIGNAL(deviceReady()), this, SLOT(slotConnected()) );
-    m_statBusy = true;
     connect( this, SIGNAL( startStat( const KUrl &) ),
              m_cpthread, SLOT( stat( const KUrl &) ) );
     connect( m_cpthread, SIGNAL( listEntry( const KIO::UDSEntry &) ),
                        this, SLOT(slotConnected()), Qt::QueuedConnection );
     emit startStat( QLatin1String("upnp-ms://") + m_connectedHost );
-    while( m_statBusy )
-        QCoreApplication::processEvents();
+    waitLoop();
 }
 
 void UPnPMS::slotConnected()
 {
+    kDebug() << "------------ CONNNECTED ----------";
     disconnect( m_cpthread, SIGNAL(listEntry(KIO::UDSEntry)), this, SLOT(slotConnected()) );
     connected();
-    m_statBusy = false;
+    emit breakLoop();
 }
 
 void UPnPMS::setHost(const QString& host, quint16 port, const QString& user, const QString& pass)

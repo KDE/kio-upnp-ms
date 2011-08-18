@@ -78,6 +78,7 @@ class UPnPMS : public QObject, public KIO::SlaveBase
  signals:
     void startStat( const KUrl &url );
     void startListDir( const KUrl &url );
+    void breakLoop();
 
   private slots:
     void slotStatEntry( const KIO::UDSEntry & );
@@ -88,12 +89,11 @@ class UPnPMS : public QObject, public KIO::SlaveBase
     void slotConnected();
 
   private:
+    void waitLoop();
     // used for connection oriented mode.
     QString m_connectedHost;
 
     ControlPointThread *m_cpthread;
-    bool m_statBusy;
-    bool m_listBusy;
 };
 
 #endif
