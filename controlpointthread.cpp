@@ -154,8 +154,6 @@ void ControlPointThread::run()
 
 void ControlPointThread::rootDeviceOnline(HClientDevice *device) // SLOT
 {
-    kDebug() << "Received device " << device->info().udn().toString();
-
     // NOTE: as a reference!
     MediaServerDevice &dev = m_devices[device->info().udn().toSimpleUuid()];
     dev.device = device;
@@ -214,9 +212,7 @@ void ControlPointThread::rootDeviceOffline(HClientDevice *device) // SLOT
     const int removedDevices = m_devices.remove( uuid );
 
     if( removedDevices > 0 ) {
-        kDebug() << "Removing" << uuid;
         if( m_currentDevice.device->info().udn() == device->info().udn() ) {
-            kDebug() << "Was current device - invalidating";
             m_currentDevice.device = NULL;
             m_currentDevice.info = HDeviceInfo();
         }
@@ -229,8 +225,6 @@ void ControlPointThread::rootDeviceOffline(HClientDevice *device) // SLOT
  */
 bool ControlPointThread::updateDeviceInfo( const KUrl& url )
 {
-    kDebug() << "Updating device info for " << url;
-
     QString udn = QLatin1String("uuid:") + url.host();
 
     // the device is definitely present, so we let the scan fill in
@@ -247,7 +241,6 @@ bool ControlPointThread::updateDeviceInfo( const KUrl& url )
     // all devices don't support it
     // Thanks to Tuomo Penttinen for pointing that out
     if( !m_controlPoint->scan(specific) ) {
-        kDebug() << m_controlPoint->errorDescription();
         emit error( KIO::ERR_COULD_NOT_MOUNT, i18n( "Device %1 is offline", url.host() ) );
         return false;
     }
@@ -313,7 +306,6 @@ bool ControlPointThread::ensureDevice( const KUrl &url )
     QHash<QString, ControlPointThread::MediaServerDevice>::ConstIterator it =
         m_devices.find( url.host() );
     if( it != m_devices.constEnd() ) {
-        kDebug() << "We already know of device" << url.host();
         m_currentDevice = it.value();
         Q_ASSERT( m_currentDevice.cache );
         return true;
@@ -806,7 +798,7 @@ void ControlPointThread::searchResolvedPath( const QString &id, uint start, uint
 
 void ControlPointThread::createSearchListing(const HClientActionOp &op) // SLOT
 {
-    kDebug() << "DONE";
+    kDebug() << "createSearchListing";
     HActionArguments output = op.outputArguments();
     bool ok = disconnect( this, SIGNAL( browseResult(const Herqq::Upnp::HClientActionOp &) ),
                           this, SLOT( createSearchListing(const Herqq::Upnp::HClientActionOp &) ) );
@@ -896,8 +888,6 @@ void ControlPointThread::slotEmitSearchEntry( const QString &id, const QString &
     // delete the property
     setProperty( (QLatin1String("upnp_id_") + id).toLatin1().constData(), QVariant() );
 
-    kDebug() << "RESOLVED PATH" << path;
-    kDebug() << "BASE SEARCH PATH " << m_baseSearchPath;
     entry.insert( KIO::UDSEntry::UDS_NAME, QString(path).remove( m_baseSearchPath ) );
     emit listEntry( entry );
     m_searchListingCounter--;

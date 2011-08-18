@@ -49,6 +49,7 @@ PersistentAction::PersistentAction( Herqq::Upnp::HClientAction *action, QObject 
 
 void PersistentAction::timeout()
 {
+    kDebug() << "TIMEOUT";
     m_timer->stop();
     // disconnect so that we don't get multiple invokeComplete calls in case it just finishes
     bool ok = disconnect( m_action, SIGNAL( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp&) ),
@@ -72,7 +73,7 @@ void PersistentAction::invoke( const Herqq::Upnp::HActionArguments &args )
 
 void PersistentAction::invoke()
 {
-    kDebug() << "Beginning invoke" << m_action->info().name() << "Try number" << m_tries;
+    kDebug() << "Beginning invoke" << m_action << m_action->info().name() << "Try number" << m_tries;
     bool ok = connect( m_action, SIGNAL( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp &) ),
                        this, SLOT( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp &) ));
     Q_ASSERT(ok);
@@ -83,7 +84,7 @@ void PersistentAction::invoke()
 
 void PersistentAction::invokeComplete(Herqq::Upnp::HClientAction *action, const Herqq::Upnp::HClientActionOp &invocationOp) // SLOT
 {
-    kDebug() << "INVOKE COMPLETE";
+    kDebug() << "INVOKE COMPLETE" << action;
     m_timer->stop();
 
     if( invocationOp.returnValue() != Herqq::Upnp::UpnpSuccess ) {
@@ -110,6 +111,7 @@ void PersistentAction::invokeComplete(Herqq::Upnp::HClientAction *action, const 
         }
     }
 
+    kDebug() << "EVERYTHING FINE";
     bool ok = disconnect( m_action, SIGNAL( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp&) ),
                 this, SLOT( invokeComplete(Herqq::Upnp::HClientAction*, const Herqq::Upnp::HClientActionOp &) ) );
     Q_ASSERT( ok );
