@@ -7,7 +7,6 @@ Steps for Release
 *) Do clean compiles in Release and Debug mode
 *) Tag in git
 *) Create tar.gz
-*) Update .lsm
 *) Upload to ftp://ktown.kde.org/incoming/stable/KDE4.x/
 *) Open a bug on BKO to make the upload
 *) Announce on kde-announce-apps
